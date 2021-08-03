@@ -8,7 +8,7 @@ pkg_check_modules(EIGEN eigen3)
 pkg_check_modules(YAMLCPP REQUIRED yaml-cpp>=0.5)
 
 if (${roscpp_FOUND} AND ${rt_logger_FOUND})
-    add_definitions(-DLOGGER_ON)
+    #add_definitions(-DLOGGER_ON)
     message(STATUS "${Yellow}ROS and RT_LOGGER found, add logger${ColorReset}")
 endif()
 
@@ -24,18 +24,10 @@ else()
     message(FATAL_ERROR "The compiler ${CMAKE_CXX_COMPILER} has no C++11 support. Please use a different C++ compiler.")
 endif()
 
-if(NOT DEFINED externals_dir)
-    set(YAMLCPP_INCLUDE "${YAMLCPP_INCLUDE_DIRS}")
-    message(STATUS "${Yellow}Using system YAML${ColorReset}")
-else()
-    set(YAMLCPP_INCLUDE "${externals_dir}/yaml-cpp/include/")
-    message(STATUS "${Yellow}Using local YAML${ColorReset}")
-endif()
-
 include_directories(
  include
  ${EIGEN_INCLUDE_DIRS}
- ${YAMLCPP_INCLUDE}
+ ${YAMLCPP_INCLUDE_DIRS}
 )
 
 add_library(kalman SHARED
@@ -67,9 +59,6 @@ install(TARGETS target target_c kalman
         LIBRARY DESTINATION lib
         PUBLIC_HEADER DESTINATION include
 )
-
-install(DIRECTORY config/ DESTINATION /opt/casah/testbed/cal/
-        PATTERN ".yaml")
 
 if (${roscpp_FOUND} AND ${rt_logger_FOUND})
     message(STATUS "${Yellow}ROS and RT_LOGGER found, compiling target_node${ColorReset}")
