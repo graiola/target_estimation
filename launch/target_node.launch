@@ -1,0 +1,19 @@
+<?xml version="1.0" ?>
+<launch>
+        <arg name="plot" default="false"/>
+
+
+	<!-- Kalman filter parameters-->
+        <rosparam command="load" file="$(find target_estimation)/config/kf_rpy_params_3hz.yaml"/>
+
+	<!-- Start the kalman filter-->
+        <node name="target_node" pkg="target_estimation" type="target_node" respawn="false" output="screen"/>
+
+	<!-- plotJuggler -->
+        <group if="$(arg plot)">
+		<node pkg="plotjuggler" type="PlotJuggler" name="PlotJuggler"
+			args="--layout $(find target_estimation)/plot_juggler_files/kalman.xml --nosplash">
+		</node>
+	</group>
+
+</launch>
