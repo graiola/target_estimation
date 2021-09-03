@@ -1,4 +1,4 @@
-#include "target_estimation/target_c.h"
+#include "target_estimation/target_manager_c.h"
 #include "target_estimation/target_manager.hpp"
 #include <Eigen/Core>
 

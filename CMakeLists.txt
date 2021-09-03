@@ -42,7 +42,7 @@ add_library(target SHARED
 target_link_libraries(target kalman yaml-cpp ${roscpp_LIBRARIES} ${rt_logger_LIBRARIES})
 
 add_library(target_c SHARED
-  src/target_c.cpp
+  src/target_manager_c.cpp
 )
 target_link_libraries(target_c target kalman)
 
@@ -62,7 +62,7 @@ install(TARGETS target target_c kalman
 
 if (${roscpp_FOUND} AND ${rt_logger_FOUND})
     message(STATUS "${Yellow}ROS and RT_LOGGER found, compiling target_node${ColorReset}")
-    find_package(catkin REQUIRED COMPONENTS roscpp gazebo_ros gazebo_msgs geometry_msgs rt_logger message_generation)
+    find_package(catkin REQUIRED COMPONENTS roscpp geometry_msgs rt_logger message_generation tf)
 
     add_message_files(FILES TargetEstimation.msg)
 
@@ -76,10 +76,14 @@ if (${roscpp_FOUND} AND ${rt_logger_FOUND})
     )
 
     include_directories(include ${YAMLCPP_INCLUDE_DIRS} ${EIGEN_INCLUDE_DIRS} ${catkin_INCLUDE_DIRS})
-    add_executable(target_node test/target_node.cpp)
-    target_link_libraries(target_node ${YAMLCPP_LIBRARIES} target ${catkin_LIBRARIES})
 
-    install(TARGETS target target_c kalman target_node
+    add_library(target_ros src/target_manager_ros.cpp)
+    target_link_libraries(target_ros target ${catkin_LIBRARIES})
+
+    add_executable(target_node test/target_node.cpp)
+    target_link_libraries(target_node target_ros)
+
+    install(TARGETS target target_c target_ros kalman target_node
       ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
       LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
       RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}

@@ -73,10 +73,11 @@ class RosTargetManager
 
 public:
 
-    RosTargetManager(ros::NodeHandle& nh)
+    RosTargetManager(ros::NodeHandle& nh) // FIXME: This should be moved inside the library, it should work as a target ros wrapper, exposing the
+    // target's input and output
     {
         nh_ = nh;
-        measurament_sub_ = nh_.subscribe("/gazebo/model_states", 1, &RosTargetManager::MeasurementCallBack, this);
+        measurament_sub_ = nh_.subscribe("/gazebo/model_states", 1, &RosTargetManager::MeasurementCallBack, this); // FIXME: use tf topic from the rosbag
         model_name_ = "target";
         target_converged_ = false;
         target_id_ = 0;
@@ -187,7 +188,7 @@ public:
 
 private:
 
-    void MeasurementCallBack(const gazebo_msgs::ModelStates& model_states)
+    void MeasurementCallBack(const gazebo_msgs::ModelStates& model_states) // FIXME: create a thread safe updates
     {
         int n_models = model_states.name.size();
         int i_model;
