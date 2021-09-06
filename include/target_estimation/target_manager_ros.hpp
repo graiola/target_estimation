@@ -14,6 +14,7 @@
 #include <rt_logger/rt_logger.h>
 #include <atomic>
 #include <tf/transform_broadcaster.h>
+#include <tf2_msgs/TFMessage.h>
 
 #include "target_estimation/target_manager.hpp"
 
@@ -41,7 +42,7 @@ public:
 private:
 
 //    void MeasurementCallBack(const gazebo_msgs::ModelStates& model_states);
-    void MeasurementCallBack();
+    void MeasurementCallBack(const tf2_msgs::TFMessage& model_state);
     bool parseSquareMatrix(const ros::NodeHandle& n, const std::string& matrix, Eigen::MatrixXd& M);
     bool parseTargetType(const ros::NodeHandle& n, TargetManager::target_t& type);
 

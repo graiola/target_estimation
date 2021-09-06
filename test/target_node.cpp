@@ -18,6 +18,9 @@ std::default_random_engine generator;
 std::normal_distribution<double> normal_dist_pos(pObserved_mean_pos, pObserved_stddev_pos);
 std::normal_distribution<double> normal_dist_ori(pObserved_mean_ori, pObserved_stddev_ori);
 
+std::string target_name_frame = "/keyboard1";
+std::string world_frame_name = "/camera_depth_optical_frame";
+
 using namespace std;
 using namespace rt_logger;
 
@@ -29,6 +32,7 @@ int main(int argc, char* argv[]) {
 
     target_estimation::TargetEstimation target_estimation_msg;
     target_estimation_msg.header.frame_id = "world";
+
 
     // Orient the gripper camera down
     target_estimation_msg.interception_ready.data = false;
@@ -84,6 +88,8 @@ int main(int argc, char* argv[]) {
     ros::Publisher sphere_marker_pub        = nh.advertise<visualization_msgs::Marker>("sphere_marker", 1);
     ros::Publisher target_marker_pub        = nh.advertise<visualization_msgs::Marker>("target_marker", 1);
     ros::Publisher target_sphere_marker_pub = nh.advertise<visualization_msgs::Marker>("target_sphere_marker", 1);
+//    ros::Subscriber target_measurement_sub = nh.subscribe("target_measurement", 1);
+
     tf::TransformBroadcaster br;
     tf::Transform transform;
     tf::Quaternion q;
@@ -103,6 +109,7 @@ int main(int argc, char* argv[]) {
         target_velocity     = manager.getEstimatedTwist();
         target_orientation  = manager.getEstimatedOrientation();
         target_rpy          = manager.getEstimatedRPY();
+
 
         // Create the tf transform between /world and /target
         transform.setOrigin(tf::Vector3(target_position.x(),target_position.y(),target_position.z()));

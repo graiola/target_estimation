@@ -9,9 +9,7 @@ RosTargetManager::RosTargetManager(ros::NodeHandle& nh)
 {
     //FIXME: how to subscribe to tf messages generated from rosbag -> do I need to run the bag file from the code or not?
     nh_ = nh;
-    measurament_sub_ = nh_.subscribe("tf/transform_broadcaster",1,&RosTargetManager::MeasurementCallBack, this);
-//    measurament_sub_ = nh_.subscribe("/gazebo/model_states", 1, &RosTargetManager::MeasurementCallBack, this); // FIXME: use tf topic from the rosbag
-//    nh_ MUST BE A SUBSCRIBER TO /TF TOPICS
+    measurament_sub_ = nh_.subscribe("/tf_bag", 1 , &RosTargetManager::MeasurementCallBack, this);
 
     model_name_ = "target";
     target_converged_ = false;
@@ -112,150 +110,8 @@ void RosTargetManager::update(const double& dt)
     RtLogger::getLogger().publish(ros::Time::now());
 }
 
-
-//void RosTargetManager::MeasurementCallBack(const gazebo_msgs::ModelStates& model_states) // FIXME: create a thread safe updates
-//{
-//    int n_models = model_states.name.size();
-//    int i_model;
-//    bool model_found = false;
-
-//    double t = ros::Time::now().toSec();
-
-//    dt_ = t - t_prev_;
-
-//    for(i_model = 0; i_model<n_models; i_model++)
-//    {
-//        std::string i_model_name(model_states.name[i_model]);
-//        if(i_model_name.compare(model_name_)==0)
-//        {
-//            model_found = true;
-//            break;
-//        }
-//    }
-
-//    if (model_found)
-//    {
-
-//        real_pose_(0) = model_states.pose[i_model].position.x;
-//        real_pose_(1) = model_states.pose[i_model].position.y;
-//        real_pose_(2) = model_states.pose[i_model].position.z;
-
-//        POSE_qx(real_pose_) = model_states.pose[i_model].orientation.x;
-//        POSE_qy(real_pose_) = model_states.pose[i_model].orientation.y;
-//        POSE_qz(real_pose_) = model_states.pose[i_model].orientation.z;
-//        POSE_qw(real_pose_) = model_states.pose[i_model].orientation.w;
-
-//        real_twist_(0) = model_states.twist[i_model].linear.x;
-//        real_twist_(1) = model_states.twist[i_model].linear.y;
-//        real_twist_(2) = model_states.twist[i_model].linear.z;
-//        real_twist_(3) = model_states.twist[i_model].angular.x;
-//        real_twist_(4) = model_states.twist[i_model].angular.y;
-//        real_twist_(5) = model_states.twist[i_model].angular.z;
-//        //meas_lock.lock();
-//#ifdef ADD_NOISE
-//        meas_pose_.x() = real_pose_.x() + normal_dist_pos(generator);
-//        meas_pose_.y() = real_pose_.y() + normal_dist_pos(generator);
-//        meas_pose_.z() = real_pose_.z() + normal_dist_pos(generator);
-//        // FIXME Missing orientation noise
-//        POSE_qx(meas_pose_) = POSE_qx(real_pose_);
-//        POSE_qy(meas_pose_) = POSE_qy(real_pose_);
-//        POSE_qz(meas_pose_) = POSE_qz(real_pose_);
-//        POSE_qw(meas_pose_) = POSE_qw(real_pose_);
-//#else
-//        meas_pose_.x() = real_pose_.x();
-//        meas_pose_.y() = real_pose_.y();
-//        meas_pose_.z() = real_pose_.z();
-//        POSE_qx(meas_pose_) = POSE_qx(real_pose_);
-//        POSE_qy(meas_pose_) = POSE_qy(real_pose_);
-//        POSE_qz(meas_pose_) = POSE_qz(real_pose_);
-//        POSE_qw(meas_pose_) = POSE_qw(real_pose_);
-//#endif
-//        new_meas_ = true;
-//        //meas_lock.unlock();
-
-//    }
-//    else // No meas
-//    {
-//        ROS_WARN("No observation!");
-//        //meas_lock.lock();
-//        new_meas_ = false;
-//        //meas_lock.unlock();
-//    }
-
-//    update(dt_);
-
-//    t_prev_ = t;
-
-//}
-
-void RosTargetManager::MeasurementCallBack() // FIXME: create a thread safe updates
+void RosTargetManager::MeasurementCallBack(const tf2_msgs::TFMessage& model_state) // FIXME: create a thread safe updates
 {
-//    int n_models = model_states.name.size();
-    int n_models = 1;
-    int i_model;
-    bool model_found = false;
-
-    double t = ros::Time::now().toSec();
-
-    dt_ = t - t_prev_;
-
-    for(i_model = 0; i_model<n_models; i_model++)
-    {
-//        std::string i_model_name(model_states.name[i_model]); // model_name_
-        std::string i_model_name(model_name_);
-        if(i_model_name.compare(model_name_)==0)
-        {
-            model_found = true;
-            break;
-        }
-    }
-
-    if (model_found)
-    {
-
-        // READ THIS FROM MEASUREMENS (/TF MESSAGES)
-//        real_pose_(0) = model_states.pose[i_model].position.x;
-//        real_pose_(1) = model_states.pose[i_model].position.y;
-//        real_pose_(2) = model_states.pose[i_model].position.z;
-
-//        POSE_qx(real_pose_) = model_states.pose[i_model].orientation.x;
-//        POSE_qy(real_pose_) = model_states.pose[i_model].orientation.y;
-//        POSE_qz(real_pose_) = model_states.pose[i_model].orientation.z;
-//        POSE_qw(real_pose_) = model_states.pose[i_model].orientation.w;
-
-//        real_twist_(0) = model_states.twist[i_model].linear.x;
-//        real_twist_(1) = model_states.twist[i_model].linear.y;
-//        real_twist_(2) = model_states.twist[i_model].linear.z;
-//        real_twist_(3) = model_states.twist[i_model].angular.x;
-//        real_twist_(4) = model_states.twist[i_model].angular.y;
-//        real_twist_(5) = model_states.twist[i_model].angular.z;
-        //meas_lock.lock();
-
-
-        meas_pose_.x() = real_pose_.x();
-        meas_pose_.y() = real_pose_.y();
-        meas_pose_.z() = real_pose_.z();
-        POSE_qx(meas_pose_) = POSE_qx(real_pose_);
-        POSE_qy(meas_pose_) = POSE_qy(real_pose_);
-        POSE_qz(meas_pose_) = POSE_qz(real_pose_);
-        POSE_qw(meas_pose_) = POSE_qw(real_pose_);
-
-        new_meas_ = true;
-        //meas_lock.unlock();
-
-    }
-    else // No meas
-    {
-        ROS_WARN("No observation!");
-        //meas_lock.lock();
-        new_meas_ = false;
-        //meas_lock.unlock();
-    }
-
-    update(dt_);
-
-    t_prev_ = t;
-
 }
 
 
