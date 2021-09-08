@@ -11,3 +11,8 @@ Estimate the pose of incoming targets
 - [ x ] Read data (topic: rostopic echo /tf) from playback video using rosbag
 - [ x ] Use the rosbag for tests
 
+
+# Notes
+
+- check the estimation with the filter
+
