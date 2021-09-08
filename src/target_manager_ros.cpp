@@ -7,9 +7,9 @@ using namespace rt_logger;
 
 RosTargetManager::RosTargetManager(ros::NodeHandle& nh)
 {
-    //FIXME: how to subscribe to tf messages generated from rosbag -> do I need to run the bag file from the code or not?
     nh_ = nh;
-    measurament_sub_ = nh_.subscribe("/tf_bag", 1 , &RosTargetManager::MeasurementCallBack, this);
+    measurament_sub_ = nh_.subscribe("/tf", 1 , &RosTargetManager::MeasurementCallBack, this);
+
 
     model_name_ = "target";
     target_converged_ = false;
@@ -50,6 +50,8 @@ RosTargetManager::RosTargetManager(ros::NodeHandle& nh)
     RtLogger::getLogger().addPublisher("/target_node",est_pose_   ,"est_pose"  );
     RtLogger::getLogger().addPublisher("/target_node",est_twist_  ,"est_twist" );
     RtLogger::getLogger().addPublisher("/target_node",sigma_      ,"sigma"     );
+
+
 }
 
 void RosTargetManager::setInterceptionSphere(const Eigen::Vector3d& pos, const double& radius)
@@ -61,6 +63,10 @@ void RosTargetManager::setInterceptionSphere(const Eigen::Vector3d& pos, const d
 void RosTargetManager::update(const double& dt)
 {
 
+    double t = ros::Time::now().toSec();
+    dt_ = t - t_prev_;
+
+
     if(new_meas_)
     {
         if(manager_.getTarget(target_id_)==nullptr)
@@ -69,10 +75,16 @@ void RosTargetManager::update(const double& dt)
             double t0 = 0.0;
             manager_.init(target_id_,dt0,Q_,R_,P_,meas_pose_,t0,type_);
         }
-        manager_.update(target_id_,dt,meas_pose_);
+
+//        manager_.update(target_id_,dt,meas_pose_);
+        manager_.update(target_id_,dt_,meas_pose_);
+        new_meas_ = false;
     }
     else
-        manager_.update(target_id_,dt);
+    {
+      //        manager_.update(target_id_,dt);
+            manager_.update(target_id_,dt_);
+    }
 
 
     if(manager_.getTarget(target_id_)!=nullptr)
@@ -84,34 +96,102 @@ void RosTargetManager::update(const double& dt)
         est_rpy_        = manager_.getTarget(target_id_)->getEstimatedRPY();
         est_position_   = manager_.getTarget(target_id_)->getEstimatedPosition();
 
+        /*
         // Get the interception point
         if(manager_.getInterceptionPose(target_id_,t_,pos_th_,ang_th_,interception_pose_))
             target_converged_ = true;
 
         else
             target_converged_ = false;
+       */
 
-        t_= t_ + dt;
-    }
+      t_= t_ + dt;
 
+      pose_error_ = computePoseError(est_pose_,real_pose_);
+      twist_error_ << est_twist_ - real_twist_;
 
-    pose_error_ = computePoseError(est_pose_,real_pose_);
-    twist_error_ << est_twist_ - real_twist_;
+      auto kf = manager_.getTarget(target_id_)->getEstimator();
 
-    auto kf = manager_.getTarget(target_id_)->getEstimator();
-
-    for (unsigned int i=0; i<n_; i++)
+      for (unsigned int i=0; i<n_; i++)
+      {
         sigma_(i) = kf->getP()(i,i);
+      }
 
-    //std::cout<< t_ << std::endl;
-    //std::cout<< dt << std::endl;
-    //getchar();
+      RtLogger::getLogger().publish(ros::Time::now());
 
-    RtLogger::getLogger().publish(ros::Time::now());
+      t_prev_ = t;
+    }
 }
 
-void RosTargetManager::MeasurementCallBack(const tf2_msgs::TFMessage& model_state) // FIXME: create a thread safe updates
+void RosTargetManager::MeasurementCallBack(const tf2_msgs::TFMessage::ConstPtr& pose_msg)
 {
+  // associo il nome che vedo all'id ->std::map
+  // se nella map non esiste il nome -> creo l'oggetto
+  // if(target)
+//      manage_.init
+
+
+
+  meas_lock.lock();
+
+//  int n_models = pose_msg->transforms.size();
+
+  int i_model;
+  bool model_found = false;
+  new_meas_ = true;
+
+  // this is to find the given target
+  /*
+  for(i_model = 0; i_model<n_models; i_model++)
+  {
+    std::string i_model_name(pose_msg->transforms.data()->header.frame_id);
+    if(i_model_name.compare(model_name_)==0)
+    {
+      model_found = true;
+      break;
+    }
+  }
+  */
+  // TODO: loop on all targets found from the measurements -> is it ok or do we need to complete a target first to then move to the nex one?
+
+
+  Eigen::Vector3d meas_position;
+  meas_position(0) = pose_msg->transforms.data()->transform.translation.x;
+  meas_position(1) = pose_msg->transforms.data()->transform.translation.y;
+  meas_position(2) = pose_msg->transforms.data()->transform.translation.z;
+
+  Eigen::Quaterniond meas_quaternion;
+  meas_quaternion.x() = pose_msg->transforms.data()->transform.rotation.x;
+  meas_quaternion.y() = pose_msg->transforms.data()->transform.rotation.y;
+  meas_quaternion.z() = pose_msg->transforms.data()->transform.rotation.z;
+  meas_quaternion.w() = pose_msg->transforms.data()->transform.rotation.w;
+
+  // Debug -> assign to the estimation the measurement obtained from the camera
+//  est_position_ = meas_position;
+//  est_quaternion_ = meas_quaternion;
+
+  /*
+  meas_pose_.x() =  pose_msg->transforms.data()->transform.translation.x;
+  meas_pose_.y() =  pose_msg->transforms.data()->transform.translation.y;
+  meas_pose_.z() =  pose_msg->transforms.data()->transform.translation.z;
+  POSE_qx(meas_pose_) = pose_msg->transforms.data()->transform.rotation.x;
+  POSE_qy(meas_pose_) = pose_msg->transforms.data()->transform.rotation.x;
+  POSE_qz(meas_pose_) = pose_msg->transforms.data()->transform.rotation.x;
+  POSE_qw(meas_pose_) = pose_msg->transforms.data()->transform.rotation.x;
+  */
+
+  meas_pose_(0) =  meas_position.x();
+  meas_pose_(1) =  meas_position.y();
+  meas_pose_(2) =  meas_position.z();
+  meas_pose_(3) = meas_quaternion.x();
+  meas_pose_(4) = meas_quaternion.y();
+  meas_pose_(5) = meas_quaternion.z();
+  meas_pose_(6) = meas_quaternion.w();
+
+  // Call the update function
+  update(dt_);
+
+  meas_lock.unlock();
 }
 
 

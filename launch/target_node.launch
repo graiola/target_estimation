@@ -4,10 +4,11 @@
 
 
 	<!-- Kalman filter parameters-->
-        <rosparam command="load" file="$(find target_estimation)/config/kf_rpy_params_3hz.yaml"/>
+        <rosparam command="load" file="$(find target_estimation)/config/kf_rpy_params_100hz.yaml"/>
 
         <!-- ROS bag -->
-        <node pkg="rosbag" type="play" name="rosbag_play_target" output="screen" required="true" args="--loop $(find target_estimation)/bag_files/single_keyboard_test.bag tf:=tf_bag"/>
+        <node pkg="rosbag" type="play" name="rosbag_play_target" output="screen" required="true" args="--loop $(find target_estimation)/bag_files/single_keyboard_test.bag"/>
+
 
 	<!-- Start the kalman filter-->
         <node name="target_node" pkg="target_estimation" type="target_node" respawn="false" output="screen"/>

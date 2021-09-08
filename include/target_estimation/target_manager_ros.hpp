@@ -41,8 +41,7 @@ public:
 
 private:
 
-//    void MeasurementCallBack(const gazebo_msgs::ModelStates& model_states);
-    void MeasurementCallBack(const tf2_msgs::TFMessage& model_state);
+    void MeasurementCallBack(const tf2_msgs::TFMessage::ConstPtr& pose_msg);
     bool parseSquareMatrix(const ros::NodeHandle& n, const std::string& matrix, Eigen::MatrixXd& M);
     bool parseTargetType(const ros::NodeHandle& n, TargetManager::target_t& type);
 
