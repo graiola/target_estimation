@@ -20,8 +20,8 @@ std::default_random_engine generator;
 std::normal_distribution<double> normal_dist_pos(pObserved_mean_pos, pObserved_stddev_pos);
 std::normal_distribution<double> normal_dist_ori(pObserved_mean_ori, pObserved_stddev_ori);
 
-std::string target_name_frame = "keyboard";
-std::string world_frame_name = "camera_depth_optical_frame";
+const std::string target_name_frame = "keyboard";
+const std::string world_frame_name = "camera_depth_optical_frame";
 
 using namespace std;
 using namespace rt_logger;
@@ -89,8 +89,6 @@ int main(int argc, char* argv[]) {
   ros::Publisher sphere_marker_pub        = nh.advertise<visualization_msgs::Marker>("sphere_marker", 1);
   ros::Publisher target_marker_pub        = nh.advertise<visualization_msgs::Marker>("target_marker", 1);
   ros::Publisher target_sphere_marker_pub = nh.advertise<visualization_msgs::Marker>("target_sphere_marker", 1);
-  //    ros::Subscriber target_measurement_sub = nh.subscribe("target_measurement", 1);
-
   tf::TransformBroadcaster br;
   tf::Transform transform;
   tf::Quaternion q;
@@ -98,7 +96,7 @@ int main(int argc, char* argv[]) {
   RosTargetManager manager(nh);
   manager.setInterceptionSphere(interception_sphere_pos,interception_sphere_radius);
 
-  double f = 100; // Hz -> remember to use the corresponding YAML file
+  double f = 1000; // Hz -> remember to use the corresponding YAML file
   //double dt = 1.0/f;
   ros::Rate rate(f);
 
@@ -123,7 +121,8 @@ int main(int argc, char* argv[]) {
     target_rpy          = manager.getEstimatedRPY();
 
 
-    /*---- Public on /tf topic ----*/
+    //Estimated pose publication
+    /*---- Publish on /tf topic ----*/
     // Create the tf transform between /world and /target
     transform.setOrigin(tf::Vector3(target_position.x(),target_position.y(),target_position.z()));
     //quatToRpy(target_orientation,target_rpy);
@@ -134,10 +133,11 @@ int main(int argc, char* argv[]) {
     //q.setW(target_orientation.w());
     q.normalize();
     transform.setRotation(q);
-    br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), ("/" + world_frame_name + "_est"), ("/" + target_name_frame + "_est") ));
+//    br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), ("/" + world_frame_name + "_est"), ("/" + target_name_frame + "_est") ));
+    br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), ("/" + world_frame_name), ("/" + target_name_frame + "_est") ));
 
 
-    /*---- Public on /target_marker topic ----*/
+    /*---- Publish on /target_marker topic ----*/
     target_marker.pose.position.x = target_estimation_msg.pose.position.x = target_position.x();
     target_marker.pose.position.y = target_estimation_msg.pose.position.y = target_position.y();
     target_marker.pose.position.z = target_estimation_msg.pose.position.z = target_position.z();

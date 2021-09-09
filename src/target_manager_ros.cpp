@@ -7,120 +7,119 @@ using namespace rt_logger;
 
 RosTargetManager::RosTargetManager(ros::NodeHandle& nh)
 {
-    nh_ = nh;
-    measurament_sub_ = nh_.subscribe("/tf", 1 , &RosTargetManager::MeasurementCallBack, this);
+  // subscribe to /tf topic
+  nh_ = nh;
+  measurament_sub_ = nh_.subscribe("/tf", 1 , &RosTargetManager::MeasurementCallBack, this);
 
 
-    model_name_ = "target";
-    target_converged_ = false;
-    target_id_ = 0;
-    new_meas_ = false;
-    t_ = 0.0;
-    dt_ = 0.01;
-    t_prev_ = 0.0;
-    pos_th_ = 0.001;
-    ang_th_ = 0.001;
+  model_name_ = "target";
+  target_converged_ = false;
+  target_id_ = 0;
+  new_meas_ = false;
+  t_ = 0.0;
+  dt_ = 0.01;
+  t_prev_ = 0.0;
+  pos_th_ = 0.001;
+  ang_th_ = 0.001;
 
 
-    // Load the parameters for the measuraments
-    if(!parseSquareMatrix(nh_,"Q",Q_) || !parseSquareMatrix(nh_,"R",R_) || !parseSquareMatrix(nh_,"P",P_))
-        throw std::runtime_error("Can not load the Cov Matrices!");
+  // Load the parameters for initializing the KF
+  if(!parseSquareMatrix(nh_,"Q",Q_) || !parseSquareMatrix(nh_,"R",R_) || !parseSquareMatrix(nh_,"P",P_))
+    throw std::runtime_error("Can not load the Cov Matrices!");
 
-    if(!parseTargetType(nh_,type_))
-        throw std::runtime_error("Can not load filter type!");
+  if(!parseTargetType(nh_,type_))
+    throw std::runtime_error("Can not load filter type!");
 
-    n_ = static_cast<unsigned int>(Q_.rows());
-    m_ = static_cast<unsigned int>(R_.rows());
+  n_ = static_cast<unsigned int>(Q_.rows());
+  m_ = static_cast<unsigned int>(R_.rows());
 
-    real_twist_.setZero();
-    est_twist_.setZero();
-    initPose(est_pose_);
-    initPose(interception_pose_);
-    initPose(meas_pose_);
-    initPose(real_pose_);
-    sigma_.resize(n_);
+  real_twist_.setZero();
+  est_twist_.setZero();
+  initPose(est_pose_);
+  initPose(interception_pose_);
+  initPose(meas_pose_);
+  initPose(real_pose_);
+  sigma_.resize(n_);
 
 
-    // Create the logger publishers
-    RtLogger::getLogger().addPublisher("/target_node",twist_error_,"err_twist" );
-    RtLogger::getLogger().addPublisher("/target_node",meas_pose_  ,"meas_pose" );
-    RtLogger::getLogger().addPublisher("/target_node",real_pose_  ,"pose"      );
-    RtLogger::getLogger().addPublisher("/target_node",pose_error_ ,"err_pose"  );
-    RtLogger::getLogger().addPublisher("/target_node",real_twist_ ,"twist"     );
-    RtLogger::getLogger().addPublisher("/target_node",est_pose_   ,"est_pose"  );
-    RtLogger::getLogger().addPublisher("/target_node",est_twist_  ,"est_twist" );
-    RtLogger::getLogger().addPublisher("/target_node",sigma_      ,"sigma"     );
+  // Create the logger publishers
+  RtLogger::getLogger().addPublisher("/target_node",twist_error_,"err_twist" );
+  RtLogger::getLogger().addPublisher("/target_node",meas_pose_  ,"meas_pose" );
+  RtLogger::getLogger().addPublisher("/target_node",real_pose_  ,"pose"      );
+  RtLogger::getLogger().addPublisher("/target_node",pose_error_ ,"err_pose"  );
+  RtLogger::getLogger().addPublisher("/target_node",real_twist_ ,"twist"     );
+  RtLogger::getLogger().addPublisher("/target_node",est_pose_   ,"est_pose"  );
+  RtLogger::getLogger().addPublisher("/target_node",est_twist_  ,"est_twist" );
+  RtLogger::getLogger().addPublisher("/target_node",sigma_      ,"sigma"     );
 
 
 }
 
 void RosTargetManager::setInterceptionSphere(const Eigen::Vector3d& pos, const double& radius)
 {
-    manager_.setInterceptionSphere(pos,radius);
+  manager_.setInterceptionSphere(pos,radius);
 }
 
 
 void RosTargetManager::update(const double& dt)
 {
 
-    double t = ros::Time::now().toSec();
-    dt_ = t - t_prev_;
+  double t = ros::Time::now().toSec();
+  dt_ = t - t_prev_;
 
 
-    if(new_meas_)
+  if(new_meas_)
+  {
+    if(manager_.getTarget(target_id_)==nullptr)
     {
-        if(manager_.getTarget(target_id_)==nullptr)
-        {
-            double dt0 = dt_;
-            double t0 = 0.0;
-            manager_.init(target_id_,dt0,Q_,R_,P_,meas_pose_,t0,type_);
-        }
-
-//        manager_.update(target_id_,dt,meas_pose_);
-        manager_.update(target_id_,dt_,meas_pose_);
-        new_meas_ = false;
-    }
-    else
-    {
-      //        manager_.update(target_id_,dt);
-            manager_.update(target_id_,dt_);
+      double dt0 = dt_;
+      double t0 = 0.0;
+      manager_.init(target_id_,dt0,Q_,R_,P_,meas_pose_,t0,type_);
     }
 
+    manager_.update(target_id_,dt,meas_pose_);
+    new_meas_ = false;
+  }
+  else
+  {
+    manager_.update(target_id_,dt);
+  }
 
-    if(manager_.getTarget(target_id_)!=nullptr)
-    {
 
-        est_pose_       = manager_.getTarget(target_id_)->getEstimatedPose();
-        est_twist_      = manager_.getTarget(target_id_)->getEstimatedTwist();
-        est_quaternion_ = manager_.getTarget(target_id_)->getEstimatedOrientation();
-        est_rpy_        = manager_.getTarget(target_id_)->getEstimatedRPY();
-        est_position_   = manager_.getTarget(target_id_)->getEstimatedPosition();
+  if(manager_.getTarget(target_id_)!=nullptr)
+  {
 
-        /*
+    est_pose_       = manager_.getTarget(target_id_)->getEstimatedPose();
+    est_twist_      = manager_.getTarget(target_id_)->getEstimatedTwist();
+    est_quaternion_ = manager_.getTarget(target_id_)->getEstimatedOrientation();
+    est_rpy_        = manager_.getTarget(target_id_)->getEstimatedRPY();
+    est_position_   = manager_.getTarget(target_id_)->getEstimatedPosition();
+
+
         // Get the interception point
         if(manager_.getInterceptionPose(target_id_,t_,pos_th_,ang_th_,interception_pose_))
             target_converged_ = true;
 
         else
             target_converged_ = false;
-       */
 
-      t_= t_ + dt;
 
-      pose_error_ = computePoseError(est_pose_,real_pose_);
-      twist_error_ << est_twist_ - real_twist_;
+    t_= t_ + dt;
 
-      auto kf = manager_.getTarget(target_id_)->getEstimator();
+    pose_error_ = computePoseError(est_pose_,real_pose_);
+    twist_error_ << est_twist_ - real_twist_;
 
-      for (unsigned int i=0; i<n_; i++)
-      {
-        sigma_(i) = kf->getP()(i,i);
-      }
+    auto kf = manager_.getTarget(target_id_)->getEstimator();
 
-      RtLogger::getLogger().publish(ros::Time::now());
-
-      t_prev_ = t;
+    for (unsigned int i=0; i<n_; i++)
+    {
+      sigma_(i) = kf->getP()(i,i);
     }
+
+    RtLogger::getLogger().publish(ros::Time::now());
+
+    t_prev_ = t;
+  }
 }
 
 void RosTargetManager::MeasurementCallBack(const tf2_msgs::TFMessage::ConstPtr& pose_msg)
@@ -128,13 +127,13 @@ void RosTargetManager::MeasurementCallBack(const tf2_msgs::TFMessage::ConstPtr& 
   // associo il nome che vedo all'id ->std::map
   // se nella map non esiste il nome -> creo l'oggetto
   // if(target)
-//      manage_.init
+  //      manage_.init
 
 
 
   meas_lock.lock();
 
-//  int n_models = pose_msg->transforms.size();
+  //  int n_models = pose_msg->transforms.size();
 
   int i_model;
   bool model_found = false;
@@ -167,8 +166,8 @@ void RosTargetManager::MeasurementCallBack(const tf2_msgs::TFMessage::ConstPtr& 
   meas_quaternion.w() = pose_msg->transforms.data()->transform.rotation.w;
 
   // Debug -> assign to the estimation the measurement obtained from the camera
-//  est_position_ = meas_position;
-//  est_quaternion_ = meas_quaternion;
+  //  est_position_ = meas_position;
+  //  est_quaternion_ = meas_quaternion;
 
   /*
   meas_pose_.x() =  pose_msg->transforms.data()->transform.translation.x;
@@ -197,38 +196,38 @@ void RosTargetManager::MeasurementCallBack(const tf2_msgs::TFMessage::ConstPtr& 
 
 bool RosTargetManager::parseSquareMatrix(const ros::NodeHandle& n, const std::string& matrix, Eigen::MatrixXd& M)
 {
-    std::vector<double> Mv;
-    if (n.getParam(matrix, Mv))
-    {
-        unsigned int size = static_cast<unsigned int>(std::sqrt(Mv.size()));
-        M = Eigen::Map<Eigen::MatrixXd>(Mv.data(),size,size);
-    }
-    else
-    {
-        ROS_ERROR_STREAM("Can not find matrix: "<<matrix);
-        return false;
-    }
+  std::vector<double> Mv;
+  if (n.getParam(matrix, Mv))
+  {
+    unsigned int size = static_cast<unsigned int>(std::sqrt(Mv.size()));
+    M = Eigen::Map<Eigen::MatrixXd>(Mv.data(),size,size);
+  }
+  else
+  {
+    ROS_ERROR_STREAM("Can not find matrix: "<<matrix);
+    return false;
+  }
 
-    return true;
+  return true;
 }
 
 bool RosTargetManager::parseTargetType(const ros::NodeHandle& n, TargetManager::target_t& type)
 {
-    std::string type_str;
-    if (n.getParam("type", type_str))
-    {
-        if (std::strcmp(type_str.c_str(),"rpy")==0)
-            type = TargetManager::target_t::RPY;
-        else if (std::strcmp(type_str.c_str(),"rpy_ext") == 0)
-            type = TargetManager::target_t::RPY_EXT;
+  std::string type_str;
+  if (n.getParam("type", type_str))
+  {
+    if (std::strcmp(type_str.c_str(),"rpy")==0)
+      type = TargetManager::target_t::RPY;
+    else if (std::strcmp(type_str.c_str(),"rpy_ext") == 0)
+      type = TargetManager::target_t::RPY_EXT;
 
-        return true;
-    }
-    else
-    {
-        ROS_ERROR_STREAM("Can not find type");
-        return false;
-    }
+    return true;
+  }
+  else
+  {
+    ROS_ERROR_STREAM("Can not find type");
+    return false;
+  }
 
 }
 
