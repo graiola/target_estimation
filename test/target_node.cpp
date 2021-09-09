@@ -3,22 +3,13 @@
 */
 
 
-#include <random>
+
 
 #include "target_estimation/target_manager_ros.hpp"
 
 #define ADD_NOISE
 
 #define DEBUG
-// Simulated measurement noise
-const double pObserved_stddev_pos = 0.01; // [m] 0.001[m] = 1[mm]
-const double pObserved_mean_pos = 0.0;     // [m]
-const double pObserved_stddev_ori = 0.01; // [rad]
-const double pObserved_mean_ori = 0.0;    // [rad]
-// Statistical generators
-std::default_random_engine generator;
-std::normal_distribution<double> normal_dist_pos(pObserved_mean_pos, pObserved_stddev_pos);
-std::normal_distribution<double> normal_dist_ori(pObserved_mean_ori, pObserved_stddev_ori);
 
 const std::string target_name_frame = "keyboard";
 const std::string world_frame_name = "camera_depth_optical_frame";
@@ -127,13 +118,10 @@ int main(int argc, char* argv[]) {
     transform.setOrigin(tf::Vector3(target_position.x(),target_position.y(),target_position.z()));
     //quatToRpy(target_orientation,target_rpy);
     q.setRPY(target_rpy(0),target_rpy(1),target_rpy(2));
-    //q.setX(target_orientation.x());
-    //q.setY(target_orientation.y());
-    //q.setZ(target_orientation.z());
-    //q.setW(target_orientation.w());
     q.normalize();
     transform.setRotation(q);
-//    br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), ("/" + world_frame_name + "_est"), ("/" + target_name_frame + "_est") ));
+
+    // send pose of target frame ( ("/" + target_name_frame + "_est") ) referred to world frame ( ("/" + world_frame_name) )
     br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), ("/" + world_frame_name), ("/" + target_name_frame + "_est") ));
 
 
@@ -153,7 +141,7 @@ int main(int argc, char* argv[]) {
     target_marker_pub.publish(target_marker);
     target_estimation_pub.publish(target_estimation_msg);
 
-    /*
+
     if(manager.isTargetConverged())
     {
       interception_pose = manager.getInterceptionPose();
@@ -170,7 +158,7 @@ int main(int argc, char* argv[]) {
 
 
     sphere_marker_pub.publish(sphere_marker);
-    */
+
 
     t_pre = t;
 

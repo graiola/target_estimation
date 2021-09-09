@@ -133,14 +133,15 @@ void RosTargetManager::MeasurementCallBack(const tf2_msgs::TFMessage::ConstPtr& 
 
   meas_lock.lock();
 
-  //  int n_models = pose_msg->transforms.size();
+  // FIXME: get the number of models on the basis of the different target received from /tf topic
+  int n_models = 1;
 
+  // TODO: run the KF to all identified targets (n_models -> run a loop)
   int i_model;
   bool model_found = false;
   new_meas_ = true;
 
   // this is to find the given target
-  /*
   for(i_model = 0; i_model<n_models; i_model++)
   {
     std::string i_model_name(pose_msg->transforms.data()->header.frame_id);
@@ -150,8 +151,6 @@ void RosTargetManager::MeasurementCallBack(const tf2_msgs::TFMessage::ConstPtr& 
       break;
     }
   }
-  */
-  // TODO: loop on all targets found from the measurements -> is it ok or do we need to complete a target first to then move to the nex one?
 
 
   Eigen::Vector3d meas_position;
@@ -164,10 +163,6 @@ void RosTargetManager::MeasurementCallBack(const tf2_msgs::TFMessage::ConstPtr& 
   meas_quaternion.y() = pose_msg->transforms.data()->transform.rotation.y;
   meas_quaternion.z() = pose_msg->transforms.data()->transform.rotation.z;
   meas_quaternion.w() = pose_msg->transforms.data()->transform.rotation.w;
-
-  // Debug -> assign to the estimation the measurement obtained from the camera
-  //  est_position_ = meas_position;
-  //  est_quaternion_ = meas_quaternion;
 
   /*
   meas_pose_.x() =  pose_msg->transforms.data()->transform.translation.x;
