@@ -2,19 +2,17 @@
 <launch>
         <arg name="plot" default="false"/>
 
+        <!-- Start ROS bag -->
+        <node pkg="rosbag" type="play" name="rosbag_play_target" output="screen" required="true" args="--loop $(find target_estimation)/bag_files/single_keyboard_tf_2021-09-09.bag"/>
 
 	<!-- Kalman filter parameters-->
         <rosparam command="load" file="$(find target_estimation)/config/kf_rpy_params_3hz.yaml"/>
 
-        <!-- Start ROS bag -->
-        <node pkg="rosbag" type="play" name="rosbag_play_target" output="screen" required="true" args="--loop $(find target_estimation)/bag_files/single_keyboard_tf_2021-09-09.bag"/>
-
-	<!-- Start the kalman filter-->
+        <!-- Start the node-->
         <node name="target_node" pkg="target_estimation" type="target_node" respawn="false" output="screen"/>
 
         <!-- Start rviz with an external configurtion file -->
-        <node type="rviz" name="rviz" pkg="rviz" args="-d $(find target_estimation)/config/rviz/target_node_rviz_config.rviz"/>
-
+        <node type="rviz" name="rviz" pkg="rviz" args="-d $(find target_estimation)/config/rviz_conf/target_node_rviz_congif.rviz"/>
 
 	<!-- plotJuggler -->
         <group if="$(arg plot)">

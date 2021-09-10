@@ -24,6 +24,7 @@ class RosTargetManager
 public:
 
     RosTargetManager(ros::NodeHandle& nh);
+    RosTargetManager(ros::NodeHandle& nh, std::string& target_name_frame, double& dt);
 
     void setInterceptionSphere(const Eigen::Vector3d& pos, const double& radius);
 
@@ -44,6 +45,8 @@ private:
     void MeasurementCallBack(const tf2_msgs::TFMessage::ConstPtr& pose_msg);
     bool parseSquareMatrix(const ros::NodeHandle& n, const std::string& matrix, Eigen::MatrixXd& M);
     bool parseTargetType(const ros::NodeHandle& n, TargetManager::target_t& type);
+
+//    void initPoseWithMeas();
 
     ros::NodeHandle nh_;
     TargetManager manager_;
@@ -74,6 +77,10 @@ private:
     TargetManager::target_t type_;
     std::atomic<bool> new_meas_;
     std::mutex meas_lock;
+
+    std::map<std::string, unsigned int> map_targets_;
+//    std::vector<std::map<std::string, unsigned int>> map_targets;
+    std::vector<std::string> targets_frames_;
 };
 
 #endif

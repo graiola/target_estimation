@@ -11,8 +11,8 @@
 
 #define DEBUG
 
-const std::string target_name_frame = "keyboard";
-const std::string world_frame_name = "camera_depth_optical_frame";
+std::string target_name_frame = "keyboard1";
+std::string world_frame_name = "camera_depth_optical_frame";
 
 using namespace std;
 using namespace rt_logger;
@@ -84,24 +84,22 @@ int main(int argc, char* argv[]) {
   tf::Transform transform;
   tf::Quaternion q;
 
-  RosTargetManager manager(nh);
+  double f = 1000; // Hz -> remember to use the corresponding YAML file
+  double dt = 1.0/f;
+
+  RosTargetManager manager(nh, target_name_frame, dt);
   manager.setInterceptionSphere(interception_sphere_pos,interception_sphere_radius);
 
-  double f = 1000; // Hz -> remember to use the corresponding YAML file
-  //double dt = 1.0/f;
   ros::Rate rate(f);
 
-  double t, t_pre, dt = 0;
+  double t, t_pre = 0;
 
   while (ros::ok())
   {
+#ifndef DEBUG
     t = ros::Time::now().toSec();
 
     dt = t - t_pre;
-
-#ifdef DEBUG
-    std::cout << "Delta_t = " << dt << std::endl;
-#endif
 
     // Update the model
     manager.update(dt);
@@ -161,7 +159,7 @@ int main(int argc, char* argv[]) {
 
 
     t_pre = t;
-
+#endif
     ros::spinOnce();
 
     rate.sleep();
