@@ -4,10 +4,10 @@ Estimate the pose of incoming targets
 
 # ToDo
 
-- [ ] add launch rviz from launch file
 - [ ] implement for multiple targets (depending on the number of /tf received)
 - [ ] Implement Deletion of target once they are no longer received from camera
 - [ ] check covariance paametrs
+- [ x ] add launch rviz from launch file
 - [ x ] Clean the code (gazebo stuff such as launch files and world, random)
 - [ x ] implement measurement callback function (use lock()!)
 - [ x ] Add target manager ROS wrapper
@@ -20,3 +20,7 @@ Estimate the pose of incoming targets
 - used f=1kz which allows obtaining a smoother pose estimation
 - code cleaned from unused stuff.
 - used a constant number of models to test the code. Add capabilities of obtaining multiple targets on the basis of the information obtained from /tf.
+
+# Notes 2021/09/10
+
+- added rviz launch with configs set in launch file
