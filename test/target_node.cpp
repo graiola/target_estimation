@@ -96,7 +96,7 @@ int main(int argc, char* argv[]) {
 
   while (ros::ok())
   {
-#ifndef DEBUG
+#ifndef DEBUG_CLASS
     t = ros::Time::now().toSec();
 
     dt = t - t_pre;

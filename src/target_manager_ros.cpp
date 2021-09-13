@@ -63,144 +63,52 @@ RosTargetManager::RosTargetManager(ros::NodeHandle& nh, std::string& target_name
   nh_ = nh;
   measurament_sub_ = nh_.subscribe("/tf", 1 , &RosTargetManager::MeasurementCallBack, this);
 
-  // FIXME: as soon as the initialization of a new target works correctly, put this in a new method called: initTarget.
-  //        then, there would be also a deInitTarget which will be in charge of adjusting the vector of targets and the map
-
-  // FIXME: group the repeated operatios to clean the code
-
-  // 1: check if the vector with frame names is empty. If it is not, check if the input frame name is already stored
-  if(targets_frames_.empty())
-  {
-    targets_frames_.push_back("/" + target_name_frame);
-
-    // the loop on all target must be done in the update function!
+  model_name_ = "/" + target_name_frame;
+  target_id_ = 0;
 
 
-    // map the target name to an int
-    map_targets_.insert(pair<std::string, unsigned int>(target_name_frame, targets_frames_.size()-1));
-    //    map_targets.push_back(map_sgl_target_);
-    //    target_id_
-    target_id_ = map_targets_.end()->second;
-//    target_id_ = 0;
+  target_converged_ = false;
+  new_meas_ = false;
 
-#ifdef DEBUG_tmp
-    std::cout << "Target id: " <<  map_targets_.end()->first << " - Target n.: " << map_targets_.end()->second << std::endl;
-#endif
+  t_ = 0.0;
+  dt_ = dt;
+  t_prev_ = 0.0;
+  pos_th_ = 0.001;
+  ang_th_ = 0.001;
 
-    target_converged_ = false;
-    //    target_id_ = 0;
-    new_meas_ = false;
-    t_ = 0.0;
-    dt_ = dt;
-    t_prev_ = 0.0;
-    pos_th_ = 0.001;
-    ang_th_ = 0.001;
+  // Load the parameters for initializing the KF
+  if(!parseSquareMatrix(nh_,"Q",Q_) || !parseSquareMatrix(nh_,"R",R_) || !parseSquareMatrix(nh_,"P",P_))
+    throw std::runtime_error("Can not load the Cov Matrices!");
 
-    // Load the parameters for initializing the KF
-    if(!parseSquareMatrix(nh_,"Q",Q_) || !parseSquareMatrix(nh_,"R",R_) || !parseSquareMatrix(nh_,"P",P_))
-      throw std::runtime_error("Can not load the Cov Matrices!");
+  if(!parseTargetType(nh_,type_))
+    throw std::runtime_error("Can not load filter type!");
 
-    if(!parseTargetType(nh_,type_))
-      throw std::runtime_error("Can not load filter type!");
+  n_ = static_cast<unsigned int>(Q_.rows());
+  m_ = static_cast<unsigned int>(R_.rows());
 
-    n_ = static_cast<unsigned int>(Q_.rows());
-    m_ = static_cast<unsigned int>(R_.rows());
+  // FIXME: init the model with the first measurment obtained as soon as the target has been subscribed to the topic &/tf
+  real_twist_.setZero();
+  est_twist_.setZero();
+  initPose(est_pose_);
+  initPose(interception_pose_);
+  initPose(meas_pose_);
+  initPose(real_pose_);
+  sigma_.resize(n_);
 
-    // FIXME: init the model with the first measurment obtained as soon as the target has been subscribed to the topic &/tf
-    real_twist_.setZero();
-    est_twist_.setZero();
-    initPose(est_pose_);
-    initPose(interception_pose_);
-    initPose(meas_pose_);
-    initPose(real_pose_);
-    sigma_.resize(n_);
-
-    double dt0 = dt_;
-    double t0 = 0.0;
-//    manager_.init(target_id_,dt0,Q_,R_,P_,meas_pose_,t0,type_);
-
-    // Create the logger publishers
-    RtLogger::getLogger().addPublisher("/target_node",twist_error_,"err_twist" );
-    RtLogger::getLogger().addPublisher("/target_node",meas_pose_  ,"meas_pose" );
-    RtLogger::getLogger().addPublisher("/target_node",real_pose_  ,"pose"      );
-    RtLogger::getLogger().addPublisher("/target_node",pose_error_ ,"err_pose"  );
-    RtLogger::getLogger().addPublisher("/target_node",real_twist_ ,"twist"     );
-    RtLogger::getLogger().addPublisher("/target_node",est_pose_   ,"est_pose"  );
-    RtLogger::getLogger().addPublisher("/target_node",est_twist_  ,"est_twist" );
-    RtLogger::getLogger().addPublisher("/target_node",sigma_      ,"sigma"     );
-  }
-  else // check if target is empty
-  {
-    // add the target frame to the list of active targets if not already stored
-    std::vector<string>::iterator it_idx = std::find(targets_frames_.begin(), targets_frames_.end(), ("/" + target_name_frame));
-
-    if(it_idx != targets_frames_.end())
-    {
-      // a new target has been found
-      targets_frames_.push_back("/" + target_name_frame);
-
-      // the loop on all target must be done in the update function!
+  double dt0 = dt_;
+  double t0 = 0.0;
+  //      manager_.init(target_id_,dt0,Q_,R_,P_,meas_pose_,t0,type_);
 
 
-      // map the target name to an int
-      map_targets_.insert(pair<std::string, unsigned int>(targets_frames_.back(), targets_frames_.size()-1));
-      //    map_targets.push_back(map_sgl_target_);
-      //    target_id_
-      target_id_ = map_targets_.end()->second;
-
-#ifdef DEBUG_tmp
-      std::cout << "Target id: " <<  map_targets_.end()->first << " - Target n.: " << map_targets_.end()->second << std::endl;
-#endif
-
-      target_converged_ = false;
-      //    target_id_ = 0;
-      new_meas_ = false;
-      t_ = 0.0;
-      dt_ = dt;
-      t_prev_ = 0.0;
-      pos_th_ = 0.001;
-      ang_th_ = 0.001;
-
-      // Load the parameters for initializing the KF
-      if(!parseSquareMatrix(nh_,"Q",Q_) || !parseSquareMatrix(nh_,"R",R_) || !parseSquareMatrix(nh_,"P",P_))
-        throw std::runtime_error("Can not load the Cov Matrices!");
-
-      if(!parseTargetType(nh_,type_))
-        throw std::runtime_error("Can not load filter type!");
-
-      n_ = static_cast<unsigned int>(Q_.rows());
-      m_ = static_cast<unsigned int>(R_.rows());
-
-      // FIXME: init the model with the first measurment obtained as soon as the target has been subscribed to the topic &/tf
-      real_twist_.setZero();
-      est_twist_.setZero();
-      initPose(est_pose_);
-      initPose(interception_pose_);
-      initPose(meas_pose_);
-      initPose(real_pose_);
-      sigma_.resize(n_);
-
-      double dt0 = dt_;
-      double t0 = 0.0;
-//      manager_.init(target_id_,dt0,Q_,R_,P_,meas_pose_,t0,type_);
-
-
-      // Create the logger publishers
-      RtLogger::getLogger().addPublisher("/target_node",twist_error_,"err_twist" );
-      RtLogger::getLogger().addPublisher("/target_node",meas_pose_  ,"meas_pose" );
-      RtLogger::getLogger().addPublisher("/target_node",real_pose_  ,"pose"      );
-      RtLogger::getLogger().addPublisher("/target_node",pose_error_ ,"err_pose"  );
-      RtLogger::getLogger().addPublisher("/target_node",real_twist_ ,"twist"     );
-      RtLogger::getLogger().addPublisher("/target_node",est_pose_   ,"est_pose"  );
-      RtLogger::getLogger().addPublisher("/target_node",est_twist_  ,"est_twist" );
-      RtLogger::getLogger().addPublisher("/target_node",sigma_      ,"sigma"     );
-    }
-    else
-    {
-      std::cout << "Target " << target_name_frame << " already initialized" << std::endl;
-    }
-  }
-
+  // Create the logger publishers
+  RtLogger::getLogger().addPublisher("/target_node",twist_error_,"err_twist" );
+  RtLogger::getLogger().addPublisher("/target_node",meas_pose_  ,"meas_pose" );
+  RtLogger::getLogger().addPublisher("/target_node",real_pose_  ,"pose"      );
+  RtLogger::getLogger().addPublisher("/target_node",pose_error_ ,"err_pose"  );
+  RtLogger::getLogger().addPublisher("/target_node",real_twist_ ,"twist"     );
+  RtLogger::getLogger().addPublisher("/target_node",est_pose_   ,"est_pose"  );
+  RtLogger::getLogger().addPublisher("/target_node",est_twist_  ,"est_twist" );
+  RtLogger::getLogger().addPublisher("/target_node",sigma_      ,"sigma"     );
 }
 
 void RosTargetManager::setInterceptionSphere(const Eigen::Vector3d& pos, const double& radius)

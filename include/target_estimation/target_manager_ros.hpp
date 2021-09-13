@@ -79,7 +79,6 @@ private:
     std::mutex meas_lock;
 
     std::map<std::string, unsigned int> map_targets_;
-//    std::vector<std::map<std::string, unsigned int>> map_targets;
     std::vector<std::string> targets_frames_;
 };
 
