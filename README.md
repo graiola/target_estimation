@@ -8,6 +8,7 @@ Estimate the pose of incoming targets
 	- [x] callback function for managing multiple targets
 	- [ ] update function for multiple targets
 	- [ ] update ros node main for multiple targets
+	- [ ] test the node with rosbag contaning multiple targets and complete the measuerementCallback_v2 function
 - [ ] Implement Deletion of target once they are no longer received from camera
 - [ ] check covariance paametrs
 - [x] add launch rviz from launch file
