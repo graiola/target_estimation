@@ -9,10 +9,10 @@
 
 #define ADD_NOISE
 
-#define DEBUG
+//#define DEBUG_CLASS
 
-std::string target_name_frame = "keyboard1";
-std::string world_frame_name = "camera_depth_optical_frame";
+//std::string target_name_frame = "keyboard1";
+//std::string world_frame_name = "camera_depth_optical_frame";
 
 using namespace std;
 using namespace rt_logger;
@@ -33,6 +33,7 @@ int main(int argc, char* argv[]) {
   target_estimation_msg.interception_pose.orientation.z = 0.4999998;
   target_estimation_msg.interception_pose.orientation.w = 0.5003982;
 
+  // FIXME: probably these should be vector of Eigen (an instance for each target)
   Eigen::Vector3d interception_sphere_pos; // w.r.t world
   Eigen::Vector3d target_position;
   Eigen::Quaterniond target_orientation;
@@ -87,7 +88,8 @@ int main(int argc, char* argv[]) {
   double f = 1000; // Hz -> remember to use the corresponding YAML file
   double dt = 1.0/f;
 
-  RosTargetManager manager(nh, target_name_frame, dt);
+//  RosTargetManager manager(nh, target_name_frame, dt);
+  RosTargetManager manager(nh);
   manager.setInterceptionSphere(interception_sphere_pos,interception_sphere_radius);
 
   ros::Rate rate(f);
@@ -97,6 +99,7 @@ int main(int argc, char* argv[]) {
   while (ros::ok())
   {
 #ifndef DEBUG_CLASS
+
     t = ros::Time::now().toSec();
 
     dt = t - t_pre;
@@ -104,6 +107,7 @@ int main(int argc, char* argv[]) {
     // Update the model
     manager.update(dt);
 
+    // FIXME: loop on map length
     target_position     = manager.getEstimatedPosition();
     target_velocity     = manager.getEstimatedTwist();
     target_orientation  = manager.getEstimatedOrientation();
@@ -119,8 +123,9 @@ int main(int argc, char* argv[]) {
     q.normalize();
     transform.setRotation(q);
 
-    // send pose of target frame ( ("/" + target_name_frame + "_est") ) referred to world frame ( ("/" + world_frame_name) )
-    br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), ("/" + world_frame_name), ("/" + target_name_frame + "_est") ));
+    br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), (manager.world_name_frame_), (manager.target_name_frame_ + "_est") )); // FIXME: this goes into the loop!
+    // FIXME: loop on map length
+
 
 
     /*---- Publish on /target_marker topic ----*/
@@ -159,6 +164,7 @@ int main(int argc, char* argv[]) {
 
 
     t_pre = t;
+
 #endif
     ros::spinOnce();
 

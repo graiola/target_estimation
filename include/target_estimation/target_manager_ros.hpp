@@ -38,11 +38,17 @@ public:
 
 
     void update(const double& dt);
+    void update_v2(const double& dt);
+
+    std::string target_name_frame_ = "/keyboard";
+    std::string world_name_frame_ = "/camera_depth_optical_frame";
 
 
 private:
 
     void MeasurementCallBack(const tf2_msgs::TFMessage::ConstPtr& pose_msg);
+    void MeasurementCallBack_v2(const tf2_msgs::TFMessage::ConstPtr& pose_msg);
+
     bool parseSquareMatrix(const ros::NodeHandle& n, const std::string& matrix, Eigen::MatrixXd& M);
     bool parseTargetType(const ros::NodeHandle& n, TargetManager::target_t& type);
 
@@ -78,8 +84,11 @@ private:
     std::atomic<bool> new_meas_;
     std::mutex meas_lock;
 
-    std::map<std::string, unsigned int> map_targets_;
-    std::vector<std::string> targets_frames_;
+    std::map<std::string, Eigen::Vector7d> map_targets_;
+    std::map<std::string, unsigned int> map_targets_id_;
+
+//    std::vector<std::string> active_target_names_;
+
 };
 
 #endif
