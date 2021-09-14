@@ -13,7 +13,7 @@ RosTargetManager::RosTargetManager(ros::NodeHandle& nh)
 {
   // subscribe to /tf topic
   nh_ = nh;
-  measurament_sub_ = nh_.subscribe("/tf", 1 , &RosTargetManager::MeasurementCallBack, this);
+  measurament_sub_ = nh_.subscribe("/tf", 1 , &RosTargetManager::MeasurementCallBack_v2, this);
 
 
   // FIXME -> do not initialize the pose. The init must be done using the init of the update soon after the measurement
@@ -48,16 +48,18 @@ RosTargetManager::RosTargetManager(ros::NodeHandle& nh)
   if(!parseTargetType(nh_,type_))
     throw std::runtime_error("Can not load filter type!");
 
+  //  std::string node_name = "/target_node";
+  std::string node_name = "/multi_target_node";
 
   // Create the logger publishers
-  RtLogger::getLogger().addPublisher("/target_node",twist_error_,"err_twist" );
-  RtLogger::getLogger().addPublisher("/target_node",meas_pose_  ,"meas_pose" );
-  RtLogger::getLogger().addPublisher("/target_node",real_pose_  ,"pose"      );
-  RtLogger::getLogger().addPublisher("/target_node",pose_error_ ,"err_pose"  );
-  RtLogger::getLogger().addPublisher("/target_node",real_twist_ ,"twist"     );
-  RtLogger::getLogger().addPublisher("/target_node",est_pose_   ,"est_pose"  );
-  RtLogger::getLogger().addPublisher("/target_node",est_twist_  ,"est_twist" );
-  RtLogger::getLogger().addPublisher("/target_node",sigma_      ,"sigma"     );
+  RtLogger::getLogger().addPublisher(node_name,twist_error_,"err_twist" );
+  RtLogger::getLogger().addPublisher(node_name,meas_pose_  ,"meas_pose" );
+  RtLogger::getLogger().addPublisher(node_name,real_pose_  ,"pose"      );
+  RtLogger::getLogger().addPublisher(node_name,pose_error_ ,"err_pose"  );
+  RtLogger::getLogger().addPublisher(node_name,real_twist_ ,"twist"     );
+  RtLogger::getLogger().addPublisher(node_name,est_pose_   ,"est_pose"  );
+  RtLogger::getLogger().addPublisher(node_name,est_twist_  ,"est_twist" );
+  RtLogger::getLogger().addPublisher(node_name,sigma_      ,"sigma"     );
 }
 
 RosTargetManager::RosTargetManager(ros::NodeHandle& nh, std::string& target_name_frame, double& dt)
@@ -66,14 +68,9 @@ RosTargetManager::RosTargetManager(ros::NodeHandle& nh, std::string& target_name
   nh_ = nh;
   measurament_sub_ = nh_.subscribe("/tf", 1 , &RosTargetManager::MeasurementCallBack, this);
 
-//  model_name_ = "/" + target_name_frame;
-//  std::string in_target = "/" + target_name_frame;
-////  target_id_ = 0;
-
-//  // new 2021-09-13
-//  // add the target frame to the list of active targets if not already stored
-//  std::vector<string>::iterator it_idx = std::find(active_target_names_.begin(), active_target_names_.end(), in_target );
-
+  model_name_ = "/" + target_name_frame;
+  std::string in_target = "/" + target_name_frame;
+  target_id_ = 0;
 
   target_converged_ = false;
   new_meas_ = false;
@@ -102,21 +99,172 @@ RosTargetManager::RosTargetManager(ros::NodeHandle& nh, std::string& target_name
   initPose(meas_pose_);
   initPose(real_pose_);
 
-  // FIXME: init the model with the first measurment obtained as soon as the target has been subscribed to the topic &/tf
+  //  std::string node_name = "/target_node";
+  std::string node_name = "/multi_target_node";
+
   // Create the logger publishers
-  RtLogger::getLogger().addPublisher("/target_node",twist_error_,"err_twist" );
-  RtLogger::getLogger().addPublisher("/target_node",meas_pose_  ,"meas_pose" );
-  RtLogger::getLogger().addPublisher("/target_node",real_pose_  ,"pose"      );
-  RtLogger::getLogger().addPublisher("/target_node",pose_error_ ,"err_pose"  );
-  RtLogger::getLogger().addPublisher("/target_node",real_twist_ ,"twist"     );
-  RtLogger::getLogger().addPublisher("/target_node",est_pose_   ,"est_pose"  );
-  RtLogger::getLogger().addPublisher("/target_node",est_twist_  ,"est_twist" );
-  RtLogger::getLogger().addPublisher("/target_node",sigma_      ,"sigma"     );
+  RtLogger::getLogger().addPublisher(node_name,twist_error_,"err_twist" );
+  RtLogger::getLogger().addPublisher(node_name,meas_pose_  ,"meas_pose" );
+  RtLogger::getLogger().addPublisher(node_name,real_pose_  ,"pose"      );
+  RtLogger::getLogger().addPublisher(node_name,pose_error_ ,"err_pose"  );
+  RtLogger::getLogger().addPublisher(node_name,real_twist_ ,"twist"     );
+  RtLogger::getLogger().addPublisher(node_name,est_pose_   ,"est_pose"  );
+  RtLogger::getLogger().addPublisher(node_name,est_twist_  ,"est_twist" );
+  RtLogger::getLogger().addPublisher(node_name,sigma_      ,"sigma"     );
 }
 
 void RosTargetManager::setInterceptionSphere(const Eigen::Vector3d& pos, const double& radius)
 {
   manager_.setInterceptionSphere(pos,radius);
+}
+
+void RosTargetManager::MeasurementCallBack(const tf2_msgs::TFMessage::ConstPtr& pose_msg)
+{
+  meas_lock.lock();
+
+  // check if a new target has been identified
+  new_meas_ = true;
+
+  // FIXME: get the number of models on the basis of the different target received from /tf topic
+  int n_models = 1;
+
+  // TODO: run the KF to all identified targets (n_models -> run a loop)
+  int i_model;
+
+  // this is to find the given target
+  for(i_model = 0; i_model<n_models; i_model++)
+  {
+    std::string i_model_name(pose_msg->transforms.data()->child_frame_id);
+  }
+
+  Eigen::Vector3d meas_position;
+  meas_position(0) = pose_msg->transforms.data()->transform.translation.x;
+  meas_position(1) = pose_msg->transforms.data()->transform.translation.y;
+  meas_position(2) = pose_msg->transforms.data()->transform.translation.z;
+
+  Eigen::Quaterniond meas_quaternion;
+  meas_quaternion.x() = pose_msg->transforms.data()->transform.rotation.x;
+  meas_quaternion.y() = pose_msg->transforms.data()->transform.rotation.y;
+  meas_quaternion.z() = pose_msg->transforms.data()->transform.rotation.z;
+  meas_quaternion.w() = pose_msg->transforms.data()->transform.rotation.w;
+
+  meas_pose_(0) = meas_position.x();
+  meas_pose_(1) = meas_position.y();
+  meas_pose_(2) = meas_position.z();
+  meas_pose_(3) = meas_quaternion.x();
+  meas_pose_(4) = meas_quaternion.y();
+  meas_pose_(5) = meas_quaternion.z();
+  meas_pose_(6) = meas_quaternion.w();
+
+  meas_lock.unlock();
+}
+
+/*
+ * 1- explore the pose_msg
+ * 2- read all messages (for i=1:length(pose_msg) ---> std::string i_target = pose_msg->transforms.data()->child_frame_id; )
+ * 3- get te name of all targets
+ * 4- assign to the map str-Eigen the value of the read pose
+ * 5- assign to the map str-uint the value of the ID
+for // esplora il tf tree
+  if keyboard
+    // Conversione da pose tf a Eigen
+    measurements_[target_names[i]] = eigen_pose;
+
+    */
+void RosTargetManager::MeasurementCallBack_v2(const tf2_msgs::TFMessage::ConstPtr& pose_msg)
+{
+  meas_lock.lock();
+
+  // 1- explore the tf message -> To be implemented
+  // 2- read all messages -> to be implemented. For now let's assume a single child target
+  int n_targets = 1; // change this once a bag with multiple child-frames are available
+
+#ifdef DEBUG
+  std::cout << " --- Measurement Callback v2 --- " << std::endl;
+#endif
+
+  for(int i=0; i<n_targets; i++)
+  {
+    // 3- read the name of each target
+    std::string i_target_name = pose_msg->transforms.data()->child_frame_id;
+    std::string delimiter = "_";
+    std::string token = i_target_name.substr(0, i_target_name.find(delimiter)); // token is target_name_frame_
+#ifdef DEBUG
+    std::cout << " ------ Token read: " << token << std::endl;
+    std::cout << " ------ Token theoretical: " << target_name_frame_ << std::endl;
+#endif
+
+    if(token==target_name_frame_)
+    {
+      // 3- read data from each target
+      Eigen::Vector7d meas_pose;
+      meas_pose(0) = pose_msg->transforms.data()->transform.translation.x;
+      meas_pose(1) = pose_msg->transforms.data()->transform.translation.y;
+      meas_pose(2) = pose_msg->transforms.data()->transform.translation.z;
+      meas_pose(3) = pose_msg->transforms.data()->transform.rotation.x;
+      meas_pose(4) = pose_msg->transforms.data()->transform.rotation.y;
+      meas_pose(5) = pose_msg->transforms.data()->transform.rotation.z;
+      meas_pose(6) = pose_msg->transforms.data()->transform.rotation.w;
+
+      const std::string target_name = token + delimiter + to_string(i);
+
+      // 4- assign target data to target name within the map
+      map_measured_pose_[target_name] = meas_pose;
+      //      map_measured_pose_.insert ( std::pair<std::string, Eigen::Vector7d>(token + to_string(i), meas_pose) );
+      // 5- assign target name to target ID within the map
+      map_id_targets_[target_name] = static_cast<unsigned int>(i);
+      //      map_id_targets_.insert ( std::pair<std::string, unsigned int>(token + to_string(i), static_cast<unsigned int>(i) ) );
+#ifdef DEBUG
+      std::cout << " ------ Key name: " << target_name << std::endl;
+#endif
+    }
+
+    if(n_targets>0)
+    {
+      new_meas_ = true;
+    }
+
+  }
+
+  meas_lock.unlock();
+}
+
+
+bool RosTargetManager::parseSquareMatrix(const ros::NodeHandle& n, const std::string& matrix, Eigen::MatrixXd& M)
+{
+  std::vector<double> Mv;
+  if (n.getParam(matrix, Mv))
+  {
+    unsigned int size = static_cast<unsigned int>(std::sqrt(Mv.size()));
+    M = Eigen::Map<Eigen::MatrixXd>(Mv.data(),size,size);
+  }
+  else
+  {
+    ROS_ERROR_STREAM("Can not find matrix: "<<matrix);
+    return false;
+  }
+
+  return true;
+}
+
+bool RosTargetManager::parseTargetType(const ros::NodeHandle& n, TargetManager::target_t& type)
+{
+  std::string type_str;
+  if (n.getParam("type", type_str))
+  {
+    if (std::strcmp(type_str.c_str(),"rpy")==0)
+      type = TargetManager::target_t::RPY;
+    else if (std::strcmp(type_str.c_str(),"rpy_ext") == 0)
+      type = TargetManager::target_t::RPY_EXT;
+
+    return true;
+  }
+  else
+  {
+    ROS_ERROR_STREAM("Can not find type");
+    return false;
+  }
+
 }
 
 
@@ -180,6 +328,13 @@ void RosTargetManager::update(const double& dt)
   }
 }
 
+/*
+ * 1- try_lock
+ * 2- explore all available targets, i.e. the ones contained in maps map_measured_pose_ and map_id_targets_
+ * 3- for each target chek if it has been already initialized. If not init and then update using KF, otherwise update the state with KF
+ * 4- lock
+ * */
+
 void RosTargetManager::update_v2(const double& dt)
 {
   if(meas_lock.try_lock())
@@ -188,148 +343,97 @@ void RosTargetManager::update_v2(const double& dt)
     dt_ = t - t_prev_;
 
     // TODO: for all targets -> apply the KF (loop on map of tagets length)
-    meas_lock.unlock();
-  }
-}
+#ifdef DEBUG
+    std::cout << " ----- Measured Pose Length = " << map_measured_pose_.size() << std::endl;
+    std::cout << " ----- Target ID Length = " << map_id_targets_.size() << std::endl;
+#endif
 
-void RosTargetManager::MeasurementCallBack(const tf2_msgs::TFMessage::ConstPtr& pose_msg)
-{
-  // associo il nome che vedo all'id ->std::map
-  // se nella map non esiste il nome -> creo l'oggetto
-  // if(target)
-  //      manage_.init
-
-  meas_lock.lock();
-
-  // check if a new target has been identified
-
-
-
-  new_meas_ = true;
-
-  // FIXME: get the number of models on the basis of the different target received from /tf topic
-  int n_models = 1;
-
-  // TODO: run the KF to all identified targets (n_models -> run a loop)
-  int i_model;
-
-  // this is to find the given target
-  for(i_model = 0; i_model<n_models; i_model++)
-  {
-    std::string i_model_name(pose_msg->transforms.data()->child_frame_id);
-  }
-
-  Eigen::Vector3d meas_position;
-  meas_position(0) = pose_msg->transforms.data()->transform.translation.x;
-  meas_position(1) = pose_msg->transforms.data()->transform.translation.y;
-  meas_position(2) = pose_msg->transforms.data()->transform.translation.z;
-
-  Eigen::Quaterniond meas_quaternion;
-  meas_quaternion.x() = pose_msg->transforms.data()->transform.rotation.x;
-  meas_quaternion.y() = pose_msg->transforms.data()->transform.rotation.y;
-  meas_quaternion.z() = pose_msg->transforms.data()->transform.rotation.z;
-  meas_quaternion.w() = pose_msg->transforms.data()->transform.rotation.w;
-
-  meas_pose_(0) = meas_position.x();
-  meas_pose_(1) = meas_position.y();
-  meas_pose_(2) = meas_position.z();
-  meas_pose_(3) = meas_quaternion.x();
-  meas_pose_(4) = meas_quaternion.y();
-  meas_pose_(5) = meas_quaternion.z();
-  meas_pose_(6) = meas_quaternion.w();
-
-  meas_lock.unlock();
-}
-
-void RosTargetManager::MeasurementCallBack_v2(const tf2_msgs::TFMessage::ConstPtr& pose_msg)
-{
-
-
-
-  meas_lock.lock();
-
-  /*
-   * 1- explore the pose_msg
-   * 2- read all messages (for i=1:length(pose_msg) ---> std::string i_target = pose_msg->transforms.data()->child_frame_id; )
-   * 3- get te name of all targets
-   * 4- assign to the map str-Eigen the value of the read pose
-   * 5- assign to the map str-uint the value of the ID
-  for // esplora il tf tree
-    if keyboard
-      // Conversione da pose tf a Eigen
-      measurements_[target_names[i]] = eigen_pose;
-
-      */
-
-  // 1- explore the tf message -> To be implemented
-  // 2- read all messages -> to be implemented. For now let's assume a single child target
-  int n_targets = 1; // change this once a bag with multiple child-frames are available
-  for(int i=0; i<n_targets; i++)
-  {
-    // 3- read the name of each target
-    std::string i_target_name = pose_msg->transforms.data()->child_frame_id;
-    std::string delimiter = "_";
-    std::string token = i_target_name.substr(0, i_target_name.find(delimiter)); // token is target_name_frame_
-    if(token==target_name_frame_)
+    // Update the state if targets are available
+    if( (map_measured_pose_.size() == map_id_targets_.size() ) && ( map_measured_pose_.size() != 0 ) )
     {
-      // 3- read data from each target
-      Eigen::Vector7d meas_pose;
-      meas_pose(0) = pose_msg->transforms.data()->transform.translation.x;
-      meas_pose(1) = pose_msg->transforms.data()->transform.translation.y;
-      meas_pose(2) = pose_msg->transforms.data()->transform.translation.z;
-      meas_pose(3) = pose_msg->transforms.data()->transform.rotation.x;
-      meas_pose(4) = pose_msg->transforms.data()->transform.rotation.y;
-      meas_pose(5) = pose_msg->transforms.data()->transform.rotation.z;
-      meas_pose(6) = pose_msg->transforms.data()->transform.rotation.w;
+      auto it_id = map_id_targets_.begin();
+      for(auto it_pose = map_measured_pose_.begin(); it_pose != map_measured_pose_.end(); it_pose++)
+      {
+#ifdef DEBUG
+        std::cout << "Map of Targets ---- Key: " << it_pose->first << " - Value: " << it_pose->second << std::endl;
+        std::cout << "Map of Target IDs v2 ---- Key: " << it_id->first << " - Value: " << it_id->second << std::endl;
+#endif
 
-      // 4- assign target data to target name within the map
-      map_targets_[token + to_string(i)] = meas_pose;
-//      map_targets_.insert ( std::pair<std::string, Eigen::Vector7d>(token + to_string(i), meas_pose) );
-      // 5- assign target name to target ID within the map
-      map_targets_id_[token + to_string(i)] = static_cast<unsigned int>(i);
-//      map_targets_id_.insert ( std::pair<std::string, unsigned int>(token + to_string(i), static_cast<unsigned int>(i) ) );
+        unsigned int target_id =it_id->second;
+        Eigen::Vector7d meas_pose = it_pose->second;
+
+        if(new_meas_)
+        {
+          // check target existence
+          if( manager_.getTarget(target_id)==nullptr )
+          {
+            // init the target
+            double dt0 = dt_;
+            double t0 = 0.0;
+            manager_.init(target_id,dt0,Q_,R_,P_,meas_pose,t0,type_);
+          }
+
+          // update with measurements
+          manager_.update(target_id,dt,meas_pose);
+          new_meas_ = false;
+        }
+        else
+        {
+          // if the target has not been already initialized and no measurements are available, the update is not called
+
+          // update without measurements
+          manager_.update(target_id,dt);
+        }
+
+        it_id++; // update the ID map
+      }
+    }
+    else
+    {
+      std::cerr << "update_v2 (Update) - The map containg the list of target with pose and the one containing the list of target with ID do not have the same length, or no targets are availabe. Check when add itemes" << std::endl;
     }
 
+
+    // Set Interception pose
+    if( (map_measured_pose_.size() == map_id_targets_.size() ) && ( map_measured_pose_.size() != 0 ) )
+    {
+      auto it_id = map_id_targets_.begin();
+      for(auto it_pose = map_measured_pose_.begin(); it_pose != map_measured_pose_.end(); it_pose++)
+      {
+        unsigned int target_id =it_id->second;
+        Eigen::Vector7d meas_pose = it_pose->second;
+        std::string target_key = it_pose->first;
+
+        map_estimated_pose_[target_key]       = manager_.getTarget(target_id)->getEstimatedPose();
+        map_estimated_twist_[target_key]      = manager_.getTarget(target_id)->getEstimatedTwist();
+        map_estimated_quaternion_[target_key] = manager_.getTarget(target_id)->getEstimatedOrientation();
+        map_estimated_rpy_[target_key]        = manager_.getTarget(target_id)->getEstimatedRPY();
+        map_estimated_position_[target_key]   = manager_.getTarget(target_id)->getEstimatedPosition();
+
+
+        // TODO: add interception management
+        // Get the interception point
+        /*
+        if(manager_.getInterceptionPose(target_id_,t_,pos_th_,ang_th_,interception_pose_))
+          target_converged_ = true;
+
+        else
+          target_converged_ = false;
+          */
+
+
+        t_= t_ + dt;
+      }
+    }
+    else
+    {
+      std::cerr << "update_v2 (Interception) - The map containg the list of target with pose and the one containing the list of target with ID do not have the same length. Check when add itemes" << std::endl;
+    }
+
+    // update the time-related variables
+    t_prev_ = t;
+
+    meas_lock.unlock();
   }
-
-  meas_lock.unlock();
-}
-
-
-bool RosTargetManager::parseSquareMatrix(const ros::NodeHandle& n, const std::string& matrix, Eigen::MatrixXd& M)
-{
-  std::vector<double> Mv;
-  if (n.getParam(matrix, Mv))
-  {
-    unsigned int size = static_cast<unsigned int>(std::sqrt(Mv.size()));
-    M = Eigen::Map<Eigen::MatrixXd>(Mv.data(),size,size);
-  }
-  else
-  {
-    ROS_ERROR_STREAM("Can not find matrix: "<<matrix);
-    return false;
-  }
-
-  return true;
-}
-
-bool RosTargetManager::parseTargetType(const ros::NodeHandle& n, TargetManager::target_t& type)
-{
-  std::string type_str;
-  if (n.getParam("type", type_str))
-  {
-    if (std::strcmp(type_str.c_str(),"rpy")==0)
-      type = TargetManager::target_t::RPY;
-    else if (std::strcmp(type_str.c_str(),"rpy_ext") == 0)
-      type = TargetManager::target_t::RPY_EXT;
-
-    return true;
-  }
-  else
-  {
-    ROS_ERROR_STREAM("Can not find type");
-    return false;
-  }
-
 }
 

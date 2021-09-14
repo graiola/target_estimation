@@ -28,6 +28,7 @@ public:
 
     void setInterceptionSphere(const Eigen::Vector3d& pos, const double& radius);
 
+    // Single Target Management
     Eigen::Vector7d getEstimatedPose()           {return est_pose_;}
     Eigen::Vector6d getEstimatedTwist()          {return est_twist_;}
     Eigen::Vector7d getInterceptionPose()        {return interception_pose_;}
@@ -36,12 +37,22 @@ public:
     Eigen::Vector3d getEstimatedRPY()            {return est_rpy_;}
     bool isTargetConverged()                     {return target_converged_;}
 
+    // Multiple Targets Management
+    std::map<std::string, Eigen::Vector7d> getEstimatedPose_multi()             {return map_estimated_pose_;} // Map containing estimated pose
+    std::map<std::string, Eigen::Vector6d> getEstimatedTwist_multi()            {return map_estimated_twist_;} // Map containing estimated twist
+    std::map<std::string, Eigen::Quaterniond> getEstimatedOrientation_multi()   {return map_estimated_quaternion_;} // Map containing estimated quaternions
+    std::map<std::string, Eigen::Vector3d> getEstimatedRPY_multi()              {return map_estimated_rpy_;} // Map containing estimated RPY
+    std::map<std::string, Eigen::Vector3d> getEstimatedPosition_multi()         {return map_estimated_position_;} // Map containing estimated position
+    std::map<std::string, Eigen::Vector7d> getInterceptionPose_mult()           {return map_interception_pose_;} // Map containing intereception pose
+    std::map<std::string, bool> isTargetConverged_multi()                       {return map_targets_converged_;} // Map containing intereception pose
 
     void update(const double& dt);
     void update_v2(const double& dt);
 
-    std::string target_name_frame_ = "/keyboard";
-    std::string world_name_frame_ = "/camera_depth_optical_frame";
+    std::string getTargetTokenFrame()   {return target_name_frame_;}
+    std::string getWorldNameFrame()     {return world_name_frame_;}
+
+    int getNumberOfTargets()  {return map_measured_pose_.size();}
 
 
 private:
@@ -57,6 +68,13 @@ private:
     ros::NodeHandle nh_;
     TargetManager manager_;
     ros::Subscriber measurament_sub_;
+
+    // FIXME: when a new bag is available remember to change target_name_frame_ into "keyboard"
+    // NB: remember to add "/" to target name when pusblishing to /tf topic
+    std::string target_name_frame_ = "keyboard1";
+    std::string world_name_frame_ = "camera_depth_optical_frame";
+
+    // single target managment
     Eigen::Vector7d real_pose_;
     Eigen::Vector7d meas_pose_;
     Eigen::Quaterniond est_quaternion_;
@@ -68,6 +86,9 @@ private:
     Eigen::Vector7d pose_error_;
     Eigen::Vector6d twist_error_;
     Eigen::Vector7d interception_pose_;
+    unsigned int target_id_, n_, m_;
+    bool target_converged_;
+
     Eigen::MatrixXd Q_;
     Eigen::MatrixXd P_;
     Eigen::MatrixXd R_;
@@ -78,16 +99,25 @@ private:
     double t_;
     double t_prev_;
     double dt_;
-    unsigned int target_id_, n_, m_;
-    bool target_converged_;
     TargetManager::target_t type_;
     std::atomic<bool> new_meas_;
     std::mutex meas_lock;
 
-    std::map<std::string, Eigen::Vector7d> map_targets_;
-    std::map<std::string, unsigned int> map_targets_id_;
+    // multiple targets managment
+    std::map<std::string, Eigen::Vector7d> map_measured_pose_; // Map contained measured pose
+    std::map<std::string, unsigned int> map_id_targets_; // Map containing target ID
+    std::map<std::string, Eigen::Vector7d> map_estimated_pose_; // Map containing estimated pose
+    std::map<std::string, Eigen::Vector6d> map_estimated_twist_; // Map containing estimated twist
+    std::map<std::string, Eigen::Quaterniond> map_estimated_quaternion_; // Map containing estimated quaternions
+    std::map<std::string, Eigen::Vector3d> map_estimated_rpy_; // Map containing estimated RPY
+    std::map<std::string, Eigen::Vector3d> map_estimated_position_; // Map containing estimated position
+    std::map<std::string, Eigen::Vector7d> map_pose_error_; // Map containing pose error
+    std::map<std::string, Eigen::Vector6d> map_twist_error_; // Map containing twist error
+    std::map<std::string, Eigen::Vector7d> map_interception_pose_; // Map containing intereception pose
+    std::map<std::string, bool> map_targets_converged_; // Map containing intereception pose
 
-//    std::vector<std::string> active_target_names_;
+
+//    std::multimap<std::string, unsigned int, Eigen::Vector7d> multimap_targets_;
 
 };
 

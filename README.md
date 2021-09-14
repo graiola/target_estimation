@@ -6,9 +6,10 @@ Estimate the pose of incoming targets
 
 - [ ] implement for multiple targets (depending on the number of /tf received)
 	- [x] callback function for managing multiple targets
-	- [ ] update function for multiple targets
-	- [ ] update ros node main for multiple targets
+	- [x] update function for multiple targets
+	- [x] update ros node main for multiple targets
 	- [ ] test the node with rosbag contaning multiple targets and complete the measuerementCallback_v2 function
+	- [ ] automaticaly determine the number of targets from /tf messages
 - [ ] Implement Deletion of target once they are no longer received from camera
 - [ ] check covariance paametrs
 - [x] add launch rviz from launch file
@@ -36,3 +37,8 @@ Estimate the pose of incoming targets
 - implemented measurementCallbck_v2 to manage multiple incoming targets. NB: to be tested
 - defined update function v2
 - put FIXME parts in node main function (target_node.cpp)
+
+# Notes 2021/09/14
+- Test ---- MeasurementCallback_v2 seems to work properly: targets are correctly stored in the maps
+- created a new node: multiple_target. This correctly works with vectorial trgets (map of targets)
+- to finilize the code we need to record a bag with multiple targets, understand how to determine the number of targets from incoming /tf messages ad then set n_target automatically
