@@ -1,3 +1,10 @@
+<?xml version="1.0" ?>
 <launch>
+
+        <!-- Start ROS bag -->
+        <node pkg="rosbag" type="play" name="rosbag_play_target" output="screen" required="true" args="--loop $(find target_estimation)/bag_files/du_keyboard.bag"/>
+
+        <!-- Start rviz with an external configurtion file -->
+        <node type="rviz" name="rviz" pkg="rviz" args="-d $(find target_estimation)/config/rviz_conf/multi_target_node_rviz_congif_test20210915.rviz"/>
 
 </launch>
