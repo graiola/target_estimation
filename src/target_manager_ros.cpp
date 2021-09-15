@@ -7,6 +7,8 @@ using namespace rt_logger;
 
 //#define DEBUG
 #define DEBUG_tmp
+#define SINGLE_TARGET_INPUT
+//#define MULTI_TARGET_INPUT
 
 
 RosTargetManager::RosTargetManager(ros::NodeHandle& nh)
@@ -17,7 +19,7 @@ RosTargetManager::RosTargetManager(ros::NodeHandle& nh)
 
 
   // FIXME -> do not initialize the pose. The init must be done using the init of the update soon after the measurement
-  model_name_ = "target";
+//  model_name_ = "target";
   target_converged_ = false;
   target_id_ = 0;
   new_meas_ = false;
@@ -28,6 +30,10 @@ RosTargetManager::RosTargetManager(ros::NodeHandle& nh)
   t_prev_ = 0.0;
   pos_th_ = 0.001;
   ang_th_ = 0.001;
+
+  // tmp
+  t_pre_call_ = 0;
+  t_call_ = 0;
 
   n_ = static_cast<unsigned int>(Q_.rows());
   m_ = static_cast<unsigned int>(R_.rows());
@@ -173,14 +179,21 @@ for // esplora il tf tree
     */
 void RosTargetManager::MeasurementCallBack_v2(const tf2_msgs::TFMessage::ConstPtr& pose_msg)
 {
+  // c'è da distinguere il nodo che pubblica su /tf
   meas_lock.lock();
+#ifdef DEBUG
+  double t_call = ros::Time::now().toNSec();
+  double dt_call = t_call - t_pre_call_;
+  t_pre_call_ = t_call;
+  std::cout << "Meas Callback v2 - Delta t [ms] = " << dt_call/1e6 << std::endl;
+#endif
 
   // 1- explore the tf message -> To be implemented
   // 2- read all messages -> to be implemented. For now let's assume a single child target
   int n_targets = 1; // change this once a bag with multiple child-frames are available
 
 #ifdef DEBUG
-  std::cout << " --- Measurement Callback v2 --- " << std::endl;
+  std::cout << " --- Measurement Callback v2 --- " << std::ent_pre_calldl;
 #endif
 
   for(int i=0; i<n_targets; i++)
@@ -188,10 +201,24 @@ void RosTargetManager::MeasurementCallBack_v2(const tf2_msgs::TFMessage::ConstPt
     // 3- read the name of each target
     std::string i_target_name = pose_msg->transforms.data()->child_frame_id;
     std::string delimiter = "_";
-    std::string token = i_target_name.substr(0, i_target_name.find(delimiter)); // token is target_name_frame_
-#ifdef DEBUG
+    std::vector<std::string> tokens = splitString(i_target_name, delimiter);
+    std::string token = tokens[0]; // token is target_name_fr
+    std::string target_id_num;
+    if(tokens.size()>1)
+    {
+      target_id_num = tokens[1];
+    }
+
+#ifdef DEBUG_tmp
     std::cout << " ------ Token read: " << token << std::endl;
     std::cout << " ------ Token theoretical: " << target_name_frame_ << std::endl;
+
+    for(size_t j=0; j< tokens.size(); j++)
+    {
+          std::cout << " ------ Tokens.at(j) read: " << tokens.at(j) << std::endl;
+          std::cout << " ------ Tokens[j] read: " << tokens[j] << std::endl;
+          std::cout << " ------ Tokens[0] read: " << tokens[0] << std::endl;
+    }
 #endif
 
     if(token==target_name_frame_)
@@ -206,14 +233,25 @@ void RosTargetManager::MeasurementCallBack_v2(const tf2_msgs::TFMessage::ConstPt
       meas_pose(5) = pose_msg->transforms.data()->transform.rotation.z;
       meas_pose(6) = pose_msg->transforms.data()->transform.rotation.w;
 
+#ifdef SINGLE_TARGET_INPUT // from bag file
       const std::string target_name = token + delimiter + to_string(i);
+#endif
+
+#ifdef MULTI_TARGET_INPUT  // from bag file
+      const std::string target_name = token + delimiter + target_id_num; // change tokens[1] with target_id_num
+#endif
 
       // 4- assign target data to target name within the map
       map_measured_pose_[target_name] = meas_pose;
-      //      map_measured_pose_.insert ( std::pair<std::string, Eigen::Vector7d>(token + to_string(i), meas_pose) );
       // 5- assign target name to target ID within the map
+#ifdef SINGLE_TARGET_INPUT
       map_id_targets_[target_name] = static_cast<unsigned int>(i);
-      //      map_id_targets_.insert ( std::pair<std::string, unsigned int>(token + to_string(i), static_cast<unsigned int>(i) ) );
+#endif
+
+#ifdef MULTI_TARGET_INPUT
+      map_id_targets_[target_name] = stoi(target_id_num);
+#endif
+
 #ifdef DEBUG
       std::cout << " ------ Key name: " << target_name << std::endl;
 #endif
@@ -410,16 +448,16 @@ void RosTargetManager::update_v2(const double& dt)
         map_estimated_rpy_[target_key]        = manager_.getTarget(target_id)->getEstimatedRPY();
         map_estimated_position_[target_key]   = manager_.getTarget(target_id)->getEstimatedPosition();
 
-
-        // TODO: add interception management
         // Get the interception point
-        /*
-        if(manager_.getInterceptionPose(target_id_,t_,pos_th_,ang_th_,interception_pose_))
-          target_converged_ = true;
-
+        if( manager_.getInterceptionPose(target_id, t_, pos_th_, ang_th_, map_interception_pose_[target_key]) )
+        {
+          map_targets_converged_[target_key] = true;
+        }
         else
-          target_converged_ = false;
-          */
+        {
+          map_targets_converged_[target_key] = false;
+        }
+
 
 
         t_= t_ + dt;

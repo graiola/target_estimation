@@ -43,7 +43,7 @@ public:
     std::map<std::string, Eigen::Quaterniond> getEstimatedOrientation_multi()   {return map_estimated_quaternion_;} // Map containing estimated quaternions
     std::map<std::string, Eigen::Vector3d> getEstimatedRPY_multi()              {return map_estimated_rpy_;} // Map containing estimated RPY
     std::map<std::string, Eigen::Vector3d> getEstimatedPosition_multi()         {return map_estimated_position_;} // Map containing estimated position
-    std::map<std::string, Eigen::Vector7d> getInterceptionPose_mult()           {return map_interception_pose_;} // Map containing intereception pose
+    std::map<std::string, Eigen::Vector7d> getInterceptionPose_multi()           {return map_interception_pose_;} // Map containing intereception pose
     std::map<std::string, bool> isTargetConverged_multi()                       {return map_targets_converged_;} // Map containing intereception pose
 
     void update(const double& dt);
@@ -62,6 +62,8 @@ private:
 
     bool parseSquareMatrix(const ros::NodeHandle& n, const std::string& matrix, Eigen::MatrixXd& M);
     bool parseTargetType(const ros::NodeHandle& n, TargetManager::target_t& type);
+
+    // put this function in the utils class
 
 //    void initPoseWithMeas();
 
@@ -114,10 +116,9 @@ private:
     std::map<std::string, Eigen::Vector7d> map_pose_error_; // Map containing pose error
     std::map<std::string, Eigen::Vector6d> map_twist_error_; // Map containing twist error
     std::map<std::string, Eigen::Vector7d> map_interception_pose_; // Map containing intereception pose
-    std::map<std::string, bool> map_targets_converged_; // Map containing intereception pose
+    std::map<std::string, bool> map_targets_converged_; // Map containing target convergence
 
-
-//    std::multimap<std::string, unsigned int, Eigen::Vector7d> multimap_targets_;
+    double t_call_, t_pre_call_;
 
 };
 

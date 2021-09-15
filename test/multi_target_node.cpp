@@ -19,6 +19,17 @@ int main(int argc, char **argv)
   string world_name_frame;
   string target_token_frame;
 
+  Eigen::Vector3d interception_sphere_pos; // w.r.t world
+  interception_sphere_pos << 0.0, 0.0, 0.3;
+  double interception_sphere_radius = 1.0;
+  bool target_converged;
+
+  //  RosTargetManager manager(nh, target_name_frame, dt);
+  RosTargetManager manager(nh);
+  manager.setInterceptionSphere(interception_sphere_pos,interception_sphere_radius);
+  world_name_frame = manager.getWorldNameFrame();
+  target_token_frame = manager.getTargetTokenFrame();
+
   // Orient the gripper camera down
   target_estimation_msg.interception_ready.data = false;
   target_estimation_msg.interception_pose.orientation.x = -0.4996018;
@@ -27,14 +38,11 @@ int main(int argc, char **argv)
   target_estimation_msg.interception_pose.orientation.w = 0.5003982;
 
   // signle target management
-  Eigen::Vector3d interception_sphere_pos; // w.r.t world
   Eigen::Vector3d target_position;
   Eigen::Quaterniond target_orientation;
   Eigen::Vector6d target_velocity;
   Eigen::Vector7d interception_pose;
   Eigen::Vector3d target_rpy;
-  interception_sphere_pos << 0.0, 0.0, 0.3;
-  double interception_sphere_radius = 1.0;
 
   // multiple targets management
   std::map<std::string, Eigen::Vector7d> multi_target_pose; // Map containing estimated pose
@@ -42,6 +50,8 @@ int main(int argc, char **argv)
   std::map<std::string, Eigen::Quaterniond> multi_target_orientation; // Map containing estimated quaternions
   std::map<std::string, Eigen::Vector3d> multi_target_rpy; // Map containing estimated RPY
   std::map<std::string, Eigen::Vector3d> multi_target_position; // Map containing estimated position
+  std::map<std::string, bool> multi_target_converged; // Map containing if target is converged
+  std::map<std::string, Eigen::Vector7d> multi_interception_pose; // Map containing intereception pose
 
   visualization_msgs::Marker sphere_marker;
   sphere_marker.header.frame_id = "world";
@@ -77,7 +87,7 @@ int main(int argc, char **argv)
   target_sphere_marker.color.a = 1.0;
 
   // Create the ros subscribers and publishers
-  ros::Publisher target_estimation_pub    = nh.advertise<target_estimation::TargetEstimation>("target_estimation", 1000);
+  ros::Publisher target_estimation_pub    = nh.advertise<target_estimation::TargetEstimation>("target_estimation", 1);
   ros::Publisher sphere_marker_pub        = nh.advertise<visualization_msgs::Marker>("sphere_marker", 1);
   ros::Publisher target_marker_pub        = nh.advertise<visualization_msgs::Marker>("target_marker", 1);
   ros::Publisher target_sphere_marker_pub = nh.advertise<visualization_msgs::Marker>("target_sphere_marker", 1);
@@ -87,12 +97,6 @@ int main(int argc, char **argv)
 
   double f = 1000; // Hz -> remember to use the corresponding YAML file
   double dt = 1.0/f;
-
-  //  RosTargetManager manager(nh, target_name_frame, dt);
-  RosTargetManager manager(nh);
-  manager.setInterceptionSphere(interception_sphere_pos,interception_sphere_radius);
-  world_name_frame = manager.getWorldNameFrame();
-  target_token_frame = manager.getTargetTokenFrame();
 
   ros::Rate rate(f);
 
@@ -116,6 +120,9 @@ int main(int argc, char **argv)
     multi_target_velocity     = manager.getEstimatedTwist_multi();
     multi_target_orientation  = manager.getEstimatedOrientation_multi();
     multi_target_rpy          = manager.getEstimatedRPY_multi();
+    multi_target_converged    = manager.isTargetConverged_multi();
+    multi_interception_pose   = manager.getInterceptionPose_multi();
+
 
     auto it_position = multi_target_position.begin();
     auto it_orientation = multi_target_orientation.begin();
@@ -129,9 +136,13 @@ int main(int argc, char **argv)
     {
       while( ( it_position != multi_target_position.end() ) && ( it_orientation != multi_target_orientation.end() ) )
       {
+        // read data for each target
         target_position = multi_target_position[it_position->first];
         target_orientation = multi_target_orientation[it_position->first];
         target_rpy = multi_target_rpy[it_position->first];
+        target_velocity = multi_target_velocity[it_position->first];
+        target_converged = multi_target_converged[it_position->first];
+
 
         // Create the tf transform between /world and /target
         transform.setOrigin(tf::Vector3(target_position.x(),target_position.y(),target_position.z()));
@@ -141,23 +152,54 @@ int main(int argc, char **argv)
 
         br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), ("/" + world_name_frame), ("/" + target_token_frame + "_est") ));
 
-#ifdef DEBUG_tmp
-        /*---- Publish on /target_marker topic ----*/
+        // Publish on /target_marker topic
         target_marker.pose.position.x = target_estimation_msg.pose.position.x = target_position.x();
         target_marker.pose.position.y = target_estimation_msg.pose.position.y = target_position.y();
         target_marker.pose.position.z = target_estimation_msg.pose.position.z = target_position.z();
-        target_marker.pose.orientation.x = target_orientation.x();
-        target_marker.pose.orientation.y = target_orientation.y();
-        target_marker.pose.orientation.z = target_orientation.z();
-        target_marker.pose.orientation.w = target_orientation.w();
+        target_marker.pose.orientation.x = target_estimation_msg.pose.orientation.x = target_orientation.x();
+        target_marker.pose.orientation.y = target_estimation_msg.pose.orientation.y =target_orientation.y();
+        target_marker.pose.orientation.z = target_estimation_msg.pose.orientation.z =target_orientation.z();
+        target_marker.pose.orientation.w = target_estimation_msg.pose.orientation.w =target_orientation.w();
 
         target_estimation_msg.twist.linear.x = target_velocity(0);
         target_estimation_msg.twist.linear.y = target_velocity(1);
         target_estimation_msg.twist.linear.z = target_velocity(2);
 
+        target_estimation_msg.header.frame_id = target_marker.header.frame_id = it_position->first;
+        target_estimation_msg.header.stamp = ros::Time::now();
+
+        if(target_converged)
+        {
+          interception_pose = multi_interception_pose[it_position->first];
+
+          target_estimation_msg.interception_ready.data = true;
+          target_estimation_msg.interception_pose.position.x = target_sphere_marker.pose.position.x = interception_pose.x();
+          target_estimation_msg.interception_pose.position.y = target_sphere_marker.pose.position.y = interception_pose.y();
+          target_estimation_msg.interception_pose.position.z = target_sphere_marker.pose.position.z = interception_pose.z();
+
+          target_sphere_marker_pub.publish(target_sphere_marker);
+        }
+        else
+        {
+          target_estimation_msg.interception_ready.data = false;
+        }
+
+#ifdef DEBUG
+        if(target_estimation_msg.interception_ready.data)
+        {
+          cout << "KF applied to target [ " << it_position->first << " ] has converged! Ready to catch it..." << endl;
+        }
+        else
+        {
+          cout << "KF applied to target [ " << it_position->first << " ] has not converged!" << endl;
+        }
+#endif
+
+
+        sphere_marker_pub.publish(sphere_marker);
+
         target_marker_pub.publish(target_marker);
         target_estimation_pub.publish(target_estimation_msg);
-#endif
 
 #ifdef DEBUG
         cout << "------- Target name: " << it_position->first << endl;
@@ -182,43 +224,6 @@ int main(int argc, char **argv)
     {
       cerr << "multi_traget_node (main->while_loop): dimension mismatch between position and orientation maps. Please check when add new targets." << endl;
     }
-
-
-#ifndef TOADD
-    /*---- Publish on /target_marker topic ----*/
-    target_marker.pose.position.x = target_estimation_msg.pose.position.x = target_position.x();
-    target_marker.pose.position.y = target_estimation_msg.pose.position.y = target_position.y();
-    target_marker.pose.position.z = target_estimation_msg.pose.position.z = target_position.z();
-    target_marker.pose.orientation.x = target_orientation.x();
-    target_marker.pose.orientation.y = target_orientation.y();
-    target_marker.pose.orientation.z = target_orientation.z();
-    target_marker.pose.orientation.w = target_orientation.w();
-
-    target_estimation_msg.twist.linear.x = target_velocity(0);
-    target_estimation_msg.twist.linear.y = target_velocity(1);
-    target_estimation_msg.twist.linear.z = target_velocity(2);
-
-    target_marker_pub.publish(target_marker);
-    target_estimation_pub.publish(target_estimation_msg);
-
-
-    if(manager.isTargetConverged())
-    {
-      interception_pose = manager.getInterceptionPose();
-
-      target_estimation_msg.interception_ready.data = true;
-      target_estimation_msg.interception_pose.position.x = target_sphere_marker.pose.position.x = interception_pose.x();
-      target_estimation_msg.interception_pose.position.y = target_sphere_marker.pose.position.y = interception_pose.y();
-      target_estimation_msg.interception_pose.position.z = target_sphere_marker.pose.position.z = interception_pose.z();
-
-      target_sphere_marker_pub.publish(target_sphere_marker);
-    }
-    else
-      target_estimation_msg.interception_ready.data = false;
-
-
-    sphere_marker_pub.publish(sphere_marker);
-#endif
 
     t_pre = t;
 
