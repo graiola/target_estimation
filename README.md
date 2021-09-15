@@ -4,6 +4,7 @@ Estimate the pose of incoming targets
 
 # ToDo
 
+- [ ] Fix the occurence of measurementCallback_v2 -> we need to distinguish between different nodes publishing on /tf topic
 - [ ] implement for multiple targets (depending on the number of /tf received)
 	- [x] callback function for managing multiple targets
 	- [x] update function for multiple targets
@@ -42,3 +43,11 @@ Estimate the pose of incoming targets
 - Test ---- MeasurementCallback_v2 seems to work properly: targets are correctly stored in the maps
 - created a new node: multiple_target. This correctly works with vectorial trgets (map of targets)
 - to finilize the code we need to record a bag with multiple targets, understand how to determine the number of targets from incoming /tf messages ad then set n_target automatically
+
+# Notes 2021/09/15
+- Implemented new node called multiple_target_node to keep things separated from what we did considering the sigle target
+- Fixed callback_v2 and update_v2
+- Fixed publisher target_marker and target_estimation in multiple_target_nide
+- To fix: measurementCallback_v2 so that it occurs only when a measurement is obtained. Currently, it occurs with a a frequency equal to the publishing frequency since multiple_target_node is being both publising and subscribing to /tf topic
+	- [ ] check at the beginning of the callbakc which is the publishing node?
+	- [ ] publish target marker to a different topic, but this may not be convenient to visualize the frames in rviz. We already do this through target_estimation topic
