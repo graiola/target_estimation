@@ -237,5 +237,40 @@ private:
 
 };
 
+/**
+ * @brief Split a string into a list of strings given a delimiter
+ * @param s: input string to be splitted
+ * @param delimiter: delimiter for splitting; default value = "_".
+ * @return vector of strings, which is the copy of input string in case te delimiter is not found
+ */
+inline std::vector<std::string> splitString(const std::string& s, std::string delimiter = "_")
+{
+   std::vector<std::string> tokens;
+   std::string token;
+   std::istringstream tokenStream(s);
+
+   auto idx_start = 0;
+   auto idx_end = s.find(delimiter);
+
+   std::cout << "UTILS:: idx_end = " << idx_end << std::endl;
+
+   if(idx_end == std::string::npos)
+   {
+     std::cout << "UTILS:: delimiter not found = " << std::endl;
+     tokens.push_back(s);
+   }
+   else
+   {
+     while(idx_end != std::string::npos)
+     {
+       tokens.push_back(s.substr(idx_start, idx_end-idx_start));
+       idx_start = idx_end + delimiter.size();
+       idx_end = s.find(delimiter, idx_start);
+     }
+   }
+
+   return tokens;
+}
+
 
 #endif
