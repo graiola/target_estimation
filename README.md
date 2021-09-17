@@ -2,6 +2,10 @@
 
 Estimate the pose of incoming targets
 
+# Branch lraiano_multiTarget_ros
+- main branch for developing management of multiple targets incoming from measurements. This contains the most updated version of the stable code.
+- the branch lraiano_multiTarget_ros_devel contains tests not yet stable to be moved in the main branch
+
 # ToDo
 
 - [ ] Fix the occurence of measurementCallback_v2 -> we need to distinguish between different nodes publishing on /tf topic
