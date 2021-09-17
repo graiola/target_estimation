@@ -212,7 +212,6 @@ void RosTargetManager::MeasurementCallBack_v2(const tf2_msgs::TFMessage::ConstPt
 
     if(tokens.back() != "est")
     {
-
     }
 
     std::string token = tokens[0]; // token is target_name_fr

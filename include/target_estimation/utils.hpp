@@ -245,31 +245,25 @@ private:
  */
 inline std::vector<std::string> splitString(const std::string& s, std::string delimiter = "_")
 {
-   std::vector<std::string> tokens;
-   std::string token;
-   std::istringstream tokenStream(s);
+  size_t pos_start = 0, pos_end, delim_len = delimiter.length();
+  std::string token;
+  std::vector<std::string> res;
 
-   auto idx_start = 0;
-   auto idx_end = s.find(delimiter);
+  pos_end = s.find (delimiter, pos_start);
 
-   std::cout << "UTILS:: idx_end = " << idx_end << std::endl;
+  while ( pos_end != std::string::npos)
+  {
+    token = s.substr (pos_start, pos_end - pos_start);
 
-   if(idx_end == std::string::npos)
-   {
-     std::cout << "UTILS:: delimiter not found = " << std::endl;
-     tokens.push_back(s);
-   }
-   else
-   {
-     while(idx_end != std::string::npos)
-     {
-       tokens.push_back(s.substr(idx_start, idx_end-idx_start));
-       idx_start = idx_end + delimiter.size();
-       idx_end = s.find(delimiter, idx_start);
-     }
-   }
+    pos_start = pos_end + delim_len;
 
-   return tokens;
+    res.push_back (token);
+
+    pos_end = s.find (delimiter, pos_start);
+  }
+
+  res.push_back (s.substr (pos_start));
+  return res;
 }
 
 
