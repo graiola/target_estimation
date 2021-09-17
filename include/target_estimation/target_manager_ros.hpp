@@ -59,6 +59,7 @@ private:
 
     void MeasurementCallBack(const tf2_msgs::TFMessage::ConstPtr& pose_msg);
     void MeasurementCallBack_v2(const tf2_msgs::TFMessage::ConstPtr& pose_msg);
+    void MeasurementCallBack_multi(const tf2_msgs::TFMessage::ConstPtr& pose_msg);
 
     bool parseSquareMatrix(const ros::NodeHandle& n, const std::string& matrix, Eigen::MatrixXd& M);
     bool parseTargetType(const ros::NodeHandle& n, TargetManager::target_t& type);
@@ -119,6 +120,9 @@ private:
     std::map<std::string, bool> map_targets_converged_; // Map containing target convergence
 
     double t_call_, t_pre_call_;
+
+    unsigned int n_active_frames_;
+    std::vector<std::string> list_active_frames_;
 
 };
 

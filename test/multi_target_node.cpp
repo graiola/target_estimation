@@ -1,6 +1,6 @@
 #include "target_estimation/target_manager_ros.hpp"
 
-//#define DEBUG_CLASS
+#define DEBUG_CLASS
 //#define DEBUG
 #define DEBUG_tmp
 #define TOADD

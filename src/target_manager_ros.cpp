@@ -15,7 +15,8 @@ RosTargetManager::RosTargetManager(ros::NodeHandle& nh)
 {
   // subscribe to /tf topic
   nh_ = nh;
-  measurament_sub_ = nh_.subscribe("/tf", 1 , &RosTargetManager::MeasurementCallBack_v2, this);
+//  measurament_sub_ = nh_.subscribe("/tf", 1 , &RosTargetManager::MeasurementCallBack_v2, this);
+  measurament_sub_ = nh_.subscribe("/tf", 1 , &RosTargetManager::MeasurementCallBack_multi, this);
 
 
   // FIXME -> do not initialize the pose. The init must be done using the init of the update soon after the measurement
@@ -23,6 +24,7 @@ RosTargetManager::RosTargetManager(ros::NodeHandle& nh)
   target_converged_ = false;
   target_id_ = 0;
   new_meas_ = false;
+  n_active_frames_ = 0;
 
 
   t_ = 0.0;
@@ -179,7 +181,6 @@ for // esplora il tf tree
     */
 void RosTargetManager::MeasurementCallBack_v2(const tf2_msgs::TFMessage::ConstPtr& pose_msg)
 {
-  // c'è da distinguere il nodo che pubblica su /tf
   meas_lock.lock();
 
   // 1- explore the tf message -> To be implemented
@@ -261,6 +262,29 @@ void RosTargetManager::MeasurementCallBack_v2(const tf2_msgs::TFMessage::ConstPt
 
   meas_lock.unlock();
 }
+
+// debug for multiple target
+ void RosTargetManager::MeasurementCallBack_multi(const tf2_msgs::TFMessage::ConstPtr& pose_msg)
+ {
+   meas_lock.lock();
+
+   // explore the tf to understand the number of targets
+   std::cout << "transforms.size() = " << pose_msg->transforms.size() << std::endl;
+   std::string current_frame = pose_msg->transforms.data()->child_frame_id;
+
+   // find cuurent frame in the list of active targets
+   std::vector<std::string>::iterator it_list_names = std::find(list_active_frames_.begin(), list_active_frames_.end(), current_frame);
+   if (it_list_names != list_active_frames_.end())
+   {
+     std::cout << "New Target Found!" << std::endl;
+     n_active_frames_++;
+     list_active_frames_.push_back(current_frame);
+   }
+   std::cout << "Number of active frames: " << n_active_frames_ << std::endl;
+
+
+   meas_lock.unlock();
+ }
 
 
 bool RosTargetManager::parseSquareMatrix(const ros::NodeHandle& n, const std::string& matrix, Eigen::MatrixXd& M)
