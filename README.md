@@ -9,6 +9,7 @@ Estimate the pose of incoming targets
 	- [x] callback function for managing multiple targets
 	- [x] update function for multiple targets
 	- [x] update ros node main for multiple targets
+        - [ ] add a checker in the callback to determine if the incoming measurement is related to the child frame (composition of two strings)
 	- [ ] test the node with rosbag contaning multiple targets and complete the measuerementCallback_v2 function
 	- [ ] automaticaly determine the number of targets from /tf messages
 - [ ] Implement Deletion of target once they are no longer received from camera

@@ -181,7 +181,7 @@ void RosTargetManager::MeasurementCallBack_v2(const tf2_msgs::TFMessage::ConstPt
 {
   // c'è da distinguere il nodo che pubblica su /tf
   meas_lock.lock();
-#ifdef DEBUG
+#ifdef DEBUG_tmp
   double t_call = ros::Time::now().toNSec();
   double dt_call = t_call - t_pre_call_;
   t_pre_call_ = t_call;
@@ -202,6 +202,19 @@ void RosTargetManager::MeasurementCallBack_v2(const tf2_msgs::TFMessage::ConstPt
     std::string i_target_name = pose_msg->transforms.data()->child_frame_id;
     std::string delimiter = "_";
     std::vector<std::string> tokens = splitString(i_target_name, delimiter);
+
+    // 3.1 - check if the incoming target is the one recorded by camera
+#ifdef DEBUG_tmp
+    std::cout << "Incoming Frame: " << i_target_name << std::endl;
+    std::cout << "tokens.back() = " << tokens.back() << std::endl;
+    std::cout << "N tokens: " << tokens.size() << std::endl;
+#endif
+
+    if(tokens.back() != "est")
+    {
+
+    }
+
     std::string token = tokens[0]; // token is target_name_fr
     std::string target_id_num;
     if(tokens.size()>1)
@@ -255,14 +268,14 @@ void RosTargetManager::MeasurementCallBack_v2(const tf2_msgs::TFMessage::ConstPt
 #ifdef DEBUG
       std::cout << " ------ Key name: " << target_name << std::endl;
 #endif
-    }
+    }// end if token
 
     if(n_targets>0)
     {
       new_meas_ = true;
-    }
+    } // end if
 
-  }
+  } // end for i
 
   meas_lock.unlock();
 }
