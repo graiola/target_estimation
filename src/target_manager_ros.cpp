@@ -181,24 +181,14 @@ void RosTargetManager::MeasurementCallBack_v2(const tf2_msgs::TFMessage::ConstPt
 {
   // c'è da distinguere il nodo che pubblica su /tf
   meas_lock.lock();
-#ifdef DEBUG
-  double t_call = ros::Time::now().toNSec();
-  double dt_call = t_call - t_pre_call_;
-  t_pre_call_ = t_call;
-  std::cout << "Meas Callback v2 - Delta t [ms] = " << dt_call/1e6 << std::endl;
-#endif
 
   // 1- explore the tf message -> To be implemented
   // 2- read all messages -> to be implemented. For now let's assume a single child target
   int n_targets = 1; // change this once a bag with multiple child-frames are available
 
-#ifdef DEBUG
-  std::cout << " --- Measurement Callback v2 --- " << std::ent_pre_calldl;
-#endif
-
   for(int i=0; i<n_targets; i++)
   {
-    // 3- read the name of each target
+    // 3- read the name of each target; the splitting has the only purpose to distinguish estimted from measured value
     std::string i_target_name = pose_msg->transforms.data()->child_frame_id;
     std::string delimiter = "_";
     std::vector<std::string> tokens = splitString(i_target_name, delimiter);
@@ -217,30 +207,10 @@ void RosTargetManager::MeasurementCallBack_v2(const tf2_msgs::TFMessage::ConstPt
     std::cout << "Target name frame imposed = " << target_name_frame_ << std::endl;
 #endif
 
-    std::string token = tokens.front(); // token is target_name_fr
-    std::string target_id_num;
-
-    if(tokens.size()>1)
+    if( (tokens.front() == target_name_frame_) && (tokens.back() != "est") )
     {
-      target_id_num = tokens[1];
-    }
 
 #ifdef DEBUG
-    std::cout << " ------ Token read: " << token << std::endl;
-    std::cout << " ------ Token theoretical: " << target_name_frame_ << std::endl;
-
-    for(size_t j=0; j< tokens.size(); j++)
-    {
-          std::cout << " ------ Tokens.at(j) read: " << tokens.at(j) << std::endl;
-          std::cout << " ------ Tokens[j] read: " << tokens[j] << std::endl;
-          std::cout << " ------ Tokens[0] read: " << tokens[0] << std::endl;
-    }
-#endif
-
-    if( (tokens.front() ==target_name_frame_) && (tokens.back() != "est") )
-    {
-
-#ifdef DEBUG_tmp
   double t_call = ros::Time::now().toNSec();
   double dt_call = t_call - t_pre_call_;
   t_pre_call_ = t_call;
@@ -258,11 +228,12 @@ void RosTargetManager::MeasurementCallBack_v2(const tf2_msgs::TFMessage::ConstPt
       meas_pose(6) = pose_msg->transforms.data()->transform.rotation.w;
 
 #ifdef SINGLE_TARGET_INPUT // from bag file
-      const std::string target_name = token + delimiter + to_string(i);
+//      const std::string target_name = token + delimiter + to_string(i); // i_target_name
+      const std::string target_name = i_target_name;
 #endif
 
 #ifdef MULTI_TARGET_INPUT  // from bag file
-      const std::string target_name = token + delimiter + target_id_num; // change tokens[1] with target_id_num
+      const std::string target_name = i_target_name; // change tokens[1] with target_id_num
 #endif
 
       // 4- assign target data to target name within the map

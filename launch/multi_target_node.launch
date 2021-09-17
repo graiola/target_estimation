@@ -15,4 +15,9 @@
         <!-- Start rviz with an external configurtion file -->
         <node type="rviz" name="rviz" pkg="rviz" args="-d $(find target_estimation)/config/rviz_conf/target_node_rviz_congif.rviz"/>
 
+        <!-- rqt plot -->
+        <group if="$(arg plot)">
+                <node pkg="rqt_plot" type="rqt_plot" name="rqt_plot" args="/tf/transforms[0]/transform/translation"/>
+        </group>
+
 </launch>

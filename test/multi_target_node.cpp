@@ -54,7 +54,7 @@ int main(int argc, char **argv)
   std::map<std::string, Eigen::Vector7d> multi_interception_pose; // Map containing intereception pose
 
   visualization_msgs::Marker sphere_marker;
-  sphere_marker.header.frame_id = "world";
+  sphere_marker.header.frame_id = manager.getWorldNameFrame();
   sphere_marker.id = 0;
   sphere_marker.type = visualization_msgs::Marker::SPHERE;
   sphere_marker.pose.position.x = interception_sphere_pos(0);
@@ -67,7 +67,7 @@ int main(int argc, char **argv)
   sphere_marker.color.a = 0.2;
 
   visualization_msgs::Marker target_marker;
-  target_marker.header.frame_id = "world";
+  target_marker.header.frame_id = manager.getWorldNameFrame();
   target_marker.id = 1;
   target_marker.type = visualization_msgs::Marker::CUBE;
   target_marker.scale.x  = target_marker.scale.y = target_marker.scale.z = 0.3;
@@ -77,7 +77,7 @@ int main(int argc, char **argv)
   target_marker.color.a = 0.5;
 
   visualization_msgs::Marker target_sphere_marker;
-  target_sphere_marker.header.frame_id = "world";
+  target_sphere_marker.header.frame_id = manager.getWorldNameFrame();
   target_sphere_marker.id = 2;
   target_sphere_marker.type = visualization_msgs::Marker::SPHERE;
   target_sphere_marker.scale.x  = target_sphere_marker.scale.y = target_sphere_marker.scale.z = 0.1;
