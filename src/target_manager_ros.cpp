@@ -181,7 +181,7 @@ void RosTargetManager::MeasurementCallBack_v2(const tf2_msgs::TFMessage::ConstPt
 {
   // c'è da distinguere il nodo che pubblica su /tf
   meas_lock.lock();
-#ifdef DEBUG_tmp
+#ifdef DEBUG
   double t_call = ros::Time::now().toNSec();
   double dt_call = t_call - t_pre_call_;
   t_pre_call_ = t_call;
@@ -204,24 +204,28 @@ void RosTargetManager::MeasurementCallBack_v2(const tf2_msgs::TFMessage::ConstPt
     std::vector<std::string> tokens = splitString(i_target_name, delimiter);
 
     // 3.1 - check if the incoming target is the one recorded by camera
-#ifdef DEBUG_tmp
+#ifdef DEBUG
     std::cout << "Incoming Frame: " << i_target_name << std::endl;
     std::cout << "tokens.back() = " << tokens.back() << std::endl;
     std::cout << "N tokens: " << tokens.size() << std::endl;
 #endif
 
-    if(tokens.back() != "est")
-    {
-    }
+#ifdef DEBUG
+    std::cout << "Incoming Frame: " << i_target_name << std::endl;
+    std::cout << "tokens.front() = " << tokens.front() << std::endl;
+    std::cout << "tokens.back() = " << tokens.back() << std::endl;
+    std::cout << "Target name frame imposed = " << target_name_frame_ << std::endl;
+#endif
 
-    std::string token = tokens[0]; // token is target_name_fr
+    std::string token = tokens.front(); // token is target_name_fr
     std::string target_id_num;
+
     if(tokens.size()>1)
     {
       target_id_num = tokens[1];
     }
 
-#ifdef DEBUG_tmp
+#ifdef DEBUG
     std::cout << " ------ Token read: " << token << std::endl;
     std::cout << " ------ Token theoretical: " << target_name_frame_ << std::endl;
 
@@ -233,8 +237,16 @@ void RosTargetManager::MeasurementCallBack_v2(const tf2_msgs::TFMessage::ConstPt
     }
 #endif
 
-    if(token==target_name_frame_)
+    if( (tokens.front() ==target_name_frame_) && (tokens.back() != "est") )
     {
+
+#ifdef DEBUG_tmp
+  double t_call = ros::Time::now().toNSec();
+  double dt_call = t_call - t_pre_call_;
+  t_pre_call_ = t_call;
+  std::cout << "Meas Callback v2 - Delta t [ms] = " << dt_call/1e6 << std::endl;
+#endif
+
       // 3- read data from each target
       Eigen::Vector7d meas_pose;
       meas_pose(0) = pose_msg->transforms.data()->transform.translation.x;
