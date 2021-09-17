@@ -150,7 +150,6 @@ int main(int argc, char **argv)
         q.normalize();
         transform.setRotation(q);
 
-//        br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), ("/" + world_name_frame), ("/" + target_token_frame + "_est") ));
         br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), (world_name_frame), (target_token_frame + "_est") ));
 
         // Publish on /target_marker topic
