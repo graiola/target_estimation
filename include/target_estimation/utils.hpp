@@ -7,6 +7,9 @@
 #include <vector>
 #include <Eigen/Core>
 
+#include <geometry_msgs/TransformStamped.h>
+#include <tf/LinearMath/Transform.h>
+
 
 /**
   * Helper macros
@@ -46,6 +49,11 @@ namespace Eigen
     typedef Matrix<double,3,6> Matrix3x6d;
 }
 
+inline double toSec(uint32_t sec, uint32_t nsec)
+{
+  return 1.0 * sec + 0.0000001 * nsec;
+}
+
 inline void initPose(Eigen::Vector7d& pose)
 {
     pose << 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0;
@@ -58,6 +66,24 @@ inline void initPose(Eigen::Vector6d& pose)
 
 template <typename T> int sgn(T val) {
     return (T(0) < val) - (val < T(0));
+}
+
+inline void transformStampedToEigen7d(const geometry_msgs::TransformStamped& t, Eigen::Vector7d& e)
+{
+  e(0) = t.transform.translation.x;
+  e(1) = t.transform.translation.y;
+  e(2) = t.transform.translation.z;
+
+  e(3) = t.transform.rotation.x;
+  e(4) = t.transform.rotation.y;
+  e(5) = t.transform.rotation.z;
+  e(6) = t.transform.rotation.w;
+}
+
+inline void eigen7dToTfTransform(const Eigen::Vector7d& e, tf::Transform& t)
+{
+  t.setOrigin(tf::Vector3(e(0),e(1),e(2)));
+  t.setRotation(tf::Quaternion(e(3),e(4),e(5),e(6)));
 }
 
 inline void writeTxtFile(const std::string filename, Eigen::VectorXd& values) {
@@ -241,7 +267,7 @@ private:
  * @brief Split a string into a list of strings given a delimiter
  * @param s: input string to be splitted
  * @param delimiter: delimiter for splitting; default value = "_".
- * @return vector of strings, which is the copy of input string in case te delimiter is not found
+ * @return vector of strings, which is the copy of input string in case the delimiter is not found
  */
 inline std::vector<std::string> splitString(const std::string& s, std::string delimiter = "_")
 {
@@ -264,6 +290,25 @@ inline std::vector<std::string> splitString(const std::string& s, std::string de
 
   res.push_back (s.substr (pos_start));
   return res;
+}
+
+/**
+ * @brief get the numeric id from a string
+ * @param s: input string with format 'xxx_id'
+ * @param id: output numeric id
+ * @return true if id extraction is successful
+ */
+inline bool getId(const std::string& s, unsigned int& id)
+{
+  auto strings = splitString(s);
+  if(strings.size() == 2) // 'xxx_id'
+  {
+    id = std::stoi(strings[1]);
+    return true;
+  }
+  else
+    return false;
+
 }
 
 

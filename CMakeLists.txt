@@ -80,10 +80,10 @@ if (${roscpp_FOUND} AND ${rt_logger_FOUND})
     add_library(target_ros src/target_manager_ros.cpp)
     target_link_libraries(target_ros target ${catkin_LIBRARIES})
 
-    add_executable(multi_target_node test/multi_target_node.cpp)
-    target_link_libraries(multi_target_node target_ros)
+    add_executable(target_node test/target_node.cpp)
+    target_link_libraries(target_node target_ros)
 
-    install(TARGETS target target_c target_ros kalman multi_target_node
+    install(TARGETS target target_c target_ros kalman target_node
       ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
       LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
       RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}

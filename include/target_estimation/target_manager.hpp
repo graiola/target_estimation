@@ -161,6 +161,11 @@ public:
    */
     void log();
 
+    /**
+   * @brief get the target ids
+   */
+    std::vector<unsigned int> getAvailableTargets() const;
+
 private:
 
     /**

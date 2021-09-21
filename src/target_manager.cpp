@@ -105,7 +105,15 @@ TargetManager::TargetManager(const std::string& file)
 void TargetManager::log()
 {
     for (auto const& map : targets_)
-        map.second->log();
+      map.second->log();
+}
+
+std::vector<unsigned int> TargetManager::getAvailableTargets() const
+{
+  std::vector<unsigned int> ids;
+  for (auto const& map : targets_)
+    ids.push_back(map.first);
+  return ids;
 }
 
 void TargetManager::init(const unsigned int& id, const double& dt0,
