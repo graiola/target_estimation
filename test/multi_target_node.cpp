@@ -1,6 +1,6 @@
 #include "target_estimation/target_manager_ros.hpp"
 
-#define DEBUG_CLASS
+//#define DEBUG_CLASS
 //#define DEBUG
 #define DEBUG_tmp
 #define TOADD
@@ -150,7 +150,8 @@ int main(int argc, char **argv)
         q.normalize();
         transform.setRotation(q);
 
-        br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), (world_name_frame), (target_token_frame + "_est") ));
+//        br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), (world_name_frame), (target_token_frame + "_est") )); //it_position->first
+        br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), (world_name_frame), (it_position->first + "_est") ));
 
         // Publish on /target_marker topic
         target_marker.pose.position.x = target_estimation_msg.pose.position.x = target_position.x();

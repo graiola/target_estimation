@@ -64,9 +64,10 @@ private:
     bool parseSquareMatrix(const ros::NodeHandle& n, const std::string& matrix, Eigen::MatrixXd& M);
     bool parseTargetType(const ros::NodeHandle& n, TargetManager::target_t& type);
 
-    // put this function in the utils class
-
-//    void initPoseWithMeas();
+    // Update the list of current targets
+    void updateTargets(std::vector<std::string>& list_active_frames, unsigned int& n_active_frames, std::string& current_frame);
+    // Update the list of targets given its keyname.
+    void updateTargetsToken(std::vector<std::string>& list_active_frames, unsigned int& n_active_frames, std::string& current_frame, const std::string& token);
 
     ros::NodeHandle nh_;
     TargetManager manager_;
@@ -75,7 +76,9 @@ private:
     // FIXME: when a new bag is available remember to change target_name_frame_ into "keyboard"
     // NB: remember to add "/" to target name when pusblishing to /tf topic
     std::string target_name_frame_ = "keyboard1";
-    std::string world_name_frame_ = "camera_depth_optical_frame";
+//    const std::string target_name_frame_ = "keyboard";
+    const std::string world_name_frame_ = "camera_depth_optical_frame";
+    const std::string frame_name_delimiter_ = "_";
 
     // single target managment
     Eigen::Vector7d real_pose_;

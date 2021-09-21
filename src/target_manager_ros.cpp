@@ -15,8 +15,8 @@ RosTargetManager::RosTargetManager(ros::NodeHandle& nh)
 {
   // subscribe to /tf topic
   nh_ = nh;
-//  measurament_sub_ = nh_.subscribe("/tf", 1 , &RosTargetManager::MeasurementCallBack_v2, this);
-  measurament_sub_ = nh_.subscribe("/tf", 1 , &RosTargetManager::MeasurementCallBack_multi, this);
+  measurament_sub_ = nh_.subscribe("/tf", 1 , &RosTargetManager::MeasurementCallBack_v2, this);
+//  measurament_sub_ = nh_.subscribe("/tf", 1 , &RosTargetManager::MeasurementCallBack_multi, this);
 
 
   // FIXME -> do not initialize the pose. The init must be done using the init of the update soon after the measurement
@@ -184,81 +184,93 @@ void RosTargetManager::MeasurementCallBack_v2(const tf2_msgs::TFMessage::ConstPt
   meas_lock.lock();
 
   // 1- explore the tf message -> To be implemented
+  std::string current_frame = pose_msg->transforms.data()->child_frame_id;
+#ifdef DEBUG
+  std::cout << "Current Frame: " << pose_msg->transforms.data()->child_frame_id << std::endl;
+#endif
+  updateTargetsToken(list_active_frames_, n_active_frames_, current_frame, target_name_frame_);
+
   // 2- read all messages -> to be implemented. For now let's assume a single child target
-  int n_targets = 1; // change this once a bag with multiple child-frames are available
+  unsigned int n_targets = list_active_frames_.size(); // change this once a bag with multiple child-frames are available
 
-  for(int i=0; i<n_targets; i++)
+  if(!list_active_frames_.empty())
   {
-    // 3- read the name of each target; the splitting has the only purpose to distinguish estimted from measured value
-    std::string i_target_name = pose_msg->transforms.data()->child_frame_id;
-    std::string delimiter = "_";
-    std::vector<std::string> tokens = splitString(i_target_name, delimiter);
-
-    // 3.1 - check if the incoming target is the one recorded by camera
-#ifdef DEBUG
-    std::cout << "Incoming Frame: " << i_target_name << std::endl;
-    std::cout << "tokens.back() = " << tokens.back() << std::endl;
-    std::cout << "N tokens: " << tokens.size() << std::endl;
-#endif
-
-#ifdef DEBUG
-    std::cout << "Incoming Frame: " << i_target_name << std::endl;
-    std::cout << "tokens.front() = " << tokens.front() << std::endl;
-    std::cout << "tokens.back() = " << tokens.back() << std::endl;
-    std::cout << "Target name frame imposed = " << target_name_frame_ << std::endl;
-#endif
-
-    if( (tokens.front() == target_name_frame_) && (tokens.back() != "est") )
+    for(unsigned int i=0; i<n_targets; i++)
     {
+      // 3- read the name of each target; the splitting has the only purpose to distinguish estimted from measured value
+      // old
+  //    std::string i_target_name = pose_msg->transforms.data()->child_frame_id; // list_active_frames_
+      // old
+
+      // new
+      std::string i_target_name = list_active_frames_[i];
+      // new
+
+      std::vector<std::string> tokens = splitString(i_target_name, frame_name_delimiter_);
+
+      // 3.1 - check if the incoming target is the one recorded by camera
+  #ifdef DEBUG
+      std::cout << "Incoming Frame: " << i_target_name << std::endl;
+      std::cout << "tokens.back() = " << tokens.back() << std::endl;
+      std::cout << "N tokens: " << tokens.size() << std::endl;
+  #endif
+
+  #ifdef DEBUG
+      std::cout << "Incoming Frame: " << i_target_name << std::endl;
+      std::cout << "tokens.front() = " << tokens.front() << std::endl;
+      std::cout << "tokens.back() = " << tokens.back() << std::endl;
+      std::cout << "Target name frame imposed = " << target_name_frame_ << std::endl;
+  #endif
+
+      if( (tokens.front() == target_name_frame_) && (tokens.back() != "est") )
+      {
+
+  #ifdef DEBUG
+    double t_call = ros::Time::now().toNSec();
+    double dt_call = t_call - t_pre_call_;
+    t_pre_call_ = t_call;
+    std::cout << "Meas Callback v2 - Delta t [ms] = " << dt_call/1e6 << std::endl;
+  #endif
+
+        // 3- read data from each target
+        Eigen::Vector7d meas_pose;
+        meas_pose(0) = pose_msg->transforms.data()->transform.translation.x;
+        meas_pose(1) = pose_msg->transforms.data()->transform.translation.y;
+        meas_pose(2) = pose_msg->transforms.data()->transform.translation.z;
+        meas_pose(3) = pose_msg->transforms.data()->transform.rotation.x;
+        meas_pose(4) = pose_msg->transforms.data()->transform.rotation.y;
+        meas_pose(5) = pose_msg->transforms.data()->transform.rotation.z;
+        meas_pose(6) = pose_msg->transforms.data()->transform.rotation.w;
 
 #ifdef DEBUG
-  double t_call = ros::Time::now().toNSec();
-  double dt_call = t_call - t_pre_call_;
-  t_pre_call_ = t_call;
-  std::cout << "Meas Callback v2 - Delta t [ms] = " << dt_call/1e6 << std::endl;
+            std::cout << "i-th target name: " << i_target_name << std::endl;
 #endif
 
-      // 3- read data from each target
-      Eigen::Vector7d meas_pose;
-      meas_pose(0) = pose_msg->transforms.data()->transform.translation.x;
-      meas_pose(1) = pose_msg->transforms.data()->transform.translation.y;
-      meas_pose(2) = pose_msg->transforms.data()->transform.translation.z;
-      meas_pose(3) = pose_msg->transforms.data()->transform.rotation.x;
-      meas_pose(4) = pose_msg->transforms.data()->transform.rotation.y;
-      meas_pose(5) = pose_msg->transforms.data()->transform.rotation.z;
-      meas_pose(6) = pose_msg->transforms.data()->transform.rotation.w;
+  #ifdef MULTI_TARGET_INPUT  // from bag file
+        const std::string target_name = i_target_name; // change tokens[1] with target_id_num
+  #endif
 
-#ifdef SINGLE_TARGET_INPUT // from bag file
-//      const std::string target_name = token + delimiter + to_string(i); // i_target_name
-      const std::string target_name = i_target_name;
-#endif
-
-#ifdef MULTI_TARGET_INPUT  // from bag file
-      const std::string target_name = i_target_name; // change tokens[1] with target_id_num
-#endif
-
-      // 4- assign target data to target name within the map
-      map_measured_pose_[target_name] = meas_pose;
-      // 5- assign target name to target ID within the map
-#ifdef SINGLE_TARGET_INPUT
-      map_id_targets_[target_name] = static_cast<unsigned int>(i);
-#endif
+        // 4- assign target data to target name within the map
+        map_measured_pose_[i_target_name] = meas_pose;
+        // 5- assign target name to target ID within the map
+  #ifdef SINGLE_TARGET_INPUT
+        map_id_targets_[i_target_name] = static_cast<unsigned int>(i);
+  #endif
 
 #ifdef MULTI_TARGET_INPUT
-      map_id_targets_[target_name] = stoi(target_id_num);
+        map_id_targets_[target_name] = stoi(target_id_num);
 #endif
 
 #ifdef DEBUG
-      std::cout << " ------ Key name: " << target_name << std::endl;
+        std::cout << " ------ Key name: " << target_name << std::endl;
 #endif
-    }// end if token
+      }// end if token
 
-    if(n_targets>0)
-    {
       new_meas_ = true;
-    } // end if
 
-  } // end for i
+    } // end for i
+
+  } // end if list != empty
 
   meas_lock.unlock();
 }
@@ -271,17 +283,9 @@ void RosTargetManager::MeasurementCallBack_v2(const tf2_msgs::TFMessage::ConstPt
    // explore the tf to understand the number of targets
    std::cout << "transforms.size() = " << pose_msg->transforms.size() << std::endl;
    std::string current_frame = pose_msg->transforms.data()->child_frame_id;
+   std::cout << "Current Frame: " << pose_msg->transforms.data()->child_frame_id << std::endl;
 
-   // find cuurent frame in the list of active targets
-   std::vector<std::string>::iterator it_list_names = std::find(list_active_frames_.begin(), list_active_frames_.end(), current_frame);
-   if (it_list_names != list_active_frames_.end())
-   {
-     std::cout << "New Target Found!" << std::endl;
-     n_active_frames_++;
-     list_active_frames_.push_back(current_frame);
-   }
-   std::cout << "Number of active frames: " << n_active_frames_ << std::endl;
-
+   updateTargetsToken(list_active_frames_, n_active_frames_, current_frame, target_name_frame_);
 
    meas_lock.unlock();
  }
@@ -494,3 +498,32 @@ void RosTargetManager::update_v2(const double& dt)
   }
 }
 
+void RosTargetManager::updateTargets(std::vector<std::string>& list_active_frames, unsigned int& n_active_frames, std::string& current_frame)
+{
+  // find cuurent frame in the list of active targets
+  std::vector<std::string>::iterator it_list_names = std::find(list_active_frames.begin(), list_active_frames.end(), current_frame);
+
+  if (it_list_names == list_active_frames.end())
+  {
+#ifdef DEBUG_tmp
+    std::cout << "New target found to be added: " << current_frame << std::endl;
+#endif
+    list_active_frames.push_back(current_frame);
+    n_active_frames++;
+  }
+#ifdef DEBUG_tmp
+  std::cout << "Number of active frames: " << n_active_frames << std::endl;
+#endif
+}
+
+void RosTargetManager::updateTargetsToken(std::vector<std::string>& list_active_frames, unsigned int& n_active_frames, std::string& current_frame, const std::string& token)
+{
+  std::vector<std::string> tokens = splitString(current_frame, frame_name_delimiter_);
+  if( ( tokens.front() == token)  && tokens.back() != "est")
+  {
+    updateTargets(list_active_frames, n_active_frames, current_frame);
+  }
+#ifdef DEBUG_tmp
+  std::cout << "Number of active frames: " << n_active_frames << std::endl;
+#endif
+}
