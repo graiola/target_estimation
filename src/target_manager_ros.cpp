@@ -99,13 +99,14 @@ void RosTargetManager::update(const double& dt)
         manager_.init(id,dt_,Q_,R_,P_,tmp_vector7d_,0.0,type_);
 
       if(new_meas)
-        manager_.update(tmp.first,dt_,tmp_vector7d_); // Estimate
+        manager_.update(id,dt_,tmp_vector7d_); // Estimate
       else
-        manager_.update(tmp.first,dt_); // Predict
+        manager_.update(id,dt_); // Predict
     }
     meas_lock_.unlock();
   }
-
+  else
+    manager_.update(dt_); // Predict with all the filters
 
   auto target_ids = manager_.getAvailableTargets(); // FIXME prb not thread safe
 

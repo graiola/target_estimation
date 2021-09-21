@@ -186,6 +186,13 @@ void TargetManager::update(const unsigned int& id, const double& dt)
     }
 }
 
+void TargetManager::update(const double& dt)
+{
+    lock_guard<mutex> lg(target_lock_);
+    for(const auto& tmp : targets_)
+      tmp.second->update(dt);
+}
+
 void TargetManager::setInterceptionSphere(const Eigen::Vector3d& origin, const double& radius)
 {
     assert(radius>=0.0);

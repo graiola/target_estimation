@@ -86,6 +86,12 @@ public:
     void update(const unsigned int& id, const double& dt);
 
     /**
+   * @brief update perform a predict step with all the filters.
+   * @param dt
+   */
+    void update(const double& dt);
+
+    /**
    * @brief setInterceptionSphere Set the interception sphere params
    * @param origin
    * @param radius
