@@ -121,6 +121,8 @@ void RosTargetManager::update(const double& dt)
 
   t_= t_ + dt;
   t_prev_ = t;
+
+  manager_.log();
 }
 
 void RosTargetManager::setTargetTokenName(const string &token_name)
@@ -159,6 +161,8 @@ bool RosTargetManager::parseTargetType(const ros::NodeHandle& n, TargetManager::
       type = TargetManager::target_t::RPY;
     else if (std::strcmp(type_str.c_str(),"rpy_ext") == 0)
       type = TargetManager::target_t::RPY_EXT;
+    else if (std::strcmp(type_str.c_str(),"projectile") == 0)
+      type = TargetManager::target_t::PROJECTILE;
 
     return true;
   }

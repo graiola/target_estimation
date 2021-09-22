@@ -1,6 +1,7 @@
 #include "target_estimation/target_manager_ros.hpp"
 
 #define WORLD_FRAME "world"
+#define CAMERA_FRAME "camera_depth_optical_frame"
 
 using namespace std;
 using namespace rt_logger;
@@ -64,7 +65,7 @@ int main(int argc, char **argv)
   //tf::Transform transform;
   //tf::Quaternion q;
 
-  double f = 3; // Hz -> remember to use the corresponding YAML file
+  double f = 50; // Hz -> remember to use the corresponding YAML file
   double dt = 1.0/f;
 
   ros::Rate rate(f);

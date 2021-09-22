@@ -3,6 +3,9 @@
 */
 
 #include "target_estimation/target_manager.hpp"
+#include "target_estimation/types/rpy.hpp"
+#include "target_estimation/types/rpyext.hpp"
+#include "target_estimation/types/projectile.hpp"
 #include <stdexcept>
 
 using namespace std;
@@ -38,6 +41,8 @@ bool TargetManager::parseTargetType(const YAML::Node& node, target_t& type)
             type = TargetManager::target_t::RPY;
         else if (std::strcmp(type_str.c_str(),"rpy_ext") == 0)
             type = TargetManager::target_t::RPY_EXT;
+        else if (std::strcmp(type_str.c_str(),"projectile") == 0)
+            type = TargetManager::target_t::PROJECTILE;
     }
     catch(YAML::ParserException& exception)
     {
@@ -142,6 +147,10 @@ void TargetManager::init(const unsigned int& id, const double& dt0,
         case target_t::RPY_EXT:
             targets_[id].reset(new TargetRPYExtended(id,dt0,Q,R,P0,p0,t0));
             std::cout << "Orientation defined as RPY angles with omega" << std::endl;
+            break;
+        case target_t::PROJECTILE:
+            targets_[id].reset(new TargetProjectile(id,dt0,Q,R,P0,p0,t0));
+            std::cout << "Catching some bullets! No orientation needed" << std::endl;
             break;
         }
     }

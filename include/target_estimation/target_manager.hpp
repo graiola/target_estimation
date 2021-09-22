@@ -5,7 +5,7 @@
 #ifndef TARGET_MANAGER_HPP
 #define TARGET_MANAGER_HPP
 
-#include "target_estimation/target.hpp"
+#include "target_estimation/target_interface.hpp"
 #include <yaml-cpp/yaml.h>
 
 // ----------------------------
@@ -18,7 +18,7 @@ public:
 
     typedef std::map<unsigned int,TargetInterface::Ptr> targets_map_t;
 
-    enum target_t {RPY=0,RPY_EXT};
+    enum target_t {RPY=0,RPY_EXT,PROJECTILE};
 
     /**
    * @brief TargetManager Create an empty TargetManager

@@ -8,7 +8,7 @@ pkg_check_modules(EIGEN eigen3)
 pkg_check_modules(YAMLCPP REQUIRED yaml-cpp>=0.5)
 
 if (${roscpp_FOUND} AND ${rt_logger_FOUND})
-    #add_definitions(-DLOGGER_ON)
+    add_definitions(-DLOGGER_ON)
     message(STATUS "${Yellow}ROS and RT_LOGGER found, add logger${ColorReset}")
 endif()
 
@@ -35,7 +35,10 @@ add_library(kalman SHARED
 )
 
 add_library(target SHARED
-  src/target.cpp
+  src/target_interface.cpp
+  src/types/rpy.cpp
+  src/types/rpyext.cpp
+  src/types/projectile.cpp
   src/target_manager.cpp
   src/solver.cpp
 )
