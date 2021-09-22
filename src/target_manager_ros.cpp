@@ -25,7 +25,8 @@ void eigen7dToTfTransform(const Eigen::Vector7d& e, tf::Transform& t)
 
 RosTargetManager::RosTargetManager(ros::NodeHandle& nh):
   token_name_(""),
-  reference_frame_("")
+  reference_frame_(""),
+  camera_frame_("")
 {
   // subscribe to /tf topic
   nh_ = nh;
@@ -34,6 +35,8 @@ RosTargetManager::RosTargetManager(ros::NodeHandle& nh):
   t_ = 0.0;
   dt_ = 0.01;
   t_prev_ = 0.0;
+
+  reference_T_camera_ = Eigen::Isometry3d::Identity();
 
   // Load the parameters for initializing the KF
   if(!parseSquareMatrix(nh_,"Q",Q_) || !parseSquareMatrix(nh_,"R",R_) || !parseSquareMatrix(nh_,"P",P_))
@@ -72,7 +75,7 @@ void RosTargetManager::measurementCallBack(const tf2_msgs::TFMessage::ConstPtr& 
       }
 
       meas_lock_.lock();
-      measurements_[id].tr_ = pose_msg->transforms[i]; // Save the measurement
+      measurements_[id].tr_ = pose_msg->transforms[i]; // Save the measurement w.r.t camera
       meas_lock_.unlock();
 
     }
@@ -94,6 +97,11 @@ void RosTargetManager::update(const double& dt)
       const bool& new_meas = tmp.second.new_meas_;
 
       transformStampedToEigen7d(tr,tmp_vector7d_);
+
+      // Transform the target pose from camera to reference frame
+      pose2isometry(tmp_vector7d_,tmp_isometry3d_); // camera_T_target
+      tmp_isometry3d_ = reference_T_camera_ * tmp_isometry3d_; // reference_T_target = reference_T_camera * camera_T_target
+      isometry2pose(tmp_isometry3d_,tmp_vector7d_);
 
       if(manager_.getTarget(id)==nullptr) // Target does not exist, create it
         manager_.init(id,dt_,Q_,R_,P_,tmp_vector7d_,0.0,type_);
@@ -130,9 +138,19 @@ void RosTargetManager::setTargetTokenName(const string &token_name)
   token_name_ = token_name;
 }
 
-void RosTargetManager::setReferenceFrame(const string& reference_frame)
+void RosTargetManager::setReferenceFrameName(const string& frame)
 {
-  reference_frame_ = reference_frame;
+  reference_frame_ = frame;
+}
+
+void RosTargetManager::setCameraFrameName(const string& frame)
+{
+  camera_frame_ = frame;
+}
+
+void RosTargetManager::setCameraTransform(const Eigen::Isometry3d& reference_T_camera)
+{
+  reference_T_camera_ = reference_T_camera;
 }
 
 bool RosTargetManager::parseSquareMatrix(const ros::NodeHandle& n, const std::string& matrix, Eigen::MatrixXd& M)

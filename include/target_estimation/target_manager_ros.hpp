@@ -28,7 +28,11 @@ public:
 
   void setTargetTokenName(const std::string& token_name);
 
-  void setReferenceFrame(const std::string& reference_frame);
+  void setReferenceFrameName(const std::string& frame);
+
+  void setCameraFrameName(const std::string& frame);
+
+  void setCameraTransform(const Eigen::Isometry3d& reference_T_camera);
 
 private:
 
@@ -55,6 +59,9 @@ private:
 
   std::string token_name_;
   std::string reference_frame_;
+  std::string camera_frame_;
+
+  Eigen::Isometry3d reference_T_camera_;
 
   double t_;
   double t_prev_;
@@ -65,6 +72,7 @@ private:
   meas_map_t measurements_;
 
   Eigen::Vector7d tmp_vector7d_;
+  Eigen::Isometry3d tmp_isometry3d_;
 
   tf::TransformBroadcaster br_;
 };

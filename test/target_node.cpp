@@ -1,7 +1,8 @@
 #include "target_estimation/target_manager_ros.hpp"
 
-#define WORLD_FRAME "world"
+#define WORLD_FRAME  "world"
 #define CAMERA_FRAME "camera_depth_optical_frame"
+#define TARGET_NAME  "keyboard"
 
 using namespace std;
 using namespace rt_logger;
@@ -18,10 +19,18 @@ int main(int argc, char **argv)
   interception_sphere_pos << 0.0, 0.0, 0.3;
   double interception_sphere_radius = 1.0;
 
+  // Adjust the camera w.r.t world
+  Eigen::Matrix3d world_R_camera;
+  Eigen::Isometry3d world_T_camera = Eigen::Isometry3d::Identity();
+  rpyToRot(0,M_PI/2,0,world_R_camera);
+  world_T_camera = world_R_camera * world_T_camera;
+
   RosTargetManager ros_manager(nh);
   ros_manager.setInterceptionSphere(interception_sphere_pos,interception_sphere_radius);
-  ros_manager.setTargetTokenName("keyboard"); // FIXME hardcoded
-  ros_manager.setReferenceFrame("camera_depth_optical_frame"); // FIXME hardcoded
+  ros_manager.setTargetTokenName(TARGET_NAME);
+  ros_manager.setReferenceFrameName(WORLD_FRAME);
+  ros_manager.setCameraFrameName(CAMERA_FRAME);
+  ros_manager.setCameraTransform(world_T_camera);
 
   //visualization_msgs::Marker sphere_marker;
   //sphere_marker.header.frame_id = manager.getWorldNameFrame();
