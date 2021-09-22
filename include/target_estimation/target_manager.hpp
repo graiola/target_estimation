@@ -157,6 +157,16 @@ public:
     bool getInterceptionPose(const unsigned int& id, const double& t, const double& pos_th, const double& ang_th, Eigen::Vector7d& interception_pose);
 
     /**
+   * @brief getClosestInterceptionPose Compute the interception pose for the closest target based on intersection time
+   * @param t
+   * @param pos_th defines the convergence threshold for the interception position
+   * @param ang_th defines the convergence threshold for the interception orientation
+   * @param interception_pose
+   * @return closest target id
+   */
+    unsigned int getClosestInterceptionPose(const double &t1, const double &pos_th, const double &ang_th, Eigen::Vector7d &interception_pose);
+
+    /**
    * @brief getNumberMeasurements Return the number of measurements done so far
    * @return
    */

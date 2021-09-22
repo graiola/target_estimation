@@ -15,6 +15,36 @@
 
 #include "target_estimation/target_manager.hpp"
 
+inline void transformStampedToPose7d(const geometry_msgs::TransformStamped& t, Eigen::Vector7d& e)
+{
+  e(0) = t.transform.translation.x;
+  e(1) = t.transform.translation.y;
+  e(2) = t.transform.translation.z;
+
+  e(3) = t.transform.rotation.x;
+  e(4) = t.transform.rotation.y;
+  e(5) = t.transform.rotation.z;
+  e(6) = t.transform.rotation.w;
+}
+
+inline void pose7dToTfTransform(const Eigen::Vector7d& e, tf::Transform& t)
+{
+  t.setOrigin(tf::Vector3(e(0),e(1),e(2)));
+  t.setRotation(tf::Quaternion(e(3),e(4),e(5),e(6)));
+}
+
+inline void pose7dToTransformStamped(const Eigen::Vector7d& e, geometry_msgs::TransformStamped& t)
+{
+  t.transform.translation.x = e(0);
+  t.transform.translation.y = e(1);
+  t.transform.translation.z = e(2);
+
+  t.transform.rotation.x = e(3);
+  t.transform.rotation.y = e(4);
+  t.transform.rotation.z = e(5);
+  t.transform.rotation.w = e(6);
+}
+
 class RosTargetManager
 {
 
@@ -33,6 +63,12 @@ public:
   void setCameraFrameName(const std::string& frame);
 
   void setCameraTransform(const Eigen::Isometry3d& reference_T_camera);
+
+  void setPositionConvergenceThreshold(const double& th);
+
+  void setAngularConvergenceThreshold(const double& th);
+
+  const Eigen::Vector7d& getInterceptionPose() const;
 
 private:
 
@@ -62,10 +98,13 @@ private:
   std::string camera_frame_;
 
   Eigen::Isometry3d reference_T_camera_;
+  Eigen::Vector7d interception_pose_;
 
   double t_;
   double t_prev_;
   double dt_;
+  double pos_th_;
+  double ang_th_;
 
   std::mutex meas_lock_;
 

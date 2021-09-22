@@ -5,24 +5,6 @@
 using namespace std;
 using namespace rt_logger;
 
-void transformStampedToEigen7d(const geometry_msgs::TransformStamped& t, Eigen::Vector7d& e)
-{
-  e(0) = t.transform.translation.x;
-  e(1) = t.transform.translation.y;
-  e(2) = t.transform.translation.z;
-
-  e(3) = t.transform.rotation.x;
-  e(4) = t.transform.rotation.y;
-  e(5) = t.transform.rotation.z;
-  e(6) = t.transform.rotation.w;
-}
-
-void eigen7dToTfTransform(const Eigen::Vector7d& e, tf::Transform& t)
-{
-  t.setOrigin(tf::Vector3(e(0),e(1),e(2)));
-  t.setRotation(tf::Quaternion(e(3),e(4),e(5),e(6)));
-}
-
 RosTargetManager::RosTargetManager(ros::NodeHandle& nh):
   token_name_(""),
   reference_frame_(""),
@@ -35,8 +17,12 @@ RosTargetManager::RosTargetManager(ros::NodeHandle& nh):
   t_ = 0.0;
   dt_ = 0.01;
   t_prev_ = 0.0;
+  pos_th_ = 0.01;
+  ang_th_ = 0.01;
 
   reference_T_camera_ = Eigen::Isometry3d::Identity();
+
+  initPose(interception_pose_);
 
   // Load the parameters for initializing the KF
   if(!parseSquareMatrix(nh_,"Q",Q_) || !parseSquareMatrix(nh_,"R",R_) || !parseSquareMatrix(nh_,"P",P_))
@@ -96,7 +82,7 @@ void RosTargetManager::update(const double& dt)
       const geometry_msgs::TransformStamped& tr = tmp.second.tr_;
       const bool& new_meas = tmp.second.new_meas_;
 
-      transformStampedToEigen7d(tr,tmp_vector7d_);
+      transformStampedToPose7d(tr,tmp_vector7d_);
 
       // Transform the target pose from camera to reference frame
       pose2isometry(tmp_vector7d_,tmp_isometry3d_); // camera_T_target
@@ -123,9 +109,11 @@ void RosTargetManager::update(const double& dt)
     Eigen::Vector7d pose;
     tf::Transform transform;
     manager_.getTargetPose(target_ids[i],pose);
-    eigen7dToTfTransform(pose,transform);
+    pose7dToTfTransform(pose,transform);
     br_.sendTransform(tf::StampedTransform(transform,ros::Time::now(),reference_frame_,token_name_+"_filt_"+to_string(target_ids[i])));
   }
+
+  manager_.getClosestInterceptionPose(t_,pos_th_,ang_th_,interception_pose_);
 
   t_= t_ + dt;
   t_prev_ = t;
@@ -151,6 +139,23 @@ void RosTargetManager::setCameraFrameName(const string& frame)
 void RosTargetManager::setCameraTransform(const Eigen::Isometry3d& reference_T_camera)
 {
   reference_T_camera_ = reference_T_camera;
+}
+
+void RosTargetManager::setPositionConvergenceThreshold(const double &th)
+{
+  assert(th>=0.0);
+  pos_th_ = th;
+}
+
+void RosTargetManager::setAngularConvergenceThreshold(const double &th)
+{
+  assert(th>=0.0);
+  ang_th_ = th;
+}
+
+const Eigen::Vector7d& RosTargetManager::getInterceptionPose() const
+{
+  return interception_pose_;
 }
 
 bool RosTargetManager::parseSquareMatrix(const ros::NodeHandle& n, const std::string& matrix, Eigen::MatrixXd& M)
