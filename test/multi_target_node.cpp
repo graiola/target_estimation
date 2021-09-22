@@ -25,10 +25,17 @@ int main(int argc, char **argv)
   bool target_converged;
 
   //  RosTargetManager manager(nh, target_name_frame, dt);
-  RosTargetManager manager(nh);
+  double f = 1000; // Hz -> remember to use the corresponding YAML file
+  double dt = 1.0/f;
+
+  RosTargetManager manager(nh, dt);
   manager.setInterceptionSphere(interception_sphere_pos,interception_sphere_radius);
-  world_name_frame = manager.getWorldNameFrame();
-  target_token_frame = manager.getTargetTokenFrame();
+  world_name_frame = "camera_depth_optical_frame";
+  target_token_frame = "keyboard";
+  manager.setWorldFrameName(world_name_frame);
+  manager.setTargetFrameToken(target_token_frame);
+
+  ros::Rate rate(f);
 
   // Orient the gripper camera down
   target_estimation_msg.interception_ready.data = false;
@@ -95,10 +102,6 @@ int main(int argc, char **argv)
   tf::Transform transform;
   tf::Quaternion q;
 
-  double f = 1000; // Hz -> remember to use the corresponding YAML file
-  double dt = 1.0/f;
-
-  ros::Rate rate(f);
 
   double t, t_pre = 0;
   int n_targets = 0;
@@ -113,7 +116,7 @@ int main(int argc, char **argv)
     dt = t - t_pre;
 
     // Update the model
-    manager.update_v2(dt);
+    manager.update(dt);
 
     // FIXME: loop on map length
     multi_target_position     = manager.getEstimatedPosition_multi();
@@ -123,10 +126,7 @@ int main(int argc, char **argv)
     multi_target_converged    = manager.isTargetConverged_multi();
     multi_interception_pose   = manager.getInterceptionPose_multi();
 
-
-    auto it_position = multi_target_position.begin();
-    auto it_orientation = multi_target_orientation.begin();
-#ifdef DEBUG
+#ifdef DEBUG_tmp
     cout << "------------ Target Size (position map): " << multi_target_position.size() << endl;
     cout << "------------ Target Size (orientation map): " << multi_target_orientation.size() << endl;
 #endif
@@ -134,43 +134,51 @@ int main(int argc, char **argv)
     // loop through the maps
     if(multi_target_position.size() == multi_target_orientation.size())
     {
-      while( ( it_position != multi_target_position.end() ) && ( it_orientation != multi_target_orientation.end() ) )
+//      while( ( it_position != multi_target_position.end() ) && ( it_orientation != multi_target_orientation.end() ) )
+      int cnt = 0;
+      for(auto& it_position : multi_target_position)
       {
+
         // read data for each target
-        target_position = multi_target_position[it_position->first];
-        target_orientation = multi_target_orientation[it_position->first];
-        target_rpy = multi_target_rpy[it_position->first];
-        target_velocity = multi_target_velocity[it_position->first];
-        target_converged = multi_target_converged[it_position->first];
+        target_position = multi_target_position[it_position.first];
+        target_orientation = multi_target_orientation[it_position.first];
+        target_rpy = multi_target_rpy[it_position.first];
+        target_velocity = multi_target_velocity[it_position.first];
+        target_converged = multi_target_converged[it_position.first];
 
-
-        // Create the tf transform between /world and /target
         transform.setOrigin(tf::Vector3(target_position.x(),target_position.y(),target_position.z()));
-        q.setRPY(target_rpy(0),target_rpy(1),target_rpy(2));
+//        q.setRPY(target_rpy(0),target_rpy(1),target_rpy(2));
+        q = tf::Quaternion(target_orientation.x(),target_orientation.y(),target_orientation.z(),target_orientation.w());
         q.normalize();
         transform.setRotation(q);
 
-        br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), (world_name_frame), (target_token_frame + "_est") ));
+#ifdef DEBUG_tmp
+        std::cout << "Cycle: " << cnt << " - Target Key: " << it_position.first << " - Position: " << target_position << std::endl;
+#endif
+
+//        br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), (world_name_frame), (target_token_frame + "_est") )); //it_position->first
+        br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), (world_name_frame), (it_position.first + "_est") ));
 
         // Publish on /target_marker topic
         target_marker.pose.position.x = target_estimation_msg.pose.position.x = target_position.x();
-        target_marker.pose.position.y = target_estimation_msg.pose.position.y = target_position.y();
+        target_marker.pose.position.y = target_estimation_msg.pose.position.y =target_position.y();
         target_marker.pose.position.z = target_estimation_msg.pose.position.z = target_position.z();
         target_marker.pose.orientation.x = target_estimation_msg.pose.orientation.x = target_orientation.x();
-        target_marker.pose.orientation.y = target_estimation_msg.pose.orientation.y =target_orientation.y();
-        target_marker.pose.orientation.z = target_estimation_msg.pose.orientation.z =target_orientation.z();
-        target_marker.pose.orientation.w = target_estimation_msg.pose.orientation.w =target_orientation.w();
+        target_marker.pose.orientation.y = target_estimation_msg.pose.orientation.y = target_orientation.y();
+        target_marker.pose.orientation.z = target_estimation_msg.pose.orientation.z = target_orientation.z();
+        target_marker.pose.orientation.w = target_estimation_msg.pose.orientation.w = target_orientation.w();
 
         target_estimation_msg.twist.linear.x = target_velocity(0);
         target_estimation_msg.twist.linear.y = target_velocity(1);
         target_estimation_msg.twist.linear.z = target_velocity(2);
 
-        target_estimation_msg.header.frame_id = target_marker.header.frame_id = it_position->first;
+        target_estimation_msg.header.frame_id = target_marker.header.frame_id = it_position.first;
         target_estimation_msg.header.stamp = ros::Time::now();
 
+#ifdef DEBUG_tmp
         if(target_converged)
         {
-          interception_pose = multi_interception_pose[it_position->first];
+          interception_pose = multi_interception_pose[it_position.first];
 
           target_estimation_msg.interception_ready.data = true;
           target_estimation_msg.interception_pose.position.x = target_sphere_marker.pose.position.x = interception_pose.x();
@@ -183,15 +191,16 @@ int main(int argc, char **argv)
         {
           target_estimation_msg.interception_ready.data = false;
         }
+#endif
 
-#ifdef DEBUG
+#ifdef DEBUG_tmp
         if(target_estimation_msg.interception_ready.data)
         {
-          cout << "KF applied to target [ " << it_position->first << " ] has converged! Ready to catch it..." << endl;
+          cout << "KF applied to target [ " << it_position.first << " ] has converged! Ready to catch it..." << endl;
         }
         else
         {
-          cout << "KF applied to target [ " << it_position->first << " ] has not converged!" << endl;
+          cout << "KF applied to target [ " << it_position.first << " ] has not converged!" << endl;
         }
 #endif
 
@@ -200,24 +209,6 @@ int main(int argc, char **argv)
 
         target_marker_pub.publish(target_marker);
         target_estimation_pub.publish(target_estimation_msg);
-
-#ifdef DEBUG
-        cout << "------- Target name: " << it_position->first << endl;
-        cout << "------- Position (from map)" << it_position->second << endl;
-        cout << "------- Position (from Eigen::Vector3d)" << target_position << endl;
-#endif
-
-#ifdef DEBUG
-        string target_name_p, target_name_o;
-        target_name_p = it_position->first;
-        target_name_o = it_orientation->first;
-        cout << "------- Target name (position map): " << it_position->first << endl;
-        cout << "------- Target name (orientation map): " << it_orientation->first << endl;
-        cout << "------- compare (=0 -> equal names): " << target_name_p.compare(target_name_o) << endl;
-#endif
-
-        it_position ++;
-        it_orientation ++;
       }
     }
     else

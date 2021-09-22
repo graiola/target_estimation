@@ -8,6 +8,7 @@ Estimate the pose of incoming targets
 # ToDo
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 - [ ] multiple targets (depending on the number of /tf received)
 =======
 - [x] Fix the occurence of measurementCallback_v2 -> only mreasurements must be fed into the KF
@@ -17,3 +18,5 @@ Estimate the pose of incoming targets
 	- [ ] automaticaly determine the number of targets from /tf messages
 
 # Notes 2021/09/17
+=======
+>>>>>>> lraiano_multiTarget_ros_devel

@@ -24,6 +24,7 @@ class RosTargetManager
 public:
 
     RosTargetManager(ros::NodeHandle& nh);
+    RosTargetManager(ros::NodeHandle& nh, double& dt);
     RosTargetManager(ros::NodeHandle& nh, std::string& target_name_frame, double& dt);
 
     void setInterceptionSphere(const Eigen::Vector3d& pos, const double& radius);
@@ -47,34 +48,36 @@ public:
     std::map<std::string, bool> isTargetConverged_multi()                       {return map_targets_converged_;} // Map containing intereception pose
 
     void update(const double& dt);
-    void update_v2(const double& dt);
 
     std::string getTargetTokenFrame()   {return target_name_frame_;}
     std::string getWorldNameFrame()     {return world_name_frame_;}
 
     int getNumberOfTargets()  {return map_measured_pose_.size();}
 
+    void setWorldFrameName(std::string& name);
+    void setTargetFrameToken(std::string& token);
+
+
 
 private:
 
     void MeasurementCallBack(const tf2_msgs::TFMessage::ConstPtr& pose_msg);
-    void MeasurementCallBack_v2(const tf2_msgs::TFMessage::ConstPtr& pose_msg);
 
     bool parseSquareMatrix(const ros::NodeHandle& n, const std::string& matrix, Eigen::MatrixXd& M);
     bool parseTargetType(const ros::NodeHandle& n, TargetManager::target_t& type);
 
-    // put this function in the utils class
-
-//    void initPoseWithMeas();
+    // Update the list of current targets
+    void updateTargets(std::vector<std::string>& list_active_frames, unsigned int& n_active_frames, std::string& current_frame);
+    // Update the list of targets given its keyname.
+    void updateTargetsToken(std::vector<std::string>& list_active_frames, unsigned int& n_active_frames, std::string& current_frame, const std::string& token);
 
     ros::NodeHandle nh_;
     TargetManager manager_;
     ros::Subscriber measurament_sub_;
 
-    // FIXME: when a new bag is available remember to change target_name_frame_ into "keyboard"
-    // NB: remember to add "/" to target name when pusblishing to /tf topic
-    std::string target_name_frame_ = "keyboard1";
-    std::string world_name_frame_ = "camera_depth_optical_frame";
+    std::string target_name_frame_ = "";
+    std::string world_name_frame_ = "";
+    const std::string frame_name_delimiter_ = "_";
 
     // single target managment
     Eigen::Vector7d real_pose_;
@@ -102,7 +105,6 @@ private:
     double t_prev_;
     double dt_;
     TargetManager::target_t type_;
-    std::atomic<bool> new_meas_;
     std::mutex meas_lock;
 
     // multiple targets managment
@@ -117,8 +119,12 @@ private:
     std::map<std::string, Eigen::Vector6d> map_twist_error_; // Map containing twist error
     std::map<std::string, Eigen::Vector7d> map_interception_pose_; // Map containing intereception pose
     std::map<std::string, bool> map_targets_converged_; // Map containing target convergence
+    std::map<std::string, bool> map_targets_new_meas_; // Map containing target convergence
 
     double t_call_, t_pre_call_;
+
+    unsigned int n_active_frames_;
+    std::vector<std::string> list_active_frames_;
 
 };
 

@@ -21,7 +21,7 @@ int main(int argc, char* argv[]) {
 
   ros::init(argc, argv, "target_node");
 
-  ros::NodeHandle nh;
+   ros::NodeHandle nh;
 
   target_estimation::TargetEstimation target_estimation_msg;
   target_estimation_msg.header.frame_id = "world";
