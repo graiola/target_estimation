@@ -27,10 +27,17 @@ inline void transformStampedToPose7d(const geometry_msgs::TransformStamped& t, E
   e(6) = t.transform.rotation.w;
 }
 
-inline void pose7dToTfTransform(const Eigen::Vector7d& e, tf::Transform& t)
+inline void pose7dToTFTransform(const Eigen::Vector7d& e, tf::Transform& t)
 {
   t.setOrigin(tf::Vector3(e(0),e(1),e(2)));
   t.setRotation(tf::Quaternion(e(3),e(4),e(5),e(6)));
+}
+
+inline void isometryToTFTransform(const Eigen::Isometry3d& e, tf::Transform& t)
+{
+  t.setOrigin(tf::Vector3(e.translation().x(),e.translation().y(),e.translation().z()));
+  Eigen::Quaterniond q = rotToQuat(e.rotation());
+  t.setRotation(tf::Quaternion(q.coeffs().x(),q.coeffs().y(),q.coeffs().z(),q.coeffs().w())); // FIXME check if it works
 }
 
 inline void pose7dToTransformStamped(const Eigen::Vector7d& e, geometry_msgs::TransformStamped& t)
@@ -112,8 +119,11 @@ private:
 
   Eigen::Vector7d tmp_vector7d_;
   Eigen::Isometry3d tmp_isometry3d_;
+  tf::Transform tmp_transform_;
 
   tf::TransformBroadcaster br_;
+
+  ros::Time ros_t_;
 };
 
 #endif

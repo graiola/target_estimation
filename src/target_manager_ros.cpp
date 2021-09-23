@@ -71,8 +71,8 @@ void RosTargetManager::measurementCallBack(const tf2_msgs::TFMessage::ConstPtr& 
 void RosTargetManager::update(const double& dt)
 {
 
-  double t = ros::Time::now().toSec();
-  dt_ = t - t_prev_;
+  ros_t_ = ros::Time::now();
+  dt_ = ros_t_.toSec() - t_prev_;
 
   if(meas_lock_.try_lock())
   {
@@ -85,9 +85,9 @@ void RosTargetManager::update(const double& dt)
       transformStampedToPose7d(tr,tmp_vector7d_);
 
       // Transform the target pose from camera to reference frame
-      pose2isometry(tmp_vector7d_,tmp_isometry3d_); // camera_T_target
+      pose7dToIsometry(tmp_vector7d_,tmp_isometry3d_); // camera_T_target
       tmp_isometry3d_ = reference_T_camera_ * tmp_isometry3d_; // reference_T_target = reference_T_camera * camera_T_target
-      isometry2pose(tmp_isometry3d_,tmp_vector7d_);
+      isometryToPose7d(tmp_isometry3d_,tmp_vector7d_);
 
       if(manager_.getTarget(id)==nullptr) // Target does not exist, create it
         manager_.init(id,dt_,Q_,R_,P_,tmp_vector7d_,0.0,type_);
@@ -104,24 +104,26 @@ void RosTargetManager::update(const double& dt)
 
   auto target_ids = manager_.getAvailableTargets(); // FIXME prb not thread safe
 
+  // Publish the target's filtered poses
   for(unsigned int i=0;i<target_ids.size();i++)
   {
-    Eigen::Vector7d pose;
-    tf::Transform transform;
-    manager_.getTargetPose(target_ids[i],pose);
-    pose7dToTfTransform(pose,transform);
-    br_.sendTransform(tf::StampedTransform(transform,ros::Time::now(),reference_frame_,token_name_+"_filt_"+to_string(target_ids[i])));
+    manager_.getTargetPose(target_ids[i],tmp_vector7d_);
+    pose7dToTFTransform(tmp_vector7d_,tmp_transform_);
+    br_.sendTransform(tf::StampedTransform(tmp_transform_,ros_t_,reference_frame_,token_name_+"_filt_"+to_string(target_ids[i])));
   }
+  // Publish the transform between camera and reference
+  isometryToTFTransform(reference_T_camera_,tmp_transform_);
+  br_.sendTransform(tf::StampedTransform(tmp_transform_,ros_t_,reference_frame_,camera_frame_));
 
   manager_.getClosestInterceptionPose(t_,pos_th_,ang_th_,interception_pose_);
 
   t_= t_ + dt;
-  t_prev_ = t;
+  t_prev_ = ros_t_.toSec();
 
   manager_.log();
 }
 
-void RosTargetManager::setTargetTokenName(const string &token_name)
+void RosTargetManager::setTargetTokenName(const string& token_name)
 {
   token_name_ = token_name;
 }
@@ -141,13 +143,13 @@ void RosTargetManager::setCameraTransform(const Eigen::Isometry3d& reference_T_c
   reference_T_camera_ = reference_T_camera;
 }
 
-void RosTargetManager::setPositionConvergenceThreshold(const double &th)
+void RosTargetManager::setPositionConvergenceThreshold(const double& th)
 {
   assert(th>=0.0);
   pos_th_ = th;
 }
 
-void RosTargetManager::setAngularConvergenceThreshold(const double &th)
+void RosTargetManager::setAngularConvergenceThreshold(const double& th)
 {
   assert(th>=0.0);
   ang_th_ = th;

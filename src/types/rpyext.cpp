@@ -45,7 +45,7 @@ TargetRPYExtended::TargetRPYExtended(const unsigned int& id,
 
   // Initialize the state
   x_ = Eigen::VectorXd::Zero(n_);
-  pose7d2pose6d(p0,pose_internal_);
+  pose7dToPose6d(p0,pose_internal_);
 
   RPY_TARGET_pose(x_)  = pose_internal_;
 

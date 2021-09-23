@@ -559,7 +559,7 @@ inline Eigen::Matrix4x3d Qomega(const double& dt, const Eigen::Vector3d& omega, 
  * @param T
  * @param v
  */
-inline void isometry2pose(const Eigen::Isometry3d& T, Eigen::Vector7d& p)
+inline void isometryToPose7d(const Eigen::Isometry3d& T, Eigen::Vector7d& p)
 {
     POSE_pos(p)  = T.translation();
     POSE_quat(p) = ((Eigen::Quaterniond)T.linear()).coeffs();
@@ -571,7 +571,7 @@ inline void isometry2pose(const Eigen::Isometry3d& T, Eigen::Vector7d& p)
  * @param T
  * @param v
  */
-inline void isometry2pose(const Eigen::Isometry3d& T, Eigen::Vector6d& p)
+inline void isometryToPose6d(const Eigen::Isometry3d& T, Eigen::Vector6d& p)
 {
     POSE_pos(p) = T.translation();
     Eigen::Vector3d rpy;
@@ -579,7 +579,7 @@ inline void isometry2pose(const Eigen::Isometry3d& T, Eigen::Vector6d& p)
     POSE_rpy(p) = rpy;
 }
 
-inline void pose2isometry(const Eigen::Vector7d& p, Eigen::Isometry3d& T)
+inline void pose7dToIsometry(const Eigen::Vector7d& p, Eigen::Isometry3d& T)
 {
     T.translation() = POSE_pos(p);
     Eigen::Quaterniond q;
@@ -588,7 +588,7 @@ inline void pose2isometry(const Eigen::Vector7d& p, Eigen::Isometry3d& T)
     T.linear() = q.toRotationMatrix();
 }
 
-inline void pose7d2pose6d(const Eigen::Vector7d& p7d, Eigen::Vector6d& p6d)
+inline void pose7dToPose6d(const Eigen::Vector7d& p7d, Eigen::Vector6d& p6d)
 {
     POSE_pos(p6d) = POSE_pos(p7d);
     Eigen::Quaterniond q;

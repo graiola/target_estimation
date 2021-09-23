@@ -18,14 +18,8 @@
 /**
  * @brief The TargetProjectile class
  * Linear implementation of the Kalman Filter with state variable defined as:
- * [x y z \psi \theta \phi \dot{x} \dot{y} \dot{z} \dot{\psi} \dot{\theta} \dot{\phi}]
- * if we assume constant velocities, otherwise:
- * [x y z \psi \theta \phi \dot{x} \dot{y} \dot{z} \dot{\psi} \dot{\theta} \dot{\phi} \ddot{x} \ddot{y} \ddot{z} \ddot{\psi} \ddot{\theta} \ddot{\phi}]
- * Note1: the state vector is automatically defined by the dimension of the covariance matrices.
- * Note2: the derivative of the orientation angles are defined w.r.t the current frame, i.e.
- * they represent the angular rates. These are different from the angular velocities omega defined w.r.t
- * the body frame. The linear approximation works well for small angular rates, but it degenerates for
- * big angular changes. For this reason we implemented a version using the ekf to compute the orientation kinematics.
+ * [x y z \dot{x} \dot{y} \dot{z} \ddot{x} \ddot{y} \ddot{z}]
+ * with initial condition: [\ddot{x} \ddot{y} \ddot{z}] = [0 0 -9.81]
  */
 class TargetProjectile : public TargetInterface
 {
