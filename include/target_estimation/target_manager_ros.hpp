@@ -5,9 +5,6 @@
 #include <iomanip>
 #include <vector>
 
-// remove this
-//#include <gazebo_msgs/ModelStates.h>
-
 #include <target_estimation/TargetEstimation.h>
 #include <visualization_msgs/Marker.h>
 #include <Eigen/Core>

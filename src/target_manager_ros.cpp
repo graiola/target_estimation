@@ -3,7 +3,6 @@
 #include <stdexcept>
 
 using namespace std;
-//using namespace rt_logger;
 
 //#define DEBUG
 #define DEBUG_tmp
