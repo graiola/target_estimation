@@ -8,23 +8,26 @@ using namespace std;
 //#define DEBUG
 #define DEBUG_tmp
 
-
-RosTargetManager::RosTargetManager(ros::NodeHandle& nh)
+RosTargetManager::RosTargetManager(ros::NodeHandle& nh, double& dt, const bool &publish_robot)
 {
   // subscribe to /tf topic
   nh_ = nh;
   measurament_sub_ = nh_.subscribe("/tf", 1 , &RosTargetManager::MeasurementCallBack, this);
 
-  // FIXME -> do not initialize the pose. The init must be done using the init of the update soon after the measurement
-  target_converged_ = false;
-  target_id_ = 0;
+  if(publish_robot)
+  {
+    // Publish to Fraka Equilibrium Pose topic
+    std::string topic_to_publish = "cartesian_impedance_example_controller/equilibrium_pose";
+    franka_eq_pose_pub_ = nh.advertise<geometry_msgs::PoseStamped>(topic_to_publish, 1, true);
+  }
+
   n_active_frames_ = 0;
 
   t_ = 0.0;
-  dt_ = 0.001;
+  dt_ = dt;
   t_prev_ = 0.0;
-  pos_th_ = 0.001;
-  ang_th_ = 0.001;
+  pos_th_ = 1;
+  ang_th_ = 1;
 
   // tmp
   t_pre_call_ = 0;
@@ -33,12 +36,6 @@ RosTargetManager::RosTargetManager(ros::NodeHandle& nh)
   n_ = static_cast<unsigned int>(Q_.rows());
   m_ = static_cast<unsigned int>(R_.rows());
 
-  real_twist_.setZero();
-  est_twist_.setZero();
-  initPose(est_pose_);
-  initPose(interception_pose_);
-  initPose(meas_pose_);
-  initPose(real_pose_);
   sigma_.resize(n_);
 
   // Load the parameters for initializing the KF
@@ -47,94 +44,6 @@ RosTargetManager::RosTargetManager(ros::NodeHandle& nh)
 
   if(!parseTargetType(nh_,type_))
     throw std::runtime_error("Can not load filter type!");
-
-  std::string node_name = "/multi_target_node";
-}
-
-RosTargetManager::RosTargetManager(ros::NodeHandle& nh, double& dt)
-{
-  // subscribe to /tf topic
-  nh_ = nh;
-  measurament_sub_ = nh_.subscribe("/tf", 1 , &RosTargetManager::MeasurementCallBack, this);
-
-  // Publish to Fraka Equilibrium Pose topic
-  std::string topic_to_publish = "cartesian_impedance_example_controller/equilibrium_pose";
-  franka_eq_pose_pub_ = nh.advertise<geometry_msgs::PoseStamped>(topic_to_publish, 1, true);
-
-  // FIXME -> do not initialize the pose. The init must be done using the init of the update soon after the measurement
-  target_converged_ = false;
-  target_id_ = 0;
-  n_active_frames_ = 0;
-
-  t_ = 0.0;
-  dt_ = dt;
-  t_prev_ = 0.0;
-  pos_th_ = 0.01;
-  ang_th_ = 0.01;
-
-  // tmp
-  t_pre_call_ = 0;
-  t_call_ = 0;
-
-  n_ = static_cast<unsigned int>(Q_.rows());
-  m_ = static_cast<unsigned int>(R_.rows());
-
-  // -- FIXME --- //
-  real_twist_.setZero();
-  est_twist_.setZero();
-  initPose(est_pose_);
-  initPose(interception_pose_);
-  initPose(meas_pose_);
-  initPose(real_pose_);
-  // -- FIXME --- //
-
-  sigma_.resize(n_);
-
-  // Load the parameters for initializing the KF
-  if(!parseSquareMatrix(nh_,"Q",Q_) || !parseSquareMatrix(nh_,"R",R_) || !parseSquareMatrix(nh_,"P",P_))
-    throw std::runtime_error("Can not load the Cov Matrices!");
-
-  if(!parseTargetType(nh_,type_))
-    throw std::runtime_error("Can not load filter type!");
-
-  std::string node_name = "/multi_target_node";
-}
-
-RosTargetManager::RosTargetManager(ros::NodeHandle& nh, std::string& target_name_frame, double& dt)
-{
-  // subscribe to /tf topic
-  nh_ = nh;
-  measurament_sub_ = nh_.subscribe("/tf", 1 , &RosTargetManager::MeasurementCallBack, this);
-
-  model_name_ = "/" + target_name_frame;
-  std::string in_target = "/" + target_name_frame;
-  target_id_ = 0;
-
-  target_converged_ = false;
-
-  t_ = 0.0;
-  dt_ = dt;
-  t_prev_ = 0.0;
-  pos_th_ = 0.001;
-  ang_th_ = 0.001;
-
-  // Load the parameters for initializing the KF
-  if(!parseSquareMatrix(nh_,"Q",Q_) || !parseSquareMatrix(nh_,"R",R_) || !parseSquareMatrix(nh_,"P",P_))
-    throw std::runtime_error("Can not load the Cov Matrices!");
-
-  if(!parseTargetType(nh_,type_))
-    throw std::runtime_error("Can not load filter type!");
-
-  n_ = static_cast<unsigned int>(Q_.rows());
-  m_ = static_cast<unsigned int>(R_.rows());
-  sigma_.resize(n_);
-
-  real_twist_.setZero();
-  est_twist_.setZero();
-  initPose(est_pose_);
-  initPose(interception_pose_);
-  initPose(meas_pose_);
-  initPose(real_pose_);
 
   std::string node_name = "/multi_target_node";
 }
@@ -293,15 +202,23 @@ void RosTargetManager::update(const double& dt, const unsigned int &count)
         map_estimated_rpy_[it_pose.first]        = manager_.getTarget(target_id)->getEstimatedRPY();
         map_estimated_position_[it_pose.first]   = manager_.getTarget(target_id)->getEstimatedPosition();
 
+        Eigen::Vector7d inteception_pose;
+
         // Get the interception point
-        if( manager_.getInterceptionPose(target_id, t_, pos_th_, ang_th_, map_interception_pose_[it_pose.first]) )
+        if( manager_.getInterceptionPose(target_id, t_, pos_th_, ang_th_, inteception_pose) )
         {
           map_targets_converged_[it_pose.first] = true;
+          map_interception_pose_[it_pose.first] = inteception_pose;
         }
         else
         {
           map_targets_converged_[it_pose.first] = false;
         }
+
+#ifdef DEBUG_tmp
+        std::cout << "Interception pose" << std::endl;
+        std::cout << inteception_pose << std::endl;
+#endif
 
         Eigen::Vector3d target_position;
         Eigen::Quaterniond target_orientation;

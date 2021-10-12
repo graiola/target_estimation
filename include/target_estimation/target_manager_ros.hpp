@@ -22,10 +22,7 @@ class RosTargetManager
 {
 
 public:
-
-    RosTargetManager(ros::NodeHandle& nh);
-    RosTargetManager(ros::NodeHandle& nh, double& dt);
-    RosTargetManager(ros::NodeHandle& nh, std::string& target_name_frame, double& dt);
+    RosTargetManager(ros::NodeHandle& nh, double& dt, const bool &publish_robot=false);
 
     void setInterceptionSphere(const Eigen::Vector3d& pos, const double& radius);
 

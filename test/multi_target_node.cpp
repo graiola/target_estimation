@@ -20,7 +20,7 @@ int main(int argc, char **argv)
 
   Eigen::Vector3d interception_sphere_pos; // w.r.t world
   interception_sphere_pos << 0.0, 0.0, 0.3;
-  double interception_sphere_radius = 1.0;
+  double interception_sphere_radius = 0.5;
   bool target_converged;
 
   //  RosTargetManager manager(nh, target_name_frame, dt);
@@ -29,7 +29,8 @@ int main(int argc, char **argv)
 
   // --- Fixme --- //
   // add possibility to choice of sendind data over topic equilibrium pose
-  RosTargetManager manager(nh, dt);
+  bool publish_to_robot = true;
+  RosTargetManager manager(nh, dt, publish_to_robot);
   manager.setInterceptionSphere(interception_sphere_pos,interception_sphere_radius);
 //  world_name_frame = "camera_depth_optical_frame";
   world_name_frame = "world";
@@ -120,6 +121,7 @@ int main(int argc, char **argv)
 
     // Update the model
     manager.update(dt, count);
+    manager.getInterceptionPose();
 
     // FIXME: loop on map length
     multi_target_position     = manager.getEstimatedPosition_multi();
