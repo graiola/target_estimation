@@ -300,7 +300,6 @@ void RosTargetManager::setTargetFrameToken(std::string& token)
 
 void RosTargetManager::sendTF(Eigen::Vector3d &postion, Eigen::Quaterniond &orientation, std::string &target_name, std::string &world_name, tf::Transform &transform, tf::Quaternion &q, tf::TransformBroadcaster &br)
 {
-
   // send data
   transform.setOrigin(tf::Vector3(postion.x(),postion.y(),postion.z()));
 //        q.setRPY(target_rpy(0),target_rpy(1),target_rpy(2));
