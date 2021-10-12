@@ -150,6 +150,8 @@ public:
    */
     bool getInterceptionPose(const unsigned int& id, const double& t, const double& pos_th, const double& ang_th, Eigen::Vector7d& interception_pose);
 
+    unsigned int getClosestInterceptionPose(const double& t1, const double& pos_th, const double& ang_th, Eigen::Vector7d& interception_pose);
+
     /**
    * @brief getNumberMeasurements Return the number of measurements done so far
    * @return
