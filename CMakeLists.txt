@@ -2,14 +2,14 @@ cmake_minimum_required(VERSION 2.8.3)
 project(target_estimation)
 
 #find_package(Eigen3 REQUIRED)
-find_package(catkin QUIET COMPONENTS roscpp rt_logger)
+find_package(catkin QUIET COMPONENTS roscpp)
 find_package(PkgConfig)
 pkg_check_modules(EIGEN eigen3)
 pkg_check_modules(YAMLCPP REQUIRED yaml-cpp>=0.5)
 
-if (${roscpp_FOUND} AND ${rt_logger_FOUND})
+if (${roscpp_FOUND})
     #add_definitions(-DLOGGER_ON)
-    message(STATUS "${Yellow}ROS and RT_LOGGER found, add logger${ColorReset}")
+    message(STATUS "${Yellow}ROS found, add logger${ColorReset}")
 endif()
 
 # C++ 11
@@ -39,7 +39,7 @@ add_library(target SHARED
   src/target_manager.cpp
   src/solver.cpp
 )
-target_link_libraries(target kalman yaml-cpp ${roscpp_LIBRARIES} ${rt_logger_LIBRARIES})
+target_link_libraries(target kalman yaml-cpp ${roscpp_LIBRARIES})
 
 add_library(target_c SHARED
   src/target_manager_c.cpp
@@ -60,9 +60,9 @@ install(TARGETS target target_c kalman
         PUBLIC_HEADER DESTINATION include
 )
 
-if (${roscpp_FOUND} AND ${rt_logger_FOUND})
-    message(STATUS "${Yellow}ROS and RT_LOGGER found, compiling multi_target_node${ColorReset}")
-    find_package(catkin REQUIRED COMPONENTS roscpp geometry_msgs rt_logger message_generation tf)
+if (${roscpp_FOUND})
+    message(STATUS "${Yellow}ROS found, compiling multi_target_node${ColorReset}")
+    find_package(catkin REQUIRED COMPONENTS roscpp geometry_msgs message_generation tf)
 
     add_message_files(FILES TargetEstimation.msg)
 

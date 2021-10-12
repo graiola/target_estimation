@@ -11,7 +11,6 @@
 #include <target_estimation/TargetEstimation.h>
 #include <visualization_msgs/Marker.h>
 #include <Eigen/Core>
-#include <rt_logger/rt_logger.h>
 #include <atomic>
 #include <tf/transform_broadcaster.h>
 #include <tf2_msgs/TFMessage.h>

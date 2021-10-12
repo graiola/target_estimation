@@ -6,7 +6,6 @@
 #define TOADD
 
 using namespace std;
-using namespace rt_logger;
 
 int main(int argc, char **argv)
 {

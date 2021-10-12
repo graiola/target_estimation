@@ -3,7 +3,7 @@
 #include <stdexcept>
 
 using namespace std;
-using namespace rt_logger;
+//using namespace rt_logger;
 
 //#define DEBUG
 #define DEBUG_tmp
@@ -49,16 +49,6 @@ RosTargetManager::RosTargetManager(ros::NodeHandle& nh)
     throw std::runtime_error("Can not load filter type!");
 
   std::string node_name = "/multi_target_node";
-
-  // Create the logger publishers
-  RtLogger::getLogger().addPublisher(node_name,twist_error_,"err_twist" );
-  RtLogger::getLogger().addPublisher(node_name,meas_pose_  ,"meas_pose" );
-  RtLogger::getLogger().addPublisher(node_name,real_pose_  ,"pose"      );
-  RtLogger::getLogger().addPublisher(node_name,pose_error_ ,"err_pose"  );
-  RtLogger::getLogger().addPublisher(node_name,real_twist_ ,"twist"     );
-  RtLogger::getLogger().addPublisher(node_name,est_pose_   ,"est_pose"  );
-  RtLogger::getLogger().addPublisher(node_name,est_twist_  ,"est_twist" );
-  RtLogger::getLogger().addPublisher(node_name,sigma_      ,"sigma"     );
 }
 
 RosTargetManager::RosTargetManager(ros::NodeHandle& nh, double& dt)
@@ -108,16 +98,6 @@ RosTargetManager::RosTargetManager(ros::NodeHandle& nh, double& dt)
     throw std::runtime_error("Can not load filter type!");
 
   std::string node_name = "/multi_target_node";
-
-  // Create the logger publishers
-  RtLogger::getLogger().addPublisher(node_name,twist_error_,"err_twist" );
-  RtLogger::getLogger().addPublisher(node_name,meas_pose_  ,"meas_pose" );
-  RtLogger::getLogger().addPublisher(node_name,real_pose_  ,"pose"      );
-  RtLogger::getLogger().addPublisher(node_name,pose_error_ ,"err_pose"  );
-  RtLogger::getLogger().addPublisher(node_name,real_twist_ ,"twist"     );
-  RtLogger::getLogger().addPublisher(node_name,est_pose_   ,"est_pose"  );
-  RtLogger::getLogger().addPublisher(node_name,est_twist_  ,"est_twist" );
-  RtLogger::getLogger().addPublisher(node_name,sigma_      ,"sigma"     );
 }
 
 RosTargetManager::RosTargetManager(ros::NodeHandle& nh, std::string& target_name_frame, double& dt)
@@ -157,16 +137,6 @@ RosTargetManager::RosTargetManager(ros::NodeHandle& nh, std::string& target_name
   initPose(real_pose_);
 
   std::string node_name = "/multi_target_node";
-
-  // Create the logger publishers
-  RtLogger::getLogger().addPublisher(node_name,twist_error_,"err_twist" );
-  RtLogger::getLogger().addPublisher(node_name,meas_pose_  ,"meas_pose" );
-  RtLogger::getLogger().addPublisher(node_name,real_pose_  ,"pose"      );
-  RtLogger::getLogger().addPublisher(node_name,pose_error_ ,"err_pose"  );
-  RtLogger::getLogger().addPublisher(node_name,real_twist_ ,"twist"     );
-  RtLogger::getLogger().addPublisher(node_name,est_pose_   ,"est_pose"  );
-  RtLogger::getLogger().addPublisher(node_name,est_twist_  ,"est_twist" );
-  RtLogger::getLogger().addPublisher(node_name,sigma_      ,"sigma"     );
 }
 
 void RosTargetManager::setInterceptionSphere(const Eigen::Vector3d& pos, const double& radius)
