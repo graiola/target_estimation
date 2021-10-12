@@ -15,6 +15,7 @@
 #include <atomic>
 #include <tf/transform_broadcaster.h>
 #include <tf2_msgs/TFMessage.h>
+#include "geometry_msgs/PoseStamped.h"
 
 #include "target_estimation/target_manager.hpp"
 
@@ -47,7 +48,7 @@ public:
     std::map<std::string, Eigen::Vector7d> getInterceptionPose_multi()           {return map_interception_pose_;} // Map containing intereception pose
     std::map<std::string, bool> isTargetConverged_multi()                       {return map_targets_converged_;} // Map containing intereception pose
 
-    void update(const double& dt);
+    void update(const double& dt, const unsigned int &count);
 
     std::string getTargetTokenFrame()   {return target_name_frame_;}
     std::string getWorldNameFrame()     {return world_name_frame_;}
@@ -71,9 +72,12 @@ private:
     // Update the list of targets given its keyname.
     void updateTargetsToken(std::vector<std::string>& list_active_frames, unsigned int& n_active_frames, std::string& current_frame, const std::string& token);
 
+    void sendTF(Eigen::Vector3d &postion, Eigen::Quaterniond &orientation, std::string &target_name, std::string &world_name, tf::Transform &transform, tf::Quaternion &q, tf::TransformBroadcaster &br);
+
     ros::NodeHandle nh_;
     TargetManager manager_;
     ros::Subscriber measurament_sub_;
+    ros::Publisher franka_eq_pose_pub_;
 
     std::string target_name_frame_ = "";
     std::string world_name_frame_ = "";
@@ -125,6 +129,12 @@ private:
 
     unsigned int n_active_frames_;
     std::vector<std::string> list_active_frames_;
+
+    tf::TransformBroadcaster br_;
+    tf::Transform transform_;
+    tf::Quaternion q_;
+
+    geometry_msgs::PoseStamped franka_eq_pose_msg_;
 
 };
 

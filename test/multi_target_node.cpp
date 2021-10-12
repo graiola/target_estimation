@@ -28,10 +28,13 @@ int main(int argc, char **argv)
   double f = 1000; // Hz -> remember to use the corresponding YAML file
   double dt = 1.0/f;
 
+  // --- Fixme --- //
+  // add possibility to choice of sendind data over topic equilibrium pose
   RosTargetManager manager(nh, dt);
   manager.setInterceptionSphere(interception_sphere_pos,interception_sphere_radius);
-  world_name_frame = "camera_depth_optical_frame";
-  target_token_frame = "keyboard";
+//  world_name_frame = "camera_depth_optical_frame";
+  world_name_frame = "world";
+  target_token_frame = "keyboard1";
   manager.setWorldFrameName(world_name_frame);
   manager.setTargetFrameToken(target_token_frame);
 
@@ -107,6 +110,7 @@ int main(int argc, char **argv)
   int n_targets = 0;
   n_targets = manager.getNumberOfTargets();
 
+  unsigned int count = 0;
   while (ros::ok())
   {
 #ifndef DEBUG_CLASS
@@ -116,7 +120,7 @@ int main(int argc, char **argv)
     dt = t - t_pre;
 
     // Update the model
-    manager.update(dt);
+    manager.update(dt, count);
 
     // FIXME: loop on map length
     multi_target_position     = manager.getEstimatedPosition_multi();
@@ -126,38 +130,24 @@ int main(int argc, char **argv)
     multi_target_converged    = manager.isTargetConverged_multi();
     multi_interception_pose   = manager.getInterceptionPose_multi();
 
-#ifdef DEBUG_tmp
+#ifdef DEBUG
     cout << "------------ Target Size (position map): " << multi_target_position.size() << endl;
     cout << "------------ Target Size (orientation map): " << multi_target_orientation.size() << endl;
 #endif
 
+    // --- FIX ME: this part must be moved into target_manager_ros class! --- //
     // loop through the maps
     if(multi_target_position.size() == multi_target_orientation.size())
     {
-//      while( ( it_position != multi_target_position.end() ) && ( it_orientation != multi_target_orientation.end() ) )
       int cnt = 0;
       for(auto& it_position : multi_target_position)
       {
-
         // read data for each target
         target_position = multi_target_position[it_position.first];
         target_orientation = multi_target_orientation[it_position.first];
         target_rpy = multi_target_rpy[it_position.first];
         target_velocity = multi_target_velocity[it_position.first];
         target_converged = multi_target_converged[it_position.first];
-
-        transform.setOrigin(tf::Vector3(target_position.x(),target_position.y(),target_position.z()));
-//        q.setRPY(target_rpy(0),target_rpy(1),target_rpy(2));
-        q = tf::Quaternion(target_orientation.x(),target_orientation.y(),target_orientation.z(),target_orientation.w());
-        q.normalize();
-        transform.setRotation(q);
-
-#ifdef DEBUG_tmp
-        std::cout << "Cycle: " << cnt << " - Target Key: " << it_position.first << " - Position: " << target_position << std::endl;
-#endif
-
-//        br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), (world_name_frame), (target_token_frame + "_est") )); //it_position->first
-        br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), (world_name_frame), (it_position.first + "_est") ));
 
         // Publish on /target_marker topic
         target_marker.pose.position.x = target_estimation_msg.pose.position.x = target_position.x();
@@ -175,7 +165,6 @@ int main(int argc, char **argv)
         target_estimation_msg.header.frame_id = target_marker.header.frame_id = it_position.first;
         target_estimation_msg.header.stamp = ros::Time::now();
 
-#ifdef DEBUG_tmp
         if(target_converged)
         {
           interception_pose = multi_interception_pose[it_position.first];
@@ -186,39 +175,36 @@ int main(int argc, char **argv)
           target_estimation_msg.interception_pose.position.z = target_sphere_marker.pose.position.z = interception_pose.z();
 
           target_sphere_marker_pub.publish(target_sphere_marker);
+
+          cout << "KF applied to target [ " << it_position.first << " ] has converged! Ready to catch it..." << endl;
+          cout << "Converged Pose: " << endl;
+          cout << interception_pose << endl;
         }
         else
         {
           target_estimation_msg.interception_ready.data = false;
-        }
-#endif
 
-#ifdef DEBUG_tmp
-        if(target_estimation_msg.interception_ready.data)
-        {
-          cout << "KF applied to target [ " << it_position.first << " ] has converged! Ready to catch it..." << endl;
-        }
-        else
-        {
           cout << "KF applied to target [ " << it_position.first << " ] has not converged!" << endl;
         }
-#endif
-
 
         sphere_marker_pub.publish(sphere_marker);
 
         target_marker_pub.publish(target_marker);
         target_estimation_pub.publish(target_estimation_msg);
       }
+
     }
     else
     {
       cerr << "multi_traget_node (main->while_loop): dimension mismatch between position and orientation maps. Please check when add new targets." << endl;
     }
+    // --- FIX ME: this part must be moved into target_manager_ros class! --- //
 
     t_pre = t;
 
 #endif
+
+    count++;
     ros::spinOnce();
 
     rate.sleep();

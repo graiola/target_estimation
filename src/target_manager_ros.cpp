@@ -67,18 +67,20 @@ RosTargetManager::RosTargetManager(ros::NodeHandle& nh, double& dt)
   nh_ = nh;
   measurament_sub_ = nh_.subscribe("/tf", 1 , &RosTargetManager::MeasurementCallBack, this);
 
+  // Publish to Fraka Equilibrium Pose topic
+  std::string topic_to_publish = "cartesian_impedance_example_controller/equilibrium_pose";
+  franka_eq_pose_pub_ = nh.advertise<geometry_msgs::PoseStamped>(topic_to_publish, 1, true);
 
   // FIXME -> do not initialize the pose. The init must be done using the init of the update soon after the measurement
   target_converged_ = false;
   target_id_ = 0;
   n_active_frames_ = 0;
 
-
   t_ = 0.0;
   dt_ = dt;
   t_prev_ = 0.0;
-  pos_th_ = 0.001;
-  ang_th_ = 0.001;
+  pos_th_ = 0.01;
+  ang_th_ = 0.01;
 
   // tmp
   t_pre_call_ = 0;
@@ -87,12 +89,15 @@ RosTargetManager::RosTargetManager(ros::NodeHandle& nh, double& dt)
   n_ = static_cast<unsigned int>(Q_.rows());
   m_ = static_cast<unsigned int>(R_.rows());
 
+  // -- FIXME --- //
   real_twist_.setZero();
   est_twist_.setZero();
   initPose(est_pose_);
   initPose(interception_pose_);
   initPose(meas_pose_);
   initPose(real_pose_);
+  // -- FIXME --- //
+
   sigma_.resize(n_);
 
   // Load the parameters for initializing the KF
@@ -253,7 +258,7 @@ bool RosTargetManager::parseTargetType(const ros::NodeHandle& n, TargetManager::
  * 3- for each target chek if it has been already initialized. If not init and then update using KF, otherwise update the state with KF
  * 4- lock
  * */
-void RosTargetManager::update(const double& dt)
+void RosTargetManager::update(const double& dt, const unsigned int &count)
 {
   if(meas_lock.try_lock())
   {
@@ -304,7 +309,6 @@ void RosTargetManager::update(const double& dt)
       std::cerr << "update_v2 (Update) - The map containg the list of target with pose and the one containing the list of target with ID do not have the same length, or no targets are availabe. Check when add itemes" << std::endl;
     }
 
-
     // Set Interception pose
     if( (map_measured_pose_.size() == map_id_targets_.size() ) && ( map_measured_pose_.size() != 0 ) )
     {
@@ -328,6 +332,30 @@ void RosTargetManager::update(const double& dt)
         {
           map_targets_converged_[it_pose.first] = false;
         }
+
+        Eigen::Vector3d target_position;
+        Eigen::Quaterniond target_orientation;
+        target_position = map_estimated_position_[it_pose.first];
+        target_orientation = map_estimated_quaternion_[it_pose.first];
+        std::string target_name = it_pose.first;
+
+        sendTF(target_position, target_orientation, target_name, world_name_frame_, transform_, q_, br_);
+
+        // -- FIXME --- //
+        // send interception pose when properly working
+        franka_eq_pose_msg_.header.frame_id = it_pose.first;
+        franka_eq_pose_msg_.header.seq =count;
+        franka_eq_pose_msg_.pose.position.x=target_position.x();
+        franka_eq_pose_msg_.pose.position.y=target_position.y();
+        franka_eq_pose_msg_.pose.position.z=target_position.z();
+        franka_eq_pose_msg_.pose.orientation.x=target_orientation.x();
+        franka_eq_pose_msg_.pose.orientation.y=target_orientation.y();
+        franka_eq_pose_msg_.pose.orientation.z=target_orientation.z();
+        franka_eq_pose_msg_.pose.orientation.w=target_orientation.w();
+
+        franka_eq_pose_pub_.publish(franka_eq_pose_msg_);
+        // --- FIXME --- //
+
       }
     }
     else
@@ -368,7 +396,7 @@ void RosTargetManager::updateTargetsToken(std::vector<std::string>& list_active_
   {
     updateTargets(list_active_frames, n_active_frames, current_frame);
   }
-#ifdef DEBUG_tmp
+#ifdef DEBUG
   std::cout << "Number of active frames: " << n_active_frames << std::endl;
 #endif
 }
@@ -381,4 +409,16 @@ void RosTargetManager::setWorldFrameName(std::string& name)
 void RosTargetManager::setTargetFrameToken(std::string& token)
 {
   target_name_frame_ = token;
+}
+
+void RosTargetManager::sendTF(Eigen::Vector3d &postion, Eigen::Quaterniond &orientation, std::string &target_name, std::string &world_name, tf::Transform &transform, tf::Quaternion &q, tf::TransformBroadcaster &br)
+{
+
+  // send data
+  transform.setOrigin(tf::Vector3(postion.x(),postion.y(),postion.z()));
+//        q.setRPY(target_rpy(0),target_rpy(1),target_rpy(2));
+  q = tf::Quaternion(orientation.x(),orientation.y(),orientation.z(),orientation.w());
+  q.normalize();
+  transform.setRotation(q);
+  br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), (world_name), (target_name + "_est") ));
 }
