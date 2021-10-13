@@ -266,5 +266,18 @@ inline std::vector<std::string> splitString(const std::string& s, std::string de
   return res;
 }
 
+inline bool getId(const std::string& s, unsigned int& id)
+{
+  auto strings = splitString(s);
+  if(strings.size() == 2) // 'xxx_id'
+  {
+    id = std::stoi(strings[1]);
+    return true;
+  }
+  else
+    return false;
+
+}
+
 
 #endif

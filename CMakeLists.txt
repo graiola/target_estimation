@@ -80,13 +80,19 @@ if (${roscpp_FOUND})
     add_library(target_ros src/target_manager_ros.cpp)
     target_link_libraries(target_ros target ${catkin_LIBRARIES})
 
+    add_library(publisher_franka src/publisher_franka.cpp)
+    target_link_libraries(publisher_franka target_ros)
+
     add_executable(multi_target_node test/multi_target_node.cpp)
     target_link_libraries(multi_target_node target_ros)
 
     add_executable(send_taget_franka test/send_target_franka_node.cpp)
     target_link_libraries(send_taget_franka target_ros)
 
-    install(TARGETS target target_c target_ros kalman multi_target_node
+    add_executable(send_estimation_franka_ep_node test/send_estimation_franka_ep_node.cpp)
+    target_link_libraries(send_estimation_franka_ep_node target_ros publisher_franka)
+
+    install(TARGETS target target_c target_ros kalman multi_target_node send_estimation_franka_ep_node
       ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
       LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
       RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
