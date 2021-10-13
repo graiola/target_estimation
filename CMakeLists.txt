@@ -83,6 +83,9 @@ if (${roscpp_FOUND})
     add_executable(multi_target_node test/multi_target_node.cpp)
     target_link_libraries(multi_target_node target_ros)
 
+    add_executable(send_taget_franka test/send_target_franka_node.cpp)
+    target_link_libraries(send_taget_franka target_ros)
+
     install(TARGETS target target_c target_ros kalman multi_target_node
       ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
       LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
