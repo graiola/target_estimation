@@ -66,6 +66,9 @@ private:
     void updateTargetsToken(std::vector<std::string>& list_active_frames, unsigned int& n_active_frames, std::string& current_frame, const std::string& token);
 
     void sendTF(Eigen::Vector3d &postion, Eigen::Quaterniond &orientation, std::string &target_name, std::string &world_name, tf::Transform &transform, tf::Quaternion &q, tf::TransformBroadcaster &br);
+    void poseToStampedPose(Eigen::Vector3d &position, Eigen::Quaterniond &orientation,
+                            geometry_msgs::PoseStamped &eq_pose_pose_stamped_msg, std::string child_frame_name, const unsigned int &count);
+
 
     ros::NodeHandle nh_;
     TargetManager manager_;

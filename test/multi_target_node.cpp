@@ -140,7 +140,6 @@ int main(int argc, char **argv)
     // loop through the maps
     if(multi_target_position.size() == multi_target_orientation.size())
     {
-      int cnt = 0;
       for(auto& it_position : multi_target_position)
       {
         // read data for each target
@@ -176,16 +175,18 @@ int main(int argc, char **argv)
           target_estimation_msg.interception_pose.position.z = target_sphere_marker.pose.position.z = interception_pose.z();
 
           target_sphere_marker_pub.publish(target_sphere_marker);
-
+#ifdef DEBUG
           cout << "KF applied to target [ " << it_position.first << " ] has converged! Ready to catch it..." << endl;
           cout << "Converged Pose: " << endl;
           cout << interception_pose << endl;
+#endif
         }
         else
         {
           target_estimation_msg.interception_ready.data = false;
-
+#ifdef DEBUG
           cout << "KF applied to target [ " << it_position.first << " ] has not converged!" << endl;
+#endif
         }
 
         sphere_marker_pub.publish(sphere_marker);

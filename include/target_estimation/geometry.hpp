@@ -646,5 +646,16 @@ inline Eigen::Vector7d computePoseError(const Eigen::Vector7d& p_des,
     return p_e;
 }
 
+inline void posetoPositionQuat(Eigen::Vector7d &pose, Eigen::Vector3d &position, Eigen::Quaterniond &quat)
+{
+  position.x()  = pose(0);
+  position.y()  = pose(1);
+  position.z()  = pose(2);
+  quat.x()      = pose(3);
+  quat.y()      = pose(4);
+  quat.z()      = pose(5);
+  quat.w()      = pose(6);
+}
+
 
 #endif

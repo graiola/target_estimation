@@ -208,16 +208,16 @@ void RosTargetManager::update(const double& dt, const unsigned int &count)
         {
           map_targets_converged_[it_pose.first] = true;
           map_interception_pose_[it_pose.first] = inteception_pose;
-        }
-        else
-        {
-          map_targets_converged_[it_pose.first] = false;
-        }
 
 #ifdef DEBUG_tmp
         std::cout << "Interception pose" << std::endl;
         std::cout << inteception_pose << std::endl;
 #endif
+        }
+        else
+        {
+          map_targets_converged_[it_pose.first] = false;
+        }
 
         Eigen::Vector3d target_position;
         Eigen::Quaterniond target_orientation;
@@ -227,20 +227,11 @@ void RosTargetManager::update(const double& dt, const unsigned int &count)
 
         sendTF(target_position, target_orientation, target_name, world_name_frame_, transform_, q_, br_);
 
-        // -- FIXME --- //
-        // send interception pose when properly working
-        franka_eq_pose_msg_.header.frame_id = it_pose.first;
-        franka_eq_pose_msg_.header.seq =count;
-        franka_eq_pose_msg_.pose.position.x=target_position.x();
-        franka_eq_pose_msg_.pose.position.y=target_position.y();
-        franka_eq_pose_msg_.pose.position.z=target_position.z();
-        franka_eq_pose_msg_.pose.orientation.x=target_orientation.x();
-        franka_eq_pose_msg_.pose.orientation.y=target_orientation.y();
-        franka_eq_pose_msg_.pose.orientation.z=target_orientation.z();
-        franka_eq_pose_msg_.pose.orientation.w=target_orientation.w();
-
+        // -- TODO --- //
+        // start tracking after first interception occurred
+        poseToStampedPose(target_position, target_orientation, franka_eq_pose_msg_, target_name, count);
         franka_eq_pose_pub_.publish(franka_eq_pose_msg_);
-        // --- FIXME --- //
+        // --- TODO --- //
 
       }
     }
@@ -306,4 +297,20 @@ void RosTargetManager::sendTF(Eigen::Vector3d &postion, Eigen::Quaterniond &orie
   q.normalize();
   transform.setRotation(q);
   br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), (world_name), (target_name + "_est") ));
+}
+
+void RosTargetManager::poseToStampedPose(Eigen::Vector3d &position, Eigen::Quaterniond &orientation,
+                                         geometry_msgs::PoseStamped &eq_pose_pose_stamped_msg, std::string child_frame_name, const unsigned int &count)
+{
+  eq_pose_pose_stamped_msg.header.frame_id    = child_frame_name;
+  eq_pose_pose_stamped_msg.header.seq         = count;
+  eq_pose_pose_stamped_msg.header.stamp       = ros::Time::now();
+
+  eq_pose_pose_stamped_msg.pose.position.x    = position.x();
+  eq_pose_pose_stamped_msg.pose.position.y    = position.y();
+  eq_pose_pose_stamped_msg.pose.position.z    = position.z();
+  eq_pose_pose_stamped_msg.pose.orientation.x = orientation.x();
+  eq_pose_pose_stamped_msg.pose.orientation.y = orientation.y();
+  eq_pose_pose_stamped_msg.pose.orientation.z = orientation.z();
+  eq_pose_pose_stamped_msg.pose.orientation.w = orientation.w();
 }

@@ -5,7 +5,7 @@
 #include "target_estimation/target_manager.hpp"
 #include <stdexcept>
 
-#define DEBUG
+//#define DEBUG
 
 using namespace std;
 
