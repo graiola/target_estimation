@@ -34,7 +34,7 @@ int main(int argc, char **argv)
   manager.setInterceptionSphere(interception_sphere_pos,interception_sphere_radius);
 //  world_name_frame = "camera_depth_optical_frame";
   world_name_frame = "world";
-  target_token_frame = "keyboard1";
+  target_token_frame = "target";
   manager.setWorldFrameName(world_name_frame);
   manager.setTargetFrameToken(target_token_frame);
 
