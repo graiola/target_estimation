@@ -252,15 +252,15 @@ void RosTargetManager::update(const double& dt, const unsigned int &count)
         Eigen::Quaterniond target_orientation;
         target_position = map_targets_[it_targets.first].estimated_position_;
         target_orientation = map_targets_[it_targets.first].estimated_quaternion_;
-        std::string target_name = it_targets.first;
+        std::string target_frame = it_targets.first;
 
         // Publish to tf wrt world frame
-        sendTF(target_position, target_orientation, target_name, camera_frame_, transform_, q_, br_);
+        sendTF(target_position, target_orientation, target_frame, world_frame_, transform_, q_, br_);
 
         if(publish_to_robot_)
         {
           // start tracking after first interception occurred
-          poseToStampedPose(target_position, target_orientation, franka_eq_pose_msg_, target_name, count);
+          poseToStampedPose(target_position, target_orientation, franka_eq_pose_msg_, target_frame, count);
           franka_eq_pose_pub_.publish(franka_eq_pose_msg_);
         }
 
@@ -278,7 +278,7 @@ void RosTargetManager::update(const double& dt, const unsigned int &count)
 
 void RosTargetManager::setWorldFrameName(std::string& name)
 {
-  world_name_frame_ = name;
+  world_frame_ = name;
 }
 
 void RosTargetManager::setTargetFrameToken(std::string& token)

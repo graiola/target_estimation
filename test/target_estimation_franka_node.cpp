@@ -75,7 +75,6 @@ int main(int argc, char **argv)
     // Update the model (the upate method is in charge of publishing also to "tf" and the robot equilibrium point
     manager.update(dt, count);
     n_targets = manager.getNumberOfTargets();
-    cout << "N of markers: " << n_targets << endl;
 
     sphere_marker_pub.publish(sphere_marker);
 

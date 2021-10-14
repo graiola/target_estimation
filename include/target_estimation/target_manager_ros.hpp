@@ -30,7 +30,7 @@ public:
     void update(const double& dt, const unsigned int &count);
 
     std::string getTargetTokenFrame()   {return target_name_frame_;}
-    std::string getWorldNameFrame()     {return world_name_frame_;}
+    std::string getWorldNameFrame()     {return world_frame_;}
 
     int getNumberOfTargets()  {return map_targets_.size();}
 
@@ -63,7 +63,7 @@ private:
     ros::Publisher franka_eq_pose_pub_;
 
     std::string target_name_frame_ = "";
-    std::string world_name_frame_ = "";
+    std::string world_frame_ = "";
     std::string camera_frame_ = "";
     const std::string frame_name_delimiter_ = "_";
 
