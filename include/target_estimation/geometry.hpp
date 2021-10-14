@@ -657,5 +657,16 @@ inline void posetoPositionQuat(Eigen::Vector7d &pose, Eigen::Vector3d &position,
   quat.w()      = pose(6);
 }
 
+inline void positionQuaternionToPose(Eigen::Vector7d &pose, Eigen::Vector3d &position, Eigen::Quaterniond &quat)
+{
+  pose(0) = position.x();
+  pose(1) = position.y();
+  pose(2) = position.z();
+
+  pose(3) = quat.x();
+  pose(4) = quat.y();
+  pose(5) = quat.z();
+  pose(6) = quat.w();
+}
 
 #endif

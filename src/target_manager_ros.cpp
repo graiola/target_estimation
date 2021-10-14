@@ -179,22 +179,17 @@ void RosTargetManager::update(const double& dt, const unsigned int &count)
     unsigned int target_id;
     Eigen::Vector7d meas_pose;
 
-#ifdef DEBUG
-    std::cout << "n of active targets = " << map_measured_pose_.size() << std::endl;
-#endif
-
     // Update the state if targets are available
     if(  ( map_targets_.size() != 0 ) )
     {
-      for(auto& it_targets : map_targets_)
+      for(auto it_targets : map_targets_)
       {
         unsigned int target_id = map_targets_[it_targets.first].id;
         Eigen::Vector7d meas_pose = map_targets_[it_targets.first].measured_pose_;
 
         if(map_targets_[it_targets.first].new_meas_)
         {
-          // CHECKME if necessary -> the check is already done above
-          // check target existence -> if not, create new target
+          // check target existence of a KF applied to the target -> if not, create new KF
           if( manager_.getTarget(target_id)==nullptr )
           {
             // init the target
@@ -202,7 +197,6 @@ void RosTargetManager::update(const double& dt, const unsigned int &count)
             double t0 = 0.0;
             manager_.init(target_id,dt0,Q_,R_,P_,meas_pose,t0,type_);
           }
-          // CHECKME if necessary
 
           // update with measurements
           manager_.update(target_id,dt,meas_pose);
@@ -211,7 +205,7 @@ void RosTargetManager::update(const double& dt, const unsigned int &count)
         else
         {
           // update without measurements (only prediction)
-          manager_.update(target_id,dt);
+          manager_.update(target_id, dt);
         }
 
         // Assign estimated values to the map of targets
@@ -295,7 +289,7 @@ void RosTargetManager::sendTF(Eigen::Vector3d &postion, Eigen::Quaterniond &orie
 {
   transform.setOrigin(tf::Vector3(postion.x(),postion.y(),postion.z()));
 
-  q = tf::Quaternion(orientation.x(),orientation.y(),orientation.z(),orientation.w());
+  q = tf::Quaternion(orientation.x(), orientation.y(), orientation.z(), orientation.w());
   q.normalize();
   transform.setRotation(q);
 

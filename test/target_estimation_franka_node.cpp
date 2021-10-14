@@ -20,14 +20,14 @@ int main(int argc, char **argv)
   interception_sphere_pos << 0.0, 0.0, 0.3;
   double interception_sphere_radius = 0.5;
 
-  double f = 1000; // Hz -> remember to use the corresponding YAML file
-  double dt = 1.0/f;
+  double f{1000.00}; // Hz -> remember to use the corresponding YAML file
+  double dt{1.0/f};
 
   // add possibility to choice of sendind data over topic equilibrium pose
   std::string robot_topic_eq_pose = "cartesian_impedance_example_controller/equilibrium_pose";
 
-  RosTargetManager manager(nh, dt, robot_topic_eq_pose);
-//  RosTargetManager manager(nh, dt);
+//  RosTargetManager manager(nh, dt, robot_topic_eq_pose);
+  RosTargetManager manager(nh, dt);
   manager.setInterceptionSphere(interception_sphere_pos,interception_sphere_radius);
 
   camera_name_frame = "camera_depth_optical_frame";
@@ -55,15 +55,12 @@ int main(int argc, char **argv)
   sphere_marker.color.a = 0.2f;
 
   ros::Publisher sphere_marker_pub = nh.advertise<visualization_msgs::Marker>("sphere_marker", 1);
-  tf::TransformBroadcaster br;
-  tf::Transform transform;
-  tf::Quaternion q;
 
   double t, t_pre = 0;
-  int n_targets = 0;
+  int n_targets{0};
   n_targets = manager.getNumberOfTargets();
 
-  unsigned int count = 0;
+  unsigned int count{0};
 
   ros::Rate rate(f);
   while( ros::ok() )
