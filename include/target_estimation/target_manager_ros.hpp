@@ -17,6 +17,18 @@
 
 class RosTargetManager
 {
+  // Private Typedefs
+private:
+  struct Target
+    {
+      Eigen::Vector7d measured_pose_;
+      Eigen::Vector7d estimated_pose_;
+      Eigen::Vector7d interception_pose_;
+      bool new_meas_;
+      bool intercepted_;
+      unsigned int id;
+    };
+  typedef std::map<std::string, Target> targets_map_t;
 
 public:
     RosTargetManager(ros::NodeHandle& nh, double& dt);
@@ -51,6 +63,7 @@ public:
 
     void setWorldFrameName(std::string& name);
     void setTargetFrameToken(std::string& token);
+    void setRobotTopicEqPose(std::string& topic_name);
 
 
 
@@ -71,6 +84,8 @@ private:
     void sendTF(Eigen::Vector3d &postion, Eigen::Quaterniond &orientation, std::string &target_name, std::string &world_name, tf::Transform &transform, tf::Quaternion &q, tf::TransformBroadcaster &br);
     void poseToStampedPose(Eigen::Vector3d &position, Eigen::Quaterniond &orientation,
                             geometry_msgs::PoseStamped &eq_pose_pose_stamped_msg, std::string child_frame_name, const unsigned int &count);
+    void poseToStampedPose(Eigen::Vector7d &pose, geometry_msgs::PoseStamped &eq_pose_pose_stamped_msg,
+                                             std::string child_frame_name, const unsigned int &count);
 
 
     ros::NodeHandle nh_;
@@ -82,6 +97,7 @@ private:
     std::string world_name_frame_ = "";
     const std::string frame_name_delimiter_ = "_";
 
+    // --- Clean This! No longer Used! --- //
     // single target managment
     Eigen::Vector7d real_pose_;
     Eigen::Vector7d meas_pose_;
@@ -96,6 +112,7 @@ private:
     Eigen::Vector7d interception_pose_;
     unsigned int target_id_, n_, m_;
     bool target_converged_;
+    // --- Clean This! No longer Used! --- //
 
     Eigen::MatrixXd Q_;
     Eigen::MatrixXd P_;
@@ -109,6 +126,9 @@ private:
     double dt_;
     TargetManager::target_t type_;
     std::mutex meas_lock;
+
+    // Use this instead of all confising maps -> FIXME once everithin will work properly!
+    targets_map_t map_targets_;
 
     // multiple targets managment
     std::map<std::string, Eigen::Vector7d> map_measured_pose_; // Map contained measured pose

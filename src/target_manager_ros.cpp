@@ -20,7 +20,7 @@ RosTargetManager::RosTargetManager(ros::NodeHandle& nh, double& dt)
 RosTargetManager::RosTargetManager(ros::NodeHandle& nh, double& dt, std::string& robot_topic_to_publish)
 {
   publish_to_robot_ = true;
-  robot_topic_ = robot_topic_to_publish; // FIXME -> add member to set robot topic
+  setRobotTopicEqPose(robot_topic_to_publish);
 
   if( !init(nh, dt, publish_to_robot_) )
   {
@@ -342,4 +342,30 @@ void RosTargetManager::poseToStampedPose(Eigen::Vector3d &position, Eigen::Quate
   eq_pose_pose_stamped_msg.pose.orientation.y = orientation.y();
   eq_pose_pose_stamped_msg.pose.orientation.z = orientation.z();
   eq_pose_pose_stamped_msg.pose.orientation.w = orientation.w();
+}
+
+void RosTargetManager::poseToStampedPose(Eigen::Vector7d &pose, geometry_msgs::PoseStamped &eq_pose_pose_stamped_msg,
+                                         std::string child_frame_name, const unsigned int &count)
+{
+
+  Eigen::Vector3d position;
+  Eigen::Quaterniond orientation;
+  posetoPositionQuat(pose, position, orientation);
+
+  eq_pose_pose_stamped_msg.header.frame_id    = child_frame_name;
+  eq_pose_pose_stamped_msg.header.seq         = count;
+  eq_pose_pose_stamped_msg.header.stamp       = ros::Time::now();
+
+  eq_pose_pose_stamped_msg.pose.position.x    = position.x();
+  eq_pose_pose_stamped_msg.pose.position.y    = position.y();
+  eq_pose_pose_stamped_msg.pose.position.z    = position.z();
+  eq_pose_pose_stamped_msg.pose.orientation.x = orientation.x();
+  eq_pose_pose_stamped_msg.pose.orientation.y = orientation.y();
+  eq_pose_pose_stamped_msg.pose.orientation.z = orientation.z();
+  eq_pose_pose_stamped_msg.pose.orientation.w = orientation.w();
+}
+
+void RosTargetManager::setRobotTopicEqPose(std::string& topic_name)
+{
+  robot_topic_ = topic_name;
 }
