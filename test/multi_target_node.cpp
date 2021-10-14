@@ -63,6 +63,10 @@ int main(int argc, char **argv)
   std::map<std::string, bool> multi_target_converged; // Map containing if target is converged
   std::map<std::string, Eigen::Vector7d> multi_interception_pose; // Map containing intereception pose
 
+  // Use this
+  targets_map_t targets;
+
+
   visualization_msgs::Marker sphere_marker;
   sphere_marker.header.frame_id = manager.getWorldNameFrame();
   sphere_marker.id = 0;
@@ -121,15 +125,14 @@ int main(int argc, char **argv)
 
     // Update the model
     manager.update(dt, count);
-    manager.getInterceptionPose();
 
-    // FIXME: loop on map length
-    multi_target_position     = manager.getEstimatedPosition_multi();
-    multi_target_velocity     = manager.getEstimatedTwist_multi();
-    multi_target_orientation  = manager.getEstimatedOrientation_multi();
-    multi_target_rpy          = manager.getEstimatedRPY_multi();
-    multi_target_converged    = manager.isTargetConverged_multi();
-    multi_interception_pose   = manager.getInterceptionPose_multi();
+    // FIXME: use new maps
+//    multi_target_position     = manager.getEstimatedPosition_multi();
+//    multi_target_velocity     = manager.getEstimatedTwist_multi();
+//    multi_target_orientation  = manager.getEstimatedOrientation_multi();
+//    multi_target_rpy          = manager.getEstimatedRPY_multi();
+//    multi_target_converged    = manager.isTargetConverged_multi();
+//    multi_interception_pose   = manager.getInterceptionPose_multi();
 
 #ifdef DEBUG
     cout << "------------ Target Size (position map): " << multi_target_position.size() << endl;

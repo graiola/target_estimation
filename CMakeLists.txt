@@ -89,6 +89,9 @@ if (${roscpp_FOUND})
     add_executable(send_taget_franka test/send_target_franka_node.cpp)
     target_link_libraries(send_taget_franka target_ros)
 
+    add_executable(target_estimation_franka_node test/target_estimation_franka_node.cpp)
+    target_link_libraries(target_estimation_franka_node target_ros)
+
     add_executable(send_estimation_franka_ep_node test/send_estimation_franka_ep_node.cpp)
     target_link_libraries(send_estimation_franka_ep_node target_ros publisher_franka)
 

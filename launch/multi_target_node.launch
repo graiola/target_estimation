@@ -11,7 +11,7 @@
         <rosparam command="load" file="$(find target_estimation)/config/kf_rpy_params_3hz.yaml"/>
 
         <!-- Start the node-->
-        <node name="multi_target_node" pkg="target_estimation" type="multi_target_node" respawn="false" output="screen"/>
+        <node name="target_estimation_franka_node" pkg="target_estimation" type="target_estimation_franka_node" respawn="false" output="screen"/>
 
         <!-- Start rviz with an external configurtion file -->
         <group if="$(arg rviz_show)">
