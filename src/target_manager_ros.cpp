@@ -63,12 +63,16 @@ bool RosTargetManager::init(ros::NodeHandle& nh, double& dt, const bool &publish
 
   // Load the parameters for initializing the KF
   if(!parseSquareMatrix(nh_,"Q",Q_) || !parseSquareMatrix(nh_,"R",R_) || !parseSquareMatrix(nh_,"P",P_))
+  {
     throw std::runtime_error("Can not load the Cov Matrices!");
+  }
 
   if(!parseTargetType(nh_,type_))
+  {
     throw std::runtime_error("Can not load filter type!");
+  }
 
-  std::string node_name = "/multi_target_node";
+  res = true;
 
   return res;
 }
@@ -82,17 +86,19 @@ void RosTargetManager::MeasurementCallBack(const tf2_msgs::TFMessage::ConstPtr& 
 {
   meas_lock.lock();
 
-  // 1- explore the tf message -> To be implemented
+  // 1- explore the tf message
   std::string current_frame = pose_msg->transforms.data()->child_frame_id;
 
   std::vector<std::string> tokens = splitString(current_frame, frame_name_delimiter_);
 
+  // 2- check if incoming target already exists, eventually add new one and update the map
   if( (tokens.front() == target_name_frame_) && (tokens.back() != "est") )
   {
-    if(map_id_targets_.count(current_frame) != 1)
+    if(map_targets_.count(current_frame) != 1)
     {
-      // target not found
-      map_id_targets_[current_frame] = n_active_frames_;
+      // target not found, so add it!
+      map_targets_[current_frame].id = n_active_frames_;
+
       n_active_frames_ ++;
     }
 
@@ -107,11 +113,12 @@ void RosTargetManager::MeasurementCallBack(const tf2_msgs::TFMessage::ConstPtr& 
     meas_pose(6) = pose_msg->transforms.data()->transform.rotation.w;
 
     // 4- assign target data to target name within the map
-    map_measured_pose_[current_frame] = meas_pose;
-    map_targets_new_meas_[current_frame] = true;
+    map_targets_[current_frame].measured_pose_ = meas_pose;
+    map_targets_[current_frame].frame_name_ = current_frame;
+    map_targets_[current_frame].new_meas_ = true;
 
  #ifdef DEBUG
-    std::cout << "Transforms.size = " << pose_msg->transforms.size() << "Map_ID.size = : " << map_id_targets_.size() << "Map_MEAS.size = : " << map_measured_pose_.size() << std::endl;
+    std::cout << "Transforms.size = " << pose_msg->transforms.size() << "Map_ID.size = : " << map_targets_.size() << "Map_MEAS.size = : " << map_measured_pose_.size() << std::endl;
  #endif
   }
 
@@ -177,16 +184,17 @@ void RosTargetManager::update(const double& dt, const unsigned int &count)
 #endif
 
     // Update the state if targets are available
-    if( (map_measured_pose_.size() == map_id_targets_.size() ) && ( map_id_targets_.size() != 0 ) )
+    if(  ( map_targets_.size() != 0 ) )
     {
-      for(auto& it_pose : map_measured_pose_)
+      for(auto& it_targets : map_targets_)
       {
-        unsigned int target_id = map_id_targets_[it_pose.first];
-        Eigen::Vector7d meas_pose = map_measured_pose_[it_pose.first];
+        unsigned int target_id = map_targets_[it_targets.first].id;
+        Eigen::Vector7d meas_pose = map_targets_[it_targets.first].measured_pose_;
 
-        if(map_targets_new_meas_[it_pose.first])
+        if(map_targets_[it_targets.first].new_meas_)
         {
-          // check target existence
+          // CHECKME if necessary -> the check is already done above
+          // check target existence -> if not, create new target
           if( manager_.getTarget(target_id)==nullptr )
           {
             // init the target
@@ -194,46 +202,41 @@ void RosTargetManager::update(const double& dt, const unsigned int &count)
             double t0 = 0.0;
             manager_.init(target_id,dt0,Q_,R_,P_,meas_pose,t0,type_);
           }
+          // CHECKME if necessary
 
           // update with measurements
           manager_.update(target_id,dt,meas_pose);
-          map_targets_new_meas_[it_pose.first] = false;
+          map_targets_[it_targets.first].new_meas_ = false;
         }
         else
         {
-          // if the target has not been already initialized and no measurements are available, the update is not called
-
-          // update without measurements
+          // update without measurements (only prediction)
           manager_.update(target_id,dt);
         }
-      }
-    }
-    else
-    {
-      std::cerr << "update_v2 (Update) - The map containg the list of target with pose and the one containing the list of target with ID do not have the same length, or no targets are availabe. Check when add itemes" << std::endl;
-    }
 
-    // Set Interception pose
-    if( (map_measured_pose_.size() == map_id_targets_.size() ) && ( map_measured_pose_.size() != 0 ) )
+        // Assign estimated values to the map of targets
+        map_targets_[it_targets.first].estimated_pose_ = manager_.getTarget(target_id)->getEstimatedPose();
+        map_targets_[it_targets.first].estimted_twist_ = manager_.getTarget(target_id)->getEstimatedTwist();
+        map_targets_[it_targets.first].estimated_quaternion_ = manager_.getTarget(target_id)->getEstimatedOrientation();
+        map_targets_[it_targets.first].estimated_rpy_ = manager_.getTarget(target_id)->getEstimatedRPY();
+        map_targets_[it_targets.first].estimated_position_ = manager_.getTarget(target_id)->getEstimatedPosition();
+
+      } // end for
+
+    } // end if
+
+    if( ( map_targets_.size() != 0 ) )
     {
-      for(auto it_pose : map_measured_pose_)
+      for(auto it_targets : map_targets_)
       {
-        target_id = map_id_targets_[it_pose.first];
-        meas_pose = map_measured_pose_[it_pose.first];
-
-        map_estimated_pose_[it_pose.first]       = manager_.getTarget(target_id)->getEstimatedPose();
-        map_estimated_twist_[it_pose.first]      = manager_.getTarget(target_id)->getEstimatedTwist();
-        map_estimated_quaternion_[it_pose.first] = manager_.getTarget(target_id)->getEstimatedOrientation();
-        map_estimated_rpy_[it_pose.first]        = manager_.getTarget(target_id)->getEstimatedRPY();
-        map_estimated_position_[it_pose.first]   = manager_.getTarget(target_id)->getEstimatedPosition();
-
-        Eigen::Vector7d inteception_pose;
+        target_id = map_targets_[it_targets.first].id;
 
         // Get the interception point
+        Eigen::Vector7d inteception_pose;
         if( manager_.getInterceptionPose(target_id, t_, pos_th_, ang_th_, inteception_pose) )
         {
-          map_targets_converged_[it_pose.first] = true;
-          map_interception_pose_[it_pose.first] = inteception_pose;
+          map_targets_[it_targets.first].intercepted_ = true;
+          map_targets_[it_targets.first].interception_pose_ = inteception_pose;
 
 #ifdef DEBUG_tmp
         std::cout << "Interception pose" << std::endl;
@@ -242,32 +245,28 @@ void RosTargetManager::update(const double& dt, const unsigned int &count)
         }
         else
         {
-          map_targets_converged_[it_pose.first] = false;
+          map_targets_[it_targets.first].intercepted_ = false;
         }
 
         Eigen::Vector3d target_position;
         Eigen::Quaterniond target_orientation;
-        target_position = map_estimated_position_[it_pose.first];
-        target_orientation = map_estimated_quaternion_[it_pose.first];
-        std::string target_name = it_pose.first;
+        target_position = map_targets_[it_targets.first].estimated_position_;
+        target_orientation = map_targets_[it_targets.first].estimated_quaternion_;
+        std::string target_name = it_targets.first;
 
-        sendTF(target_position, target_orientation, target_name, world_name_frame_, transform_, q_, br_);
+        // Publish to tf wrt world frame
+        sendTF(target_position, target_orientation, target_name, camera_frame_, transform_, q_, br_);
 
-        // -- TODO --- //
         if(publish_to_robot_)
         {
           // start tracking after first interception occurred
           poseToStampedPose(target_position, target_orientation, franka_eq_pose_msg_, target_name, count);
           franka_eq_pose_pub_.publish(franka_eq_pose_msg_);
         }
-        // --- TODO --- //
 
-      }
-    }
-    else
-    {
-      std::cerr << "update_v2 (Interception) - The map containg the list of target with pose and the one containing the list of target with ID do not have the same length. Check when add itemes" << std::endl;
-    }
+      } // end for
+
+    } // end if
 
     // update the time-related variables
     t_= t_ + dt;
@@ -275,36 +274,6 @@ void RosTargetManager::update(const double& dt, const unsigned int &count)
 
     meas_lock.unlock();
   }
-}
-
-void RosTargetManager::updateTargets(std::vector<std::string>& list_active_frames, unsigned int& n_active_frames, std::string& current_frame)
-{
-  // find cuurent frame in the list of active targets
-  std::vector<std::string>::iterator it_list_names = std::find(list_active_frames.begin(), list_active_frames.end(), current_frame);
-
-  if (it_list_names == list_active_frames.end())
-  {
-#ifdef DEBUG
-    std::cout << "New target found to be added: " << current_frame << std::endl;
-#endif
-    list_active_frames.push_back(current_frame);
-    n_active_frames++;
-  }
-#ifdef DEBUG
-  std::cout << "Number of active frames: " << n_active_frames << std::endl;
-#endif
-}
-
-void RosTargetManager::updateTargetsToken(std::vector<std::string>& list_active_frames, unsigned int& n_active_frames, std::string& current_frame, const std::string& token)
-{
-  std::vector<std::string> tokens = splitString(current_frame, frame_name_delimiter_);
-  if( ( tokens.front() == token)  && tokens.back() != "est")
-  {
-    updateTargets(list_active_frames, n_active_frames, current_frame);
-  }
-#ifdef DEBUG
-  std::cout << "Number of active frames: " << n_active_frames << std::endl;
-#endif
 }
 
 void RosTargetManager::setWorldFrameName(std::string& name)
@@ -317,14 +286,19 @@ void RosTargetManager::setTargetFrameToken(std::string& token)
   target_name_frame_ = token;
 }
 
+void RosTargetManager::setCameraFrame(std::string& camera_frame)
+{
+  camera_frame_ = camera_frame;
+}
+
 void RosTargetManager::sendTF(Eigen::Vector3d &postion, Eigen::Quaterniond &orientation, std::string &target_name, std::string &world_name, tf::Transform &transform, tf::Quaternion &q, tf::TransformBroadcaster &br)
 {
-  // send data
   transform.setOrigin(tf::Vector3(postion.x(),postion.y(),postion.z()));
-//        q.setRPY(target_rpy(0),target_rpy(1),target_rpy(2));
+
   q = tf::Quaternion(orientation.x(),orientation.y(),orientation.z(),orientation.w());
   q.normalize();
   transform.setRotation(q);
+
   br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), (world_name), (target_name + "_est") ));
 }
 

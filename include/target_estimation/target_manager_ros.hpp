@@ -14,21 +14,10 @@
 #include "geometry_msgs/PoseStamped.h"
 
 #include "target_estimation/target_manager.hpp"
+#include "target_estimation/utils.hpp"
 
 class RosTargetManager
 {
-  // Private Typedefs
-private:
-  struct Target
-    {
-      Eigen::Vector7d measured_pose_;
-      Eigen::Vector7d estimated_pose_;
-      Eigen::Vector7d interception_pose_;
-      bool new_meas_;
-      bool intercepted_;
-      unsigned int id;
-    };
-  typedef std::map<std::string, Target> targets_map_t;
 
 public:
     RosTargetManager(ros::NodeHandle& nh, double& dt);
@@ -36,34 +25,19 @@ public:
 
     void setInterceptionSphere(const Eigen::Vector3d& pos, const double& radius);
 
-    // Single Target Management
-    Eigen::Vector7d getEstimatedPose()           {return est_pose_;}
-    Eigen::Vector6d getEstimatedTwist()          {return est_twist_;}
-    Eigen::Vector7d getInterceptionPose()        {return interception_pose_;}
-    Eigen::Vector3d getEstimatedPosition()       {return est_position_;}
-    Eigen::Quaterniond getEstimatedOrientation() {return est_quaternion_;}
-    Eigen::Vector3d getEstimatedRPY()            {return est_rpy_;}
-    bool isTargetConverged()                     {return target_converged_;}
-
-    // Multiple Targets Management
-    std::map<std::string, Eigen::Vector7d> getEstimatedPose_multi()             {return map_estimated_pose_;} // Map containing estimated pose
-    std::map<std::string, Eigen::Vector6d> getEstimatedTwist_multi()            {return map_estimated_twist_;} // Map containing estimated twist
-    std::map<std::string, Eigen::Quaterniond> getEstimatedOrientation_multi()   {return map_estimated_quaternion_;} // Map containing estimated quaternions
-    std::map<std::string, Eigen::Vector3d> getEstimatedRPY_multi()              {return map_estimated_rpy_;} // Map containing estimated RPY
-    std::map<std::string, Eigen::Vector3d> getEstimatedPosition_multi()         {return map_estimated_position_;} // Map containing estimated position
-    std::map<std::string, Eigen::Vector7d> getInterceptionPose_multi()           {return map_interception_pose_;} // Map containing intereception pose
-    std::map<std::string, bool> isTargetConverged_multi()                       {return map_targets_converged_;} // Map containing intereception pose
+    targets_map_t getActiveTargets() {return map_targets_;}
 
     void update(const double& dt, const unsigned int &count);
 
     std::string getTargetTokenFrame()   {return target_name_frame_;}
     std::string getWorldNameFrame()     {return world_name_frame_;}
 
-    int getNumberOfTargets()  {return map_measured_pose_.size();}
+    int getNumberOfTargets()  {return map_targets_.size();}
 
     void setWorldFrameName(std::string& name);
     void setTargetFrameToken(std::string& token);
     void setRobotTopicEqPose(std::string& topic_name);
+    void setCameraFrame(std::string& camera_frame);
 
 
 
@@ -75,11 +49,6 @@ private:
 
     bool parseSquareMatrix(const ros::NodeHandle& n, const std::string& matrix, Eigen::MatrixXd& M);
     bool parseTargetType(const ros::NodeHandle& n, TargetManager::target_t& type);
-
-    // Update the list of current targets
-    void updateTargets(std::vector<std::string>& list_active_frames, unsigned int& n_active_frames, std::string& current_frame);
-    // Update the list of targets given its keyname.
-    void updateTargetsToken(std::vector<std::string>& list_active_frames, unsigned int& n_active_frames, std::string& current_frame, const std::string& token);
 
     void sendTF(Eigen::Vector3d &postion, Eigen::Quaterniond &orientation, std::string &target_name, std::string &world_name, tf::Transform &transform, tf::Quaternion &q, tf::TransformBroadcaster &br);
     void poseToStampedPose(Eigen::Vector3d &position, Eigen::Quaterniond &orientation,
@@ -95,28 +64,13 @@ private:
 
     std::string target_name_frame_ = "";
     std::string world_name_frame_ = "";
+    std::string camera_frame_ = "";
     const std::string frame_name_delimiter_ = "_";
-
-    // --- Clean This! No longer Used! --- //
-    // single target managment
-    Eigen::Vector7d real_pose_;
-    Eigen::Vector7d meas_pose_;
-    Eigen::Quaterniond est_quaternion_;
-    Eigen::Vector3d est_position_;
-    Eigen::Vector6d real_twist_;
-    Eigen::Vector7d est_pose_;
-    Eigen::Vector6d est_twist_;
-    Eigen::Vector3d est_rpy_;
-    Eigen::Vector7d pose_error_;
-    Eigen::Vector6d twist_error_;
-    Eigen::Vector7d interception_pose_;
-    unsigned int target_id_, n_, m_;
-    bool target_converged_;
-    // --- Clean This! No longer Used! --- //
 
     Eigen::MatrixXd Q_;
     Eigen::MatrixXd P_;
     Eigen::MatrixXd R_;
+    unsigned int n_, m_;
     Eigen::VectorXd sigma_;
     std::string model_name_;
     double pos_th_;
@@ -129,20 +83,6 @@ private:
 
     // Use this instead of all confising maps -> FIXME once everithin will work properly!
     targets_map_t map_targets_;
-
-    // multiple targets managment
-    std::map<std::string, Eigen::Vector7d> map_measured_pose_; // Map contained measured pose
-    std::map<std::string, unsigned int> map_id_targets_; // Map containing target ID
-    std::map<std::string, Eigen::Vector7d> map_estimated_pose_; // Map containing estimated pose
-    std::map<std::string, Eigen::Vector6d> map_estimated_twist_; // Map containing estimated twist
-    std::map<std::string, Eigen::Quaterniond> map_estimated_quaternion_; // Map containing estimated quaternions
-    std::map<std::string, Eigen::Vector3d> map_estimated_rpy_; // Map containing estimated RPY
-    std::map<std::string, Eigen::Vector3d> map_estimated_position_; // Map containing estimated position
-    std::map<std::string, Eigen::Vector7d> map_pose_error_; // Map containing pose error
-    std::map<std::string, Eigen::Vector6d> map_twist_error_; // Map containing twist error
-    std::map<std::string, Eigen::Vector7d> map_interception_pose_; // Map containing intereception pose
-    std::map<std::string, bool> map_targets_converged_; // Map containing target convergence
-    std::map<std::string, bool> map_targets_new_meas_; // Map containing target convergence
 
     double t_call_, t_pre_call_;
 

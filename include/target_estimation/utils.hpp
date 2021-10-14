@@ -6,6 +6,8 @@
 #include <memory>
 #include <vector>
 #include <Eigen/Core>
+#include <Eigen/Geometry>
+#include <map>
 
 
 /**
@@ -278,6 +280,22 @@ inline bool getId(const std::string& s, unsigned int& id)
     return false;
 
 }
+
+struct Target
+  {
+    Eigen::Vector7d measured_pose_;
+    Eigen::Vector7d estimated_pose_;
+    Eigen::Vector7d interception_pose_;
+    Eigen::Vector3d estimated_position_;
+    Eigen::Quaterniond estimated_quaternion_;
+    Eigen::Vector3d estimated_rpy_;
+    Eigen::Vector6d estimted_twist_;
+    bool new_meas_ = false;
+    bool intercepted_ = false;
+    unsigned int id;
+    std::string frame_name_;
+  };
+typedef std::map<std::string, Target> targets_map_t;
 
 
 #endif
