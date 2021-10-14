@@ -29,8 +29,8 @@ int main(int argc, char **argv)
 
   // --- Fixme --- //
   // add possibility to choice of sendind data over topic equilibrium pose
-  bool publish_to_robot = true;
-  RosTargetManager manager(nh, dt, publish_to_robot);
+  std::string robot_topic_eq_pose = "cartesian_impedance_example_controller/equilibrium_pose";
+  RosTargetManager manager(nh, dt, robot_topic_eq_pose);
   manager.setInterceptionSphere(interception_sphere_pos,interception_sphere_radius);
 //  world_name_frame = "camera_depth_optical_frame";
   world_name_frame = "world";

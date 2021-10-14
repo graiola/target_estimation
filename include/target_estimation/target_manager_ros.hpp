@@ -19,7 +19,8 @@ class RosTargetManager
 {
 
 public:
-    RosTargetManager(ros::NodeHandle& nh, double& dt, const bool &publish_robot=false);
+    RosTargetManager(ros::NodeHandle& nh, double& dt);
+    RosTargetManager(ros::NodeHandle& nh, double& dt, std::string& robot_topic_to_publish);
 
     void setInterceptionSphere(const Eigen::Vector3d& pos, const double& radius);
 
@@ -54,6 +55,8 @@ public:
 
 
 private:
+
+    bool init(ros::NodeHandle& nh, double& dt, const bool &publish_robot);
 
     void MeasurementCallBack(const tf2_msgs::TFMessage::ConstPtr& pose_msg);
 
@@ -131,6 +134,8 @@ private:
     tf::Quaternion q_;
 
     geometry_msgs::PoseStamped franka_eq_pose_msg_;
+    std::string robot_topic_ = "";
+    bool publish_to_robot_;
 
 };
 

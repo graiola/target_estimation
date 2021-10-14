@@ -7,8 +7,31 @@ using namespace std;
 //#define DEBUG
 #define DEBUG_tmp
 
-RosTargetManager::RosTargetManager(ros::NodeHandle& nh, double& dt, const bool &publish_robot)
+RosTargetManager::RosTargetManager(ros::NodeHandle& nh, double& dt)
 {
+  publish_to_robot_ = false;
+
+  if( !init(nh, dt, publish_to_robot_) )
+  {
+    std::cerr << "Cannot Initialize RosTargetManager Class" << std::endl;
+  }
+}
+
+RosTargetManager::RosTargetManager(ros::NodeHandle& nh, double& dt, std::string& robot_topic_to_publish)
+{
+  publish_to_robot_ = true;
+  robot_topic_ = robot_topic_to_publish; // FIXME -> add member to set robot topic
+
+  if( !init(nh, dt, publish_to_robot_) )
+  {
+    std::cerr << "Cannot Initialize RosTargetManager Class" << std::endl;
+  }
+}
+
+bool RosTargetManager::init(ros::NodeHandle& nh, double& dt, const bool &publish_robot)
+{
+  bool res;
+
   // subscribe to /tf topic
   nh_ = nh;
   measurament_sub_ = nh_.subscribe("/tf", 1 , &RosTargetManager::MeasurementCallBack, this);
@@ -17,6 +40,7 @@ RosTargetManager::RosTargetManager(ros::NodeHandle& nh, double& dt, const bool &
   {
     // Publish to Fraka Equilibrium Pose topic
     std::string topic_to_publish = "cartesian_impedance_example_controller/equilibrium_pose";
+    topic_to_publish = robot_topic_; // FIXME -> add member to get robot topic
     franka_eq_pose_pub_ = nh.advertise<geometry_msgs::PoseStamped>(topic_to_publish, 1, true);
   }
 
@@ -45,6 +69,8 @@ RosTargetManager::RosTargetManager(ros::NodeHandle& nh, double& dt, const bool &
     throw std::runtime_error("Can not load filter type!");
 
   std::string node_name = "/multi_target_node";
+
+  return res;
 }
 
 void RosTargetManager::setInterceptionSphere(const Eigen::Vector3d& pos, const double& radius)
@@ -228,9 +254,12 @@ void RosTargetManager::update(const double& dt, const unsigned int &count)
         sendTF(target_position, target_orientation, target_name, world_name_frame_, transform_, q_, br_);
 
         // -- TODO --- //
-        // start tracking after first interception occurred
-        poseToStampedPose(target_position, target_orientation, franka_eq_pose_msg_, target_name, count);
-        franka_eq_pose_pub_.publish(franka_eq_pose_msg_);
+        if(publish_to_robot_)
+        {
+          // start tracking after first interception occurred
+          poseToStampedPose(target_position, target_orientation, franka_eq_pose_msg_, target_name, count);
+          franka_eq_pose_pub_.publish(franka_eq_pose_msg_);
+        }
         // --- TODO --- //
 
       }
