@@ -94,14 +94,6 @@ void RosTargetManager::MeasurementCallBack(const tf2_msgs::TFMessage::ConstPtr& 
   // 2- check if incoming target already exists, eventually add new one and update the map
   if( (tokens.front() == target_name_frame_) && (tokens.back() != "est") )
   {
-    if(map_targets_.count(current_frame) != 1)
-    {
-      // target not found, so add it!
-      map_targets_[current_frame].id = n_active_frames_;
-
-      n_active_frames_ ++;
-    }
-
     // 3- read data from each target
     Eigen::Vector7d meas_pose;
     meas_pose(0) = pose_msg->transforms.data()->transform.translation.x;
@@ -112,14 +104,30 @@ void RosTargetManager::MeasurementCallBack(const tf2_msgs::TFMessage::ConstPtr& 
     meas_pose(5) = pose_msg->transforms.data()->transform.rotation.z;
     meas_pose(6) = pose_msg->transforms.data()->transform.rotation.w;
 
+    if(map_targets_.count(current_frame) != 1)
+    {
+      // target not found, so add it!
+      map_targets_[current_frame].id = n_active_frames_;
+
+      // check target existence of a KF applied to the target -> if not, create new KF
+      if( manager_.getTarget(map_targets_[current_frame].id) == nullptr )
+      {
+        double dt0 = dt_;
+        double t0 = 0.0;
+        manager_.init(map_targets_[current_frame].id, dt0, Q_, R_, P_, meas_pose, t0, type_);
+      }
+
+      n_active_frames_ ++;
+    }
+
     // 4- assign target data to target name within the map
     map_targets_[current_frame].measured_pose_ = meas_pose;
     map_targets_[current_frame].frame_name_ = current_frame;
     map_targets_[current_frame].new_meas_ = true;
 
- #ifdef DEBUG
+#ifdef DEBUG
     std::cout << "Transforms.size = " << pose_msg->transforms.size() << "Map_ID.size = : " << map_targets_.size() << "Map_MEAS.size = : " << map_measured_pose_.size() << std::endl;
- #endif
+#endif
   }
 
   meas_lock.unlock();
@@ -174,30 +182,18 @@ void RosTargetManager::update(const double& dt, const unsigned int &count)
   if(meas_lock.try_lock())
   {
     double t = ros::Time::now().toSec();
+    t_ = t;
     dt_ = t - t_prev_;
 
-    unsigned int target_id;
-    Eigen::Vector7d meas_pose;
-
-    // Update the state if targets are available
-    if(  ( map_targets_.size() != 0 ) )
+    if( map_targets_.size() > 0 )
     {
-      for(auto it_targets : map_targets_)
+      for(auto& it_targets : map_targets_)
       {
         unsigned int target_id = map_targets_[it_targets.first].id;
         Eigen::Vector7d meas_pose = map_targets_[it_targets.first].measured_pose_;
 
         if(map_targets_[it_targets.first].new_meas_)
         {
-          // check target existence of a KF applied to the target -> if not, create new KF
-          if( manager_.getTarget(target_id)==nullptr )
-          {
-            // init the target
-            double dt0 = dt_;
-            double t0 = 0.0;
-            manager_.init(target_id,dt0,Q_,R_,P_,meas_pose,t0,type_);
-          }
-
           // update with measurements
           manager_.update(target_id,dt,meas_pose);
           map_targets_[it_targets.first].new_meas_ = false;
@@ -210,20 +206,10 @@ void RosTargetManager::update(const double& dt, const unsigned int &count)
 
         // Assign estimated values to the map of targets
         map_targets_[it_targets.first].estimated_pose_ = manager_.getTarget(target_id)->getEstimatedPose();
-        map_targets_[it_targets.first].estimted_twist_ = manager_.getTarget(target_id)->getEstimatedTwist();
-        map_targets_[it_targets.first].estimated_quaternion_ = manager_.getTarget(target_id)->getEstimatedOrientation();
-        map_targets_[it_targets.first].estimated_rpy_ = manager_.getTarget(target_id)->getEstimatedRPY();
-        map_targets_[it_targets.first].estimated_position_ = manager_.getTarget(target_id)->getEstimatedPosition();
 
-      } // end for
-
-    } // end if
-
-    if( ( map_targets_.size() != 0 ) )
-    {
-      for(auto it_targets : map_targets_)
-      {
-        target_id = map_targets_[it_targets.first].id;
+  #ifdef DEBUG
+          std::cout << "Target Name: " << map_targets_[it_targets.first].frame_name_ << std::endl;
+  #endif
 
         // Get the interception point
         Eigen::Vector7d inteception_pose;
@@ -232,10 +218,10 @@ void RosTargetManager::update(const double& dt, const unsigned int &count)
           map_targets_[it_targets.first].intercepted_ = true;
           map_targets_[it_targets.first].interception_pose_ = inteception_pose;
 
-#ifdef DEBUG_tmp
-        std::cout << "Interception pose" << std::endl;
-        std::cout << inteception_pose << std::endl;
-#endif
+  #ifdef DEBUG_tmp
+          std::cout << "Interception pose" << std::endl;
+          std::cout << inteception_pose << std::endl;
+  #endif
         }
         else
         {
@@ -244,9 +230,11 @@ void RosTargetManager::update(const double& dt, const unsigned int &count)
 
         Eigen::Vector3d target_position;
         Eigen::Quaterniond target_orientation;
-        target_position = map_targets_[it_targets.first].estimated_position_;
-        target_orientation = map_targets_[it_targets.first].estimated_quaternion_;
-        std::string target_frame = it_targets.first;
+//        target_position = map_targets_[it_targets.first].estimated_position_;
+//        target_orientation = map_targets_[it_targets.first].estimated_quaternion_;
+        posetoPositionQuat(map_targets_[it_targets.first].estimated_pose_, target_position, target_orientation);
+
+        std::string target_frame = map_targets_[it_targets.first].frame_name_;
 
         // Publish to tf wrt world frame
         sendTF(target_position, target_orientation, target_frame, world_frame_, transform_, q_, br_);
@@ -260,12 +248,10 @@ void RosTargetManager::update(const double& dt, const unsigned int &count)
 
       } // end for
 
-    } // end if
-
+    }
     // update the time-related variables
-    t_= t_ + dt;
+    t_= t_ + dt_;
     t_prev_ = t;
-
     meas_lock.unlock();
   }
 }

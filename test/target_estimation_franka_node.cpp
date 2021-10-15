@@ -24,10 +24,10 @@ int main(int argc, char **argv)
   double dt{1.0/f};
 
   // add possibility to choice of sendind data over topic equilibrium pose
-  std::string robot_topic_eq_pose = "cartesian_impedance_example_controller/equilibrium_pose";
+  std::string robot_topic_eq_pose = "robot_equlibrium_pose_topic";
 
-//  RosTargetManager manager(nh, dt, robot_topic_eq_pose);
-  RosTargetManager manager(nh, dt);
+  RosTargetManager manager(nh, dt, robot_topic_eq_pose);
+//  RosTargetManager manager(nh, dt);
   manager.setInterceptionSphere(interception_sphere_pos,interception_sphere_radius);
 
   camera_name_frame = "camera_depth_optical_frame";
@@ -72,6 +72,10 @@ int main(int argc, char **argv)
     // Update the model (the upate method is in charge of publishing also to "tf" and the robot equilibrium point
     manager.update(dt, count);
     n_targets = manager.getNumberOfTargets();
+
+#ifdef DEBUG
+    std::cout << "Number of targets: " << n_targets << std::endl;
+#endif
 
     sphere_marker_pub.publish(sphere_marker);
 

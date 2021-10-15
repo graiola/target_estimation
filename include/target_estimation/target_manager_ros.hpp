@@ -81,8 +81,10 @@ private:
     TargetManager::target_t type_;
     std::mutex meas_lock;
 
-    // Use this instead of all confising maps -> FIXME once everithin will work properly!
+    // Using a map with structs it does not work well
     targets_map_t map_targets_;
+
+    // Use this instead of all confising maps -> FIXME once everithin will work properly!
 
     double t_call_, t_pre_call_;
 
