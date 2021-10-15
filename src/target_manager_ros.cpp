@@ -233,6 +233,9 @@ void RosTargetManager::update(const double& dt, const unsigned int &count)
 //        target_position = map_targets_[it_targets.first].estimated_position_;
 //        target_orientation = map_targets_[it_targets.first].estimated_quaternion_;
         posetoPositionQuat(map_targets_[it_targets.first].estimated_pose_, target_position, target_orientation);
+#ifdef DEBUG_tmp
+        std::cout << "Estimated pose " << map_targets_[it_targets.first].estimated_pose_ << std::endl;
+#endif
 
         std::string target_frame = map_targets_[it_targets.first].frame_name_;
 
