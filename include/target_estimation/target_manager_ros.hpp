@@ -20,8 +20,8 @@ class RosTargetManager
 {
 
 public:
-    RosTargetManager(ros::NodeHandle& nh, double& dt);
-    RosTargetManager(ros::NodeHandle& nh, double& dt, std::string& robot_topic_to_publish);
+    RosTargetManager(ros::NodeHandle& nh, double& dt, std::string& topic_to_publish, tf::TransformBroadcaster& br);
+    RosTargetManager(ros::NodeHandle& nh, double& dt, tf::TransformBroadcaster& br, std::string& topic_to_publish, std::string& robot_topic_to_publish);
 
     void setInterceptionSphere(const Eigen::Vector3d& pos, const double& radius);
 
@@ -43,14 +43,16 @@ public:
 
 private:
 
-    bool init(ros::NodeHandle& nh, double& dt, const bool &publish_robot);
+    void init(ros::NodeHandle& nh, double& dt, tf::TransformBroadcaster& br, std::string& topic_to_publish, const bool &publish_robot);
 
     void MeasurementCallBack(const tf2_msgs::TFMessage::ConstPtr& pose_msg);
 
     bool parseSquareMatrix(const ros::NodeHandle& n, const std::string& matrix, Eigen::MatrixXd& M);
     bool parseTargetType(const ros::NodeHandle& n, TargetManager::target_t& type);
 
-    void sendTF(Eigen::Vector3d &postion, Eigen::Quaterniond &orientation, std::string &target_name, std::string &world_name, tf::Transform &transform, tf::Quaternion &q, tf::TransformBroadcaster &br);
+    void sendTF(Eigen::Vector7d &pose, std::string &target_name, std::string &world_name, tf::Transform &transform, tf::Quaternion &q, tf::TransformBroadcaster &br);
+
+
     void poseToStampedPose(Eigen::Vector3d &position, Eigen::Quaterniond &orientation,
                             geometry_msgs::PoseStamped &eq_pose_pose_stamped_msg, std::string child_frame_name, const unsigned int &count);
     void poseToStampedPose(Eigen::Vector7d &pose, geometry_msgs::PoseStamped &eq_pose_pose_stamped_msg,
@@ -84,13 +86,9 @@ private:
     // Using a map with structs it does not work well
     targets_map_t map_targets_;
 
-    // Use this instead of all confising maps -> FIXME once everithin will work properly!
-
-    double t_call_, t_pre_call_;
-
     unsigned int n_active_frames_;
-    std::vector<std::string> list_active_frames_;
 
+    std::string tf_topic_name_ = "";
     tf::TransformBroadcaster br_;
     tf::Transform transform_;
     tf::Quaternion q_;

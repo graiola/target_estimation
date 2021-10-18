@@ -7,41 +7,34 @@ using namespace std;
 //#define DEBUG
 #define DEBUG_tmp
 
-RosTargetManager::RosTargetManager(ros::NodeHandle& nh, double& dt)
+RosTargetManager::RosTargetManager(ros::NodeHandle& nh, double& dt, std::string& topic_to_publish, tf::TransformBroadcaster& br)
 {
   publish_to_robot_ = false;
 
-  if( !init(nh, dt, publish_to_robot_) )
-  {
-    std::cerr << "Cannot Initialize RosTargetManager Class" << std::endl;
-  }
+  init(nh, dt, br, topic_to_publish, publish_to_robot_);
 }
 
-RosTargetManager::RosTargetManager(ros::NodeHandle& nh, double& dt, std::string& robot_topic_to_publish)
+RosTargetManager::RosTargetManager(ros::NodeHandle& nh, double& dt, tf::TransformBroadcaster& br, std::string& topic_to_publish, std::string& robot_topic_to_publish)
 {
   publish_to_robot_ = true;
   setRobotTopicEqPose(robot_topic_to_publish);
 
-  if( !init(nh, dt, publish_to_robot_) )
-  {
-    std::cerr << "Cannot Initialize RosTargetManager Class" << std::endl;
-  }
+  init(nh, dt, br, topic_to_publish, publish_to_robot_);
 }
 
-bool RosTargetManager::init(ros::NodeHandle& nh, double& dt, const bool &publish_robot)
+void RosTargetManager::init(ros::NodeHandle& nh, double& dt, tf::TransformBroadcaster& br, std::string& topic_to_publish, const bool &publish_robot)
 {
-  bool res;
 
-  // subscribe to /tf topic
+  // subscribe to topic_to_publish
+  tf_topic_name_ = topic_to_publish;
   nh_ = nh;
-  measurament_sub_ = nh_.subscribe("/tf", 1 , &RosTargetManager::MeasurementCallBack, this);
+  measurament_sub_ = nh_.subscribe(topic_to_publish, 1 , &RosTargetManager::MeasurementCallBack, this);
+
+  br_ = br;
 
   if(publish_robot)
   {
-    // Publish to Fraka Equilibrium Pose topic
-    std::string topic_to_publish = "cartesian_impedance_example_controller/equilibrium_pose";
-    topic_to_publish = robot_topic_; // FIXME -> add member to get robot topic
-    franka_eq_pose_pub_ = nh.advertise<geometry_msgs::PoseStamped>(topic_to_publish, 1, true);
+    franka_eq_pose_pub_ = nh.advertise<geometry_msgs::PoseStamped>(robot_topic_, 1, true);
   }
 
   n_active_frames_ = 0;
@@ -49,12 +42,10 @@ bool RosTargetManager::init(ros::NodeHandle& nh, double& dt, const bool &publish
   t_ = 0.0;
   dt_ = dt;
   t_prev_ = 0.0;
+  // FIXME -> adjust thresholds
   pos_th_ = 1;
   ang_th_ = 1;
-
-  // tmp
-  t_pre_call_ = 0;
-  t_call_ = 0;
+  // FIXME -> adjust thresholds
 
   n_ = static_cast<unsigned int>(Q_.rows());
   m_ = static_cast<unsigned int>(R_.rows());
@@ -71,10 +62,6 @@ bool RosTargetManager::init(ros::NodeHandle& nh, double& dt, const bool &publish
   {
     throw std::runtime_error("Can not load filter type!");
   }
-
-  res = true;
-
-  return res;
 }
 
 void RosTargetManager::setInterceptionSphere(const Eigen::Vector3d& pos, const double& radius)
@@ -104,10 +91,20 @@ void RosTargetManager::MeasurementCallBack(const tf2_msgs::TFMessage::ConstPtr& 
     meas_pose(5) = pose_msg->transforms.data()->transform.rotation.z;
     meas_pose(6) = pose_msg->transforms.data()->transform.rotation.w;
 
+    unsigned int target_id;
     if(map_targets_.count(current_frame) != 1)
     {
       // target not found, so add it!
-      map_targets_[current_frame].id = n_active_frames_;
+      if(getId(current_frame, target_id))
+      {
+        map_targets_[current_frame].id = target_id;
+        n_active_frames_ ++;
+      }
+      else
+      {
+        map_targets_[current_frame].id = n_active_frames_;
+        n_active_frames_ ++;
+      }
 
       // check target existence of a KF applied to the target -> if not, create new KF
       if( manager_.getTarget(map_targets_[current_frame].id) == nullptr )
@@ -116,8 +113,6 @@ void RosTargetManager::MeasurementCallBack(const tf2_msgs::TFMessage::ConstPtr& 
         double t0 = 0.0;
         manager_.init(map_targets_[current_frame].id, dt0, Q_, R_, P_, meas_pose, t0, type_);
       }
-
-      n_active_frames_ ++;
     }
 
     // 4- assign target data to target name within the map
@@ -171,12 +166,6 @@ bool RosTargetManager::parseTargetType(const ros::NodeHandle& n, TargetManager::
 
 }
 
-/*
- * 1- try_lock
- * 2- explore all available targets, i.e. the ones contained in maps map_measured_pose_ and map_id_targets_
- * 3- for each target chek if it has been already initialized. If not init and then update using KF, otherwise update the state with KF
- * 4- lock
- * */
 void RosTargetManager::update(const double& dt, const unsigned int &count)
 {
   if(meas_lock.try_lock())
@@ -187,7 +176,7 @@ void RosTargetManager::update(const double& dt, const unsigned int &count)
 
     if( map_targets_.size() > 0 )
     {
-      for(auto& it_targets : map_targets_)
+      for(const auto& it_targets : map_targets_)
       {
         unsigned int target_id = map_targets_[it_targets.first].id;
         Eigen::Vector7d meas_pose = map_targets_[it_targets.first].measured_pose_;
@@ -205,7 +194,8 @@ void RosTargetManager::update(const double& dt, const unsigned int &count)
         }
 
         // Assign estimated values to the map of targets
-        map_targets_[it_targets.first].estimated_pose_ = manager_.getTarget(target_id)->getEstimatedPose();
+        Eigen::Vector7d est_pose;
+        est_pose = manager_.getTarget(target_id)->getEstimatedPose();
 
   #ifdef DEBUG
           std::cout << "Target Name: " << map_targets_[it_targets.first].frame_name_ << std::endl;
@@ -216,9 +206,8 @@ void RosTargetManager::update(const double& dt, const unsigned int &count)
         if( manager_.getInterceptionPose(target_id, t_, pos_th_, ang_th_, inteception_pose) )
         {
           map_targets_[it_targets.first].intercepted_ = true;
-          map_targets_[it_targets.first].interception_pose_ = inteception_pose;
 
-  #ifdef DEBUG_tmp
+  #ifdef DEBUG
           std::cout << "Interception pose" << std::endl;
           std::cout << inteception_pose << std::endl;
   #endif
@@ -230,17 +219,16 @@ void RosTargetManager::update(const double& dt, const unsigned int &count)
 
         Eigen::Vector3d target_position;
         Eigen::Quaterniond target_orientation;
-//        target_position = map_targets_[it_targets.first].estimated_position_;
-//        target_orientation = map_targets_[it_targets.first].estimated_quaternion_;
-        posetoPositionQuat(map_targets_[it_targets.first].estimated_pose_, target_position, target_orientation);
-#ifdef DEBUG_tmp
-        std::cout << "Estimated pose " << map_targets_[it_targets.first].estimated_pose_ << std::endl;
+        posetoPositionQuat(est_pose, target_position, target_orientation);
+
+#ifdef DEBUG
+        std::cout << "Estimated pose " << est_pose << std::endl;
 #endif
 
         std::string target_frame = map_targets_[it_targets.first].frame_name_;
 
         // Publish to tf wrt world frame
-        sendTF(target_position, target_orientation, target_frame, world_frame_, transform_, q_, br_);
+        sendTF(est_pose, target_frame, world_frame_, transform_, q_, br_);
 
         if(publish_to_robot_)
         {
@@ -259,24 +247,13 @@ void RosTargetManager::update(const double& dt, const unsigned int &count)
   }
 }
 
-void RosTargetManager::setWorldFrameName(std::string& name)
+void RosTargetManager::sendTF(Eigen::Vector7d &pose, std::string &target_name, std::string &world_name, tf::Transform &transform, tf::Quaternion &q, tf::TransformBroadcaster &br)
 {
-  world_frame_ = name;
-}
+  Eigen::Vector3d position;
+  Eigen::Quaterniond orientation;
+  posetoPositionQuat(pose, position, orientation);
 
-void RosTargetManager::setTargetFrameToken(std::string& token)
-{
-  target_name_frame_ = token;
-}
-
-void RosTargetManager::setCameraFrame(std::string& camera_frame)
-{
-  camera_frame_ = camera_frame;
-}
-
-void RosTargetManager::sendTF(Eigen::Vector3d &postion, Eigen::Quaterniond &orientation, std::string &target_name, std::string &world_name, tf::Transform &transform, tf::Quaternion &q, tf::TransformBroadcaster &br)
-{
-  transform.setOrigin(tf::Vector3(postion.x(),postion.y(),postion.z()));
+  transform.setOrigin( tf::Vector3( position.x(),position.y(),position.z() ) );
 
   q = tf::Quaternion(orientation.x(), orientation.y(), orientation.z(), orientation.w());
   q.normalize();
@@ -320,6 +297,21 @@ void RosTargetManager::poseToStampedPose(Eigen::Vector7d &pose, geometry_msgs::P
   eq_pose_pose_stamped_msg.pose.orientation.y = orientation.y();
   eq_pose_pose_stamped_msg.pose.orientation.z = orientation.z();
   eq_pose_pose_stamped_msg.pose.orientation.w = orientation.w();
+}
+
+void RosTargetManager::setWorldFrameName(std::string& name)
+{
+  world_frame_ = name;
+}
+
+void RosTargetManager::setTargetFrameToken(std::string& token)
+{
+  target_name_frame_ = token;
+}
+
+void RosTargetManager::setCameraFrame(std::string& camera_frame)
+{
+  camera_frame_ = camera_frame;
 }
 
 void RosTargetManager::setRobotTopicEqPose(std::string& topic_name)

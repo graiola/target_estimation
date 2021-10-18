@@ -20,14 +20,19 @@ int main(int argc, char **argv)
   interception_sphere_pos << 0.0, 0.0, 0.3;
   double interception_sphere_radius = 0.5;
 
+  // Create the ros subscribers and publishers
+  ros::Publisher sphere_marker_pub = nh.advertise<visualization_msgs::Marker>("sphere_marker", 1);
+//  ros::Publisher target_estimation_pub    = nh.advertise<target_estimation::TargetEstimation>("target_estimation", 1); // not used.
+
+  tf::TransformBroadcaster br;
+
   double f{1000.00}; // Hz -> remember to use the corresponding YAML file
   double dt{1.0/f};
 
-  // add possibility to choice of sendind data over topic equilibrium pose
+  std::string topic_to_publish = "/tf";
   std::string robot_topic_eq_pose = "robot_equlibrium_pose_topic";
 
-  RosTargetManager manager(nh, dt, robot_topic_eq_pose);
-//  RosTargetManager manager(nh, dt);
+  RosTargetManager manager(nh, dt, br, topic_to_publish, robot_topic_eq_pose);
   manager.setInterceptionSphere(interception_sphere_pos,interception_sphere_radius);
 
   camera_name_frame = "camera_depth_optical_frame";
@@ -38,8 +43,6 @@ int main(int argc, char **argv)
   manager.setWorldFrameName(world_name_frame);
   manager.setTargetFrameToken(target_token_frame);
   manager.setCameraFrame(camera_name_frame);
-
-  targets_map_t targets;
 
   visualization_msgs::Marker sphere_marker;
   sphere_marker.header.frame_id = manager.getWorldNameFrame();
@@ -53,8 +56,6 @@ int main(int argc, char **argv)
   sphere_marker.color.g = 1.0f;
   sphere_marker.color.b = 0.0f;
   sphere_marker.color.a = 0.2f;
-
-  ros::Publisher sphere_marker_pub = nh.advertise<visualization_msgs::Marker>("sphere_marker", 1);
 
   double t, t_pre = 0;
   int n_targets{0};

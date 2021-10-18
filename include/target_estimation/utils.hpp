@@ -284,8 +284,6 @@ inline bool getId(const std::string& s, unsigned int& id)
 struct target_struct
   {
     Eigen::Vector7d measured_pose_;
-    Eigen::Vector7d estimated_pose_;
-    Eigen::Vector7d interception_pose_;
 
     bool new_meas_{false};
     bool intercepted_{false};
