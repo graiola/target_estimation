@@ -7,6 +7,7 @@ Estimate the pose of incoming targets using a Kalman Filter.
 
 # TODO
 - [ ] start tracking after first interception
+- [ ] add camera to robot transformation
 - [ ] implement closest target interception to track only one target per time when multiple targets are detected
 - [ ] start tracking after first interception of the closest target
 - [ ] remove rt_logger dependency after completion on branch
