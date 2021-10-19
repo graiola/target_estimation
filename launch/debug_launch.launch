@@ -1,16 +1,35 @@
 <?xml version="1.0" ?>
 <launch>
 
-        <!-- Start ROS bag -->
-        <node pkg="rosbag" type="play" name="rosbag_play_target" output="screen" required="true" args="--loop $(find target_estimation)/bag_files/du_keyboard.bag"/>
+    <arg name="plot" default="false"/>
+    <arg name="rviz_show" default="false"/>
+    <arg name="is_simulation" default="false"/>
 
-        <!-- Load Kalman filter parameters-->
-        <rosparam command="load" file="$(find target_estimation)/config/kf_rpy_params_3hz.yaml"/>
+    <!-- Set ROS bag to use simulation time -> Sync between Gazeebo and ROS bag -->
+    <group if="$(arg is_simulation)">
+        <param name="/use_sim_time" value="true"/>
+    </group>
 
-        <!-- Start the node-->
-        <node name="multi_target_node" pkg="target_estimation" type="multi_target_node" respawn="false" output="screen"/>
+    <!-- Start ROS bag /*** single_keyboard_tf_2021-09-09.bag ***  single_target_2021-10-12.bag  *** du_keyboard.bag -->
+    <node pkg="rosbag" type="play" name="rosbag_play_target" output="screen" required="true" args="--clock --loop $(find target_estimation)/bag_files/du_keyboard.bag"/>
 
-        <!-- Start rviz with an external configurtion file -->
-        <node type="rviz" name="rviz" pkg="rviz" args="-d $(find target_estimation)/config/rviz_conf/multi_target_node_rviz_congif_test20210915.rviz"/>
+    <!-- Load Kalman filter parameters-->
+    <rosparam command="load" file="$(find target_estimation)/config/kf_rpy_params_3hz.yaml"/>
+
+    <!-- Remap general name of the robot equilibrium point topic -->
+    <remap to="cartesian_impedance_example_controller/equilibrium_pose" from="robot_equlibrium_pose_topic" />
+
+    <!-- Start the node-->
+    <node name="target_estimation_franka_node" pkg="target_estimation" type="target_estimation_franka_node" respawn="false" output="screen"/>
+
+    <!-- Start rviz with an external configurtion file -->
+    <group if="$(arg rviz_show)">
+        <node type="rviz" name="rviz" pkg="rviz" args="-d $(find target_estimation)/config/rviz_conf/target_node_rviz_congif.rviz"/>
+    </group>
+
+    <!-- rqt plot -->
+    <group if="$(arg plot)">
+        <node pkg="rqt_plot" type="rqt_plot" name="rqt_plot" args="/tf/transforms[0]/transform/translation /tf/transforms[0]/transform/rotation"/>
+    </group>
 
 </launch>
