@@ -261,31 +261,21 @@ bool TargetManager::getInterceptionPose(const unsigned int& id, const double& t1
     else
         std::cout<<"Target("<<id<<") does not exist!"<<std::endl;
 
-#ifdef DEBUG
-    std::cout << "targets_.count(i) = " << targets_.count(id) << std::endl;
-    std::cout << "target_id = " << id << std::endl;
-    std::cout << "res = " << res << std::endl;
-#endif
-
     return res;
 }
 
-unsigned int TargetManager::getClosestInterceptionPose(const double& t1, const double& pos_th, const double& ang_th, Eigen::Vector7d& interception_pose)
+bool TargetManager::getInterception(const unsigned int& id, const double& t1, const double& pos_th, const double& ang_th, Eigen::Vector7d& interception_pose, double& interception_time)
 {
-    lock_guard<mutex> lg(target_lock_);
-    bool res = false;
-    unsigned int closest_target_id = 0;
-    double smallest_intersection_time = 10000.0; // Dummy value
-    for(const auto& tmp : targets_)
-    {
-      double current_intersection_time = tmp.second->getIntersectionTime(t1,sphere_origin_,sphere_radius_);
-      if(current_intersection_time < smallest_intersection_time)
-      {
-        closest_target_id = tmp.first;
-        tmp.second->getIntersectionPose(t1,pos_th,ang_th,sphere_origin_,sphere_radius_,interception_pose);
-      }
-    }
-    return closest_target_id;
+  lock_guard<mutex> lg(target_lock_);
+  bool res = false;
+  if (targets_.count(id)!=0)
+      res = targets_[id]->getIntersectionPose(t1,pos_th,ang_th,sphere_origin_,sphere_radius_,interception_pose);
+  else
+      std::cout<<"Target("<<id<<") does not exist!"<<std::endl;
+
+  interception_time = targets_[id]->getIntersectionTime(t1,sphere_origin_,sphere_radius_);
+
+  return res;
 }
 
 long long TargetManager::getNumberMeasurements(const unsigned int& id)

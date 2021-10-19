@@ -150,7 +150,17 @@ public:
    */
     bool getInterceptionPose(const unsigned int& id, const double& t, const double& pos_th, const double& ang_th, Eigen::Vector7d& interception_pose);
 
-    unsigned int getClosestInterceptionPose(const double& t1, const double& pos_th, const double& ang_th, Eigen::Vector7d& interception_pose);
+    /**
+   * @brief getInterceptiont Computes both the time and the pose required for intercepting the target (if possible)
+   * @param id
+   * @param t
+   * @param pos_th defines the convergence threshold for the interception position
+   * @param ang_th defines the convergence threshold for the interception orientation
+   * @param interception_pose: pose for the robot to reach the target
+   * @param interception_time: time for te robot to reach the target
+   * @return true if there is a valid interception
+   */
+    bool getInterception(const unsigned int& id, const double& t, const double& pos_th, const double& ang_th, Eigen::Vector7d& interception_pose, double& interception_time);
 
     /**
    * @brief getNumberMeasurements Return the number of measurements done so far
