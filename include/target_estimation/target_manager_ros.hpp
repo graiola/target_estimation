@@ -58,6 +58,9 @@ private:
     void poseToStampedPose(Eigen::Vector7d &pose, geometry_msgs::PoseStamped &eq_pose_pose_stamped_msg,
                                              std::string child_frame_name, const unsigned int &count);
 
+    // get the ID which takes the least for the robot to reach
+    void getShortestIdToReach(targets_map_t& targets, unsigned int& target_id, std::string& target_name);
+
 
     ros::NodeHandle nh_;
     TargetManager manager_;
@@ -86,6 +89,8 @@ private:
 
     // Using a map with structs it does not work well
     targets_map_t map_targets_;
+    unsigned int target_id_to_reach_;
+    std::string target_name_to_reach_ = "";
 
     unsigned int n_active_frames_;
 

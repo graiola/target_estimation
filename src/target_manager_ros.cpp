@@ -48,6 +48,9 @@ void RosTargetManager::init(ros::NodeHandle& nh, double& dt, tf::TransformBroadc
   ang_th_ = 0.001; // [rad]
   // FIXME -> adjust thresholds
 
+  target_id_to_reach_ = 10;
+  target_name_to_reach_ = "pippo";
+
   n_ = static_cast<unsigned int>(Q_.rows());
   m_ = static_cast<unsigned int>(R_.rows());
 
@@ -175,6 +178,7 @@ void RosTargetManager::update(const double& dt, const unsigned int &count)
     t_ = t;
     dt_ = t - t_prev_;
 
+    // 1- Update the Target State and Send Estimated pose to External Topic (tipically /tf)
     if( map_targets_.size() > 0 )
     {
       for(const auto& it_targets : map_targets_)
@@ -202,23 +206,6 @@ void RosTargetManager::update(const double& dt, const unsigned int &count)
           std::cout << "Target Name: " << map_targets_[it_targets.first].frame_name_ << std::endl;
   #endif
 
-        // Get the interception point
-        Eigen::Vector7d inteception_pose;
-        if( manager_.getInterceptionPose(target_id, t_, pos_th_, ang_th_, inteception_pose) )
-        {
-          map_targets_[it_targets.first].converged_ = true;
-
-  #ifdef DEBUG
-          std::cout << "Interception pose" << std::endl;
-          std::cout << inteception_pose << std::endl;
-  #endif
-        }
-        else
-        {
-          map_targets_[it_targets.first].converged_ = false;
-        }
-
-
 #ifdef DEBUG
         std::cout << "Estimated pose " << est_pose << std::endl;
 #endif
@@ -228,8 +215,68 @@ void RosTargetManager::update(const double& dt, const unsigned int &count)
         // Publish to tf wrt world frame
         sendTF(est_pose, target_frame, world_frame_, transform_, q_, br_);
 
+      } // end for
+
+    }
+
+
+    // 2- Compute interception pose and time for all available targets and obtaing the ID that correspond to the closest/shortest for the robot to reach
+    // FIXME: put this in a single function
+    if( map_targets_.size() >  0)
+    {
+      for(const auto& it_targets : map_targets_)
+      {
+        unsigned int target_id = map_targets_[it_targets.first].id;
+        std::string target_frame = map_targets_[it_targets.first].frame_name_;
+
+        // Get the interception point and time
+        Eigen::Vector7d interception_pose;
+        double interception_time;
+        if( manager_.getInterception(target_id, t_, pos_th_, ang_th_, interception_pose, interception_time) )
+        {
+          map_targets_[it_targets.first].converged_ = true;
+        }
+        else
+        {
+          map_targets_[it_targets.first].converged_ = false;
+        }
+      } // end for
+
+    } // end if
+    // FIXME: put this in a single function
+
+    // get minimum if available
+    getShortestIdToReach(map_targets_, target_id_to_reach_, target_name_to_reach_);
+#ifdef DEBUG_tmp
+    std::cout << "Index corresponding to minimum element: " << target_id_to_reach_ << " - Target Name: " << target_name_to_reach_ << std::endl;
+#endif
+
+    // 3- Send Either Interception Pose or Estimated pose to Robot of only the target_id_min_ (if available)
+    if( map_targets_.size() > 0 )
+    {
+      for(const auto& it_targets : map_targets_)
+      {
+        unsigned int target_id = map_targets_[it_targets.first].id;
+        std::string target_frame = map_targets_[it_targets.first].frame_name_;
+
+        // Get the interception point
+        Eigen::Vector7d interception_pose;
+        if( manager_.getInterceptionPose(target_id, t_, pos_th_, ang_th_, interception_pose) )
+        {
+          map_targets_[it_targets.first].converged_ = true;
+        }
+        else
+        {
+          map_targets_[it_targets.first].converged_ = false;
+        }
+        // old
+
+        Eigen::Vector7d est_pose;
+        est_pose = manager_.getTarget(target_id)->getEstimatedPose();
+
         Eigen::Vector3d target_position;
         Eigen::Quaterniond target_orientation;
+//        if( interface_with_robot_ && map_targets_[it_targets.first].id == closest_target_id)
         if( interface_with_robot_ )
         {
 
@@ -237,9 +284,9 @@ void RosTargetManager::update(const double& dt, const unsigned int &count)
           {
 #ifdef DEBUG
             std::cout << "Interception pose " << std::endl;
-            std::cout << inteception_pose << std::endl;
+            std::cout << interception_pose << std::endl;
 #endif
-            posetoPositionQuat(inteception_pose, target_position, target_orientation);
+            posetoPositionQuat(interception_pose, target_position, target_orientation);
 
             // start tracking after first interception has occurred
             poseToStampedPose(target_position, target_orientation, robot_eq_pose_msg_, target_frame, count);
@@ -256,12 +303,13 @@ void RosTargetManager::update(const double& dt, const unsigned int &count)
             poseToStampedPose(target_position, target_orientation, robot_eq_pose_msg_, target_frame, count);
             robot_eq_pose_pub_.publish(robot_eq_pose_msg_);
           } // end if
+          // new
 
         } // end if
-
-      } // end for
+      }
 
     }
+
     // update the time-related variables
     t_= t_ + dt_;
     t_prev_ = t;
@@ -339,4 +387,28 @@ void RosTargetManager::setCameraFrame(std::string& camera_frame)
 void RosTargetManager::setRobotTopicEqPose(std::string& topic_name)
 {
   robot_topic_pub_ = topic_name;
+}
+
+// FIXME: Si blocca quando assegno a target_name il valore corrispondente a target_id!!!!!!!
+void RosTargetManager::getShortestIdToReach(targets_map_t& targets, unsigned int& target_id, std::string& target_name)
+{
+  std::vector<double> interception_time_vec;
+  std::vector<Eigen::Vector7d> interception_pose_vec;
+  std::vector<std::string> target_name_vec;
+
+  if(targets.size() > 0)
+  {
+    for(const auto& it : targets)
+    {
+      interception_time_vec.push_back( targets[it.first].id );
+      target_name_vec.push_back( targets[it.first].frame_name_ );
+    }
+
+    target_id = static_cast<unsigned int>( *std::min_element(interception_time_vec.begin(), interception_time_vec.end()) );
+//    target_name = target_name_vec.at(target_id);
+#ifdef DEBUG_tmp
+    std::cout << "List of target Size: " << target_name_vec.size() << std::endl;
+#endif
+  }
+
 }
