@@ -18,3 +18,4 @@ Estimate the pose of incoming targets using a Kalman Filter.
 
 # 2021/10/18
 - interception then start tracking ok
+- get target id of the one which requires the least time for the robot to catch. Anyway, I need to fix the part that allows obtaining also its name
