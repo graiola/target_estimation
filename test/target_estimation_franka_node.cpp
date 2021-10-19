@@ -17,8 +17,8 @@ int main(int argc, char **argv)
   string camera_name_frame;
 
   Eigen::Vector3d interception_sphere_pos; // w.r.t world
-  interception_sphere_pos << 0.0, 0.0, 0.3;
-  double interception_sphere_radius = 0.5;
+  interception_sphere_pos << 0.0, 0.0, 0.0;
+  double interception_sphere_radius = 0.3;
 
   // Create the ros subscribers and publishers
   ros::Publisher sphere_marker_pub = nh.advertise<visualization_msgs::Marker>("sphere_marker", 1);

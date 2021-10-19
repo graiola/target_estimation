@@ -9,17 +9,17 @@ using namespace std;
 
 RosTargetManager::RosTargetManager(ros::NodeHandle& nh, double& dt, std::string& topic_to_publish, tf::TransformBroadcaster& br)
 {
-  publish_to_robot_ = false;
+  interface_with_robot_ = false;
 
-  init(nh, dt, br, topic_to_publish, publish_to_robot_);
+  init(nh, dt, br, topic_to_publish, interface_with_robot_);
 }
 
 RosTargetManager::RosTargetManager(ros::NodeHandle& nh, double& dt, tf::TransformBroadcaster& br, std::string& topic_to_publish, std::string& robot_topic_to_publish)
 {
-  publish_to_robot_ = true;
+  interface_with_robot_ = true;
   setRobotTopicEqPose(robot_topic_to_publish);
 
-  init(nh, dt, br, topic_to_publish, publish_to_robot_);
+  init(nh, dt, br, topic_to_publish, interface_with_robot_);
 }
 
 void RosTargetManager::init(ros::NodeHandle& nh, double& dt, tf::TransformBroadcaster& br, std::string& topic_to_publish, const bool &publish_robot)
@@ -32,9 +32,10 @@ void RosTargetManager::init(ros::NodeHandle& nh, double& dt, tf::TransformBroadc
 
   br_ = br;
 
+  // FIXME: chang name of the bool to interface_with_robot
   if(publish_robot)
   {
-    franka_eq_pose_pub_ = nh.advertise<geometry_msgs::PoseStamped>(robot_topic_, 1, true);
+    robot_eq_pose_pub_ = nh.advertise<geometry_msgs::PoseStamped>(robot_topic_pub_, 1, true);
   }
 
   n_active_frames_ = 0;
@@ -43,8 +44,8 @@ void RosTargetManager::init(ros::NodeHandle& nh, double& dt, tf::TransformBroadc
   dt_ = dt;
   t_prev_ = 0.0;
   // FIXME -> adjust thresholds
-  pos_th_ = 1;
-  ang_th_ = 1;
+  pos_th_ = 0.001; // [m]
+  ang_th_ = 0.001; // [rad]
   // FIXME -> adjust thresholds
 
   n_ = static_cast<unsigned int>(Q_.rows());
@@ -66,7 +67,7 @@ void RosTargetManager::init(ros::NodeHandle& nh, double& dt, tf::TransformBroadc
 
 void RosTargetManager::setInterceptionSphere(const Eigen::Vector3d& pos, const double& radius)
 {
-  manager_.setInterceptionSphere(pos,radius);
+  manager_.setInterceptionSphere(pos, radius);
 }
 
 void RosTargetManager::MeasurementCallBack(const tf2_msgs::TFMessage::ConstPtr& pose_msg)
@@ -205,7 +206,7 @@ void RosTargetManager::update(const double& dt, const unsigned int &count)
         Eigen::Vector7d inteception_pose;
         if( manager_.getInterceptionPose(target_id, t_, pos_th_, ang_th_, inteception_pose) )
         {
-          map_targets_[it_targets.first].intercepted_ = true;
+          map_targets_[it_targets.first].converged_ = true;
 
   #ifdef DEBUG
           std::cout << "Interception pose" << std::endl;
@@ -214,12 +215,9 @@ void RosTargetManager::update(const double& dt, const unsigned int &count)
         }
         else
         {
-          map_targets_[it_targets.first].intercepted_ = false;
+          map_targets_[it_targets.first].converged_ = false;
         }
 
-        Eigen::Vector3d target_position;
-        Eigen::Quaterniond target_orientation;
-        posetoPositionQuat(est_pose, target_position, target_orientation);
 
 #ifdef DEBUG
         std::cout << "Estimated pose " << est_pose << std::endl;
@@ -230,12 +228,36 @@ void RosTargetManager::update(const double& dt, const unsigned int &count)
         // Publish to tf wrt world frame
         sendTF(est_pose, target_frame, world_frame_, transform_, q_, br_);
 
-        if(publish_to_robot_)
+        Eigen::Vector3d target_position;
+        Eigen::Quaterniond target_orientation;
+        if( interface_with_robot_ )
         {
-          // start tracking after first interception occurred
-          poseToStampedPose(target_position, target_orientation, franka_eq_pose_msg_, target_frame, count);
-          franka_eq_pose_pub_.publish(franka_eq_pose_msg_);
-        }
+
+          if( map_targets_[it_targets.first].converged_ )
+          {
+#ifdef DEBUG
+            std::cout << "Interception pose " << std::endl;
+            std::cout << inteception_pose << std::endl;
+#endif
+            posetoPositionQuat(inteception_pose, target_position, target_orientation);
+
+            // start tracking after first interception has occurred
+            poseToStampedPose(target_position, target_orientation, robot_eq_pose_msg_, target_frame, count);
+            robot_eq_pose_pub_.publish(robot_eq_pose_msg_);
+
+            map_targets_[it_targets.first].intercepted_ = true; // TESTME: check whether it is better to compute the error between the target pose and the actual one to set this parameter to true;
+          } // end if
+
+          if(map_targets_[it_targets.first].intercepted_)
+          {
+            posetoPositionQuat(est_pose, target_position, target_orientation);
+
+            // start tracking after first interception has occurred
+            poseToStampedPose(target_position, target_orientation, robot_eq_pose_msg_, target_frame, count);
+            robot_eq_pose_pub_.publish(robot_eq_pose_msg_);
+          } // end if
+
+        } // end if
 
       } // end for
 
@@ -316,5 +338,5 @@ void RosTargetManager::setCameraFrame(std::string& camera_frame)
 
 void RosTargetManager::setRobotTopicEqPose(std::string& topic_name)
 {
-  robot_topic_ = topic_name;
+  robot_topic_pub_ = topic_name;
 }

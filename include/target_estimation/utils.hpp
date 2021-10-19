@@ -286,7 +286,8 @@ struct target_struct
     Eigen::Vector7d measured_pose_;
 
     bool new_meas_{false};
-    bool intercepted_{false};
+    bool converged_{false}; // used to check if interception model solver has a solution
+    bool intercepted_{false}; // used to check if the robo has reached the pose corresponding to the first available interception pose
 
     unsigned int id{0};
     std::string frame_name_{""};

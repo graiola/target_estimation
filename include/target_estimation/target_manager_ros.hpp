@@ -62,7 +62,8 @@ private:
     ros::NodeHandle nh_;
     TargetManager manager_;
     ros::Subscriber measurament_sub_;
-    ros::Publisher franka_eq_pose_pub_;
+    ros::Publisher robot_eq_pose_pub_;
+    ros::Subscriber robot_cart_space_sub_;
 
     std::string target_name_frame_ = "";
     std::string world_frame_ = "";
@@ -93,9 +94,9 @@ private:
     tf::Transform transform_;
     tf::Quaternion q_;
 
-    geometry_msgs::PoseStamped franka_eq_pose_msg_;
-    std::string robot_topic_ = "";
-    bool publish_to_robot_;
+    geometry_msgs::PoseStamped robot_eq_pose_msg_;
+    std::string robot_topic_pub_ = "";
+    bool interface_with_robot_;
 
 };
 
