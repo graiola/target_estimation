@@ -28,6 +28,7 @@ include_directories(
  include
  ${EIGEN_INCLUDE_DIRS}
  ${YAMLCPP_INCLUDE_DIRS}
+ ${catkin_INCLUDE_DIRS}
 )
 
 add_library(kalman SHARED
@@ -42,7 +43,7 @@ add_library(target SHARED
   src/target_manager.cpp
   src/solver.cpp
 )
-target_link_libraries(target kalman yaml-cpp ${roscpp_LIBRARIES} ${rt_logger_LIBRARIES})
+target_link_libraries(target kalman yaml-cpp ${catkin_LIBRARIES})
 
 add_library(target_c SHARED
   src/target_manager_c.cpp
@@ -75,10 +76,10 @@ if (${roscpp_FOUND})
         INCLUDE_DIRS include
     )
 
-    include_directories(include ${YAMLCPP_INCLUDE_DIRS} ${EIGEN_INCLUDE_DIRS} ${catkin_INCLUDE_DIRS})
+    include_directories(include ${YAMLCPP_INCLUDE_DIRS} ${EIGEN_INCLUDE_DIRS} ${catkin_INCLUDE_DIRS} ${rt_logger_INCLUDE_DIRS})
 
     add_library(target_ros src/target_manager_ros.cpp)
-    target_link_libraries(target_ros target ${catkin_LIBRARIES})
+    target_link_libraries(target_ros target ${catkin_LIBRARIES} ${rt_logger_LIBRARIES})
 
     add_executable(target_node test/target_node.cpp)
     target_link_libraries(target_node target_ros)
