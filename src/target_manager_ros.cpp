@@ -3,7 +3,6 @@
 #include <stdexcept>
 
 using namespace std;
-using namespace rt_logger;
 
 RosTargetManager::RosTargetManager(ros::NodeHandle& nh):
   token_name_(""),

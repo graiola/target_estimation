@@ -49,9 +49,6 @@ add_library(target_c SHARED
 )
 target_link_libraries(target_c target kalman)
 
-add_executable(orientation_match_test test/orientation_match_test.cpp)
-target_link_libraries(orientation_match_test target)
-
 add_executable(avg_filter_test test/avg_filter_test.cpp)
 
 add_executable(target_manager_test test/target_manager_test.cpp)
@@ -63,9 +60,9 @@ install(TARGETS target target_c kalman
         PUBLIC_HEADER DESTINATION include
 )
 
-if (${roscpp_FOUND} AND ${rt_logger_FOUND})
-    message(STATUS "${Yellow}ROS and RT_LOGGER found, compiling multi_target_node${ColorReset}")
-    find_package(catkin REQUIRED COMPONENTS roscpp geometry_msgs rt_logger message_generation tf)
+if (${roscpp_FOUND})
+    message(STATUS "${Yellow}ROS found, compiling ros dependent code${ColorReset}")
+    find_package(catkin REQUIRED COMPONENTS roscpp geometry_msgs message_generation tf)
 
     add_message_files(FILES TargetEstimation.msg)
 
