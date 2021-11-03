@@ -11,7 +11,7 @@ RosTargetManager::RosTargetManager(ros::NodeHandle& nh):
 {
   // subscribe to /tf topic
   nh_ = nh;
-  meas_subscriber_ = nh_.subscribe("/tf", 1 , &RosTargetManager::measurementCallBack, this); // FIXME hardcoded
+  meas_subscriber_ = nh_.subscribe("/tf", 10 , &RosTargetManager::measurementCallBack_v2, this); // FIXME hardcoded
 
   t_ = 0.0;
   dt_ = 0.01;
@@ -36,14 +36,17 @@ void RosTargetManager::setInterceptionSphere(const Eigen::Vector3d& pos, const d
   manager_.setInterceptionSphere(pos,radius);
 }
 
-void RosTargetManager::measurementCallBack(const tf2_msgs::TFMessage::ConstPtr& pose_msg)
+void RosTargetManager::measurementCallBack_v2(const tf2_msgs::TFMessage::ConstPtr& pose_msg)
 {
+
   for(unsigned int i = 0; i< pose_msg->transforms.size(); i++)
   {
     const std::string& current_tf_name = pose_msg->transforms[i].child_frame_id;
-    if(current_tf_name.find(token_name_) != std::string::npos)
-    {
 
+    std::vector<std::string> tokens = splitString(current_tf_name, frame_name_delimiter_);
+
+    if( (tokens.front() == token_name_) && (tokens.at(1) != "filt") )
+    {
       unsigned int id;
       if(!getId(current_tf_name,id)) // If we don't have a correct id
         break;
@@ -52,16 +55,12 @@ void RosTargetManager::measurementCallBack(const tf2_msgs::TFMessage::ConstPtr& 
       {
         double current_time_stamp = toSec(pose_msg->transforms[i].header.stamp.sec,pose_msg->transforms[i].header.stamp.nsec);
         double prev_time_stamp = toSec(measurements_[id].tr_.header.stamp.sec,measurements_[id].tr_.header.stamp.nsec);
-
-        if(current_time_stamp > prev_time_stamp)
-          measurements_[id].new_meas_ = true; // New measurement
-        else
-          measurements_[id].new_meas_ = false; // No new measurement
       }
 
       meas_lock_.lock();
       measurements_[id].tr_ = pose_msg->transforms[i]; // Save the measurement w.r.t camera
       meas_lock_.unlock();
+      measurements_[id].new_meas_ = true;
 
     }
   }
@@ -82,11 +81,6 @@ void RosTargetManager::update(const double& dt)
       const bool& new_meas = tmp.second.new_meas_;
 
       transformStampedToPose7d(tr,tmp_vector7d_);
-
-      // Transform the target pose from camera to reference frame
-      pose7dToIsometry(tmp_vector7d_,tmp_isometry3d_); // camera_T_target
-      tmp_isometry3d_ = reference_T_camera_ * tmp_isometry3d_; // reference_T_target = reference_T_camera * camera_T_target
-      isometryToPose7d(tmp_isometry3d_,tmp_vector7d_);
 
       if(manager_.getTarget(id)==nullptr) // Target does not exist, create it
         manager_.init(id,dt_,Q_,R_,P_,tmp_vector7d_,0.0,type_);
@@ -114,7 +108,6 @@ void RosTargetManager::update(const double& dt)
   isometryToTFTransform(reference_T_camera_,tmp_transform_);
   br_.sendTransform(tf::StampedTransform(tmp_transform_,ros_t_,reference_frame_,camera_frame_));
 
-  manager_.getClosestInterceptionPose(t_,pos_th_,ang_th_,interception_pose_);
 
   t_= t_ + dt;
   t_prev_ = ros_t_.toSec();
@@ -165,6 +158,7 @@ bool RosTargetManager::parseSquareMatrix(const ros::NodeHandle& n, const std::st
   if (n.getParam(matrix, Mv))
   {
     unsigned int size = static_cast<unsigned int>(std::sqrt(Mv.size()));
+    std::cout << size << std::endl;
     M = Eigen::Map<Eigen::MatrixXd>(Mv.data(),size,size);
   }
   else

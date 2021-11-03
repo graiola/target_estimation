@@ -85,8 +85,7 @@ private:
   };
 
   typedef std::map<unsigned int, Measurement> meas_map_t;
-
-  void measurementCallBack(const tf2_msgs::TFMessage::ConstPtr& pose_msg);
+  void measurementCallBack_v2(const tf2_msgs::TFMessage::ConstPtr& pose_msg);
   bool parseSquareMatrix(const ros::NodeHandle& n, const std::string& matrix, Eigen::MatrixXd& M);
   bool parseTargetType(const ros::NodeHandle& n, TargetManager::target_t& type);
 
@@ -123,6 +122,8 @@ private:
   tf::TransformBroadcaster br_;
 
   ros::Time ros_t_;
+
+  const std::string frame_name_delimiter_ = "_";
 };
 
 #endif

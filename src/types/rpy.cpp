@@ -26,6 +26,8 @@ TargetRpy::TargetRpy(const unsigned int& id,
   n_ = static_cast<unsigned int>(Q.rows()); // Number of states
   m_ = static_cast<unsigned int>(R.rows()); // Number of measurements
 
+  std::cout << "m = " << m_ << " - n = " << n_ << std::endl;
+
   // Supported cases:
   // n = 12: [x y z \psi \theta \phi
   //          \dot{x} \dot{y} \dot{z} \dot{\psi} \dot{\theta} \dot{\phi}]
@@ -41,13 +43,17 @@ TargetRpy::TargetRpy(const unsigned int& id,
   else
     acceleration_on_ = false;
 
+  std::cout << "n: " << n_ << std::endl;
   A_.resize(n_, n_);
   updateA(dt0);
+  std::cout << "acc: " << acceleration_on_ << std::endl;
 
   // Output matrix
   C_.resize(m_, n_);
   C_.setZero();
   C_.diagonal() = Eigen::VectorXd::Ones(m_);
+
+  std::cout << "acc: " << acceleration_on_ << std::endl;
 
   // Construct the estimator
   estimator_.reset(new LinearKalmanFilter(A_, C_, Q, R, P0));
@@ -131,9 +137,16 @@ void TargetRpy::updateA(const double& dt)
   // Discrete LTI Target motion
   A_.setZero();
   A_.diagonal()     = Eigen::VectorXd::Ones(n_);
-  A_.diagonal(n_/2) = Eigen::VectorXd::Ones(n_/2) * dt;
+
   if(acceleration_on_)
-    A_.diagonal(n_) = Eigen::VectorXd::Ones(n_) * 0.5 * dt * dt;
+  {
+    A_.diagonal(n_/3) = Eigen::VectorXd::Ones((n_*2)/3) * dt;
+    A_.diagonal((n_*2)/3) = Eigen::VectorXd::Ones(n_/3) * 0.5 * dt * dt;
+  }
+  else
+  {
+    A_.diagonal(n_/2) = Eigen::VectorXd::Ones(n_/2) * dt;
+  }
 }
 
 void TargetRpy::updateTargetState()

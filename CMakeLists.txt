@@ -84,7 +84,11 @@ if (${roscpp_FOUND})
     add_executable(target_node test/target_node.cpp)
     target_link_libraries(target_node target_ros)
 
-    install(TARGETS target target_c target_ros kalman target_node
+    # adding executable for follow me filtering node (nexus application)
+    add_executable(followme_filtering_node test/followme_filtering_node.cpp)
+    target_link_libraries(followme_filtering_node target_ros)
+
+    install(TARGETS target target_c target_ros kalman target_node followme_filtering_node
       ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
       LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
       RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
