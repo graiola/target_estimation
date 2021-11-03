@@ -1,0 +1,20 @@
+<?xml version="1.0" ?>
+<launch>
+	<arg name="show_rviz" default="false"/>
+
+
+	<!-- Kalman filter parameters-->
+        <rosparam command="load" file="$(find target_estimation)/config/kf_rpy_params_50hz_version_2021-11-03.yaml"/>
+
+        <!-- Start the node-->
+        <node name="followme_filtering_node" pkg="target_estimation" type="followme_filtering_node" respawn="false" output="screen"/>
+
+<!-- METTI NODO CONTROLLORE
+        <node name="followme_filtering_node" pkg="target_estimation" type="followme_filtering_node" respawn="false" output="screen"/>
+-->
+	<group if="$(arg show_rviz)">
+		<!-- Start rviz with an external configurtion file -->
+		<node type="rviz" name="rviz" pkg="rviz" args="-d $(find target_estimation)/config/rviz_conf/target_node_rviz_congif.rviz"/>
+	</group>
+
+</launch>
