@@ -1,6 +1,6 @@
 #include "target_estimation/target_manager_ros.hpp"
 
-#define WORLD_FRAME  "world"
+#define WORLD_FRAME  "camera_depth_optical_frame"
 #define CAMERA_FRAME "camera_depth_optical_frame"
 #define TARGET_NAME  "target"
 
@@ -15,14 +15,8 @@ int main(int argc, char **argv)
   Eigen::Vector7d interception_pose;
   initPose(interception_pose);
 
-  // Adjust the camera w.r.t world
-  //  Eigen::Matrix3d world_R_camera, Rz, Ry;
   Eigen::Isometry3d world_T_camera = Eigen::Isometry3d::Identity();
-  //rpyToRot(0,M_PI/2,0,world_R_camera);
-  //yawToRot(0,Rz); //(-M_PI/2,Rz)
-  //pitchToRot(0,Ry); //(-M_PI/2,Ry)
-  //world_R_camera = Ry * Rz;
-  //world_T_camera = world_R_camera * world_T_camera;
+
 
   RosTargetManager ros_manager(nh);
   ros_manager.setTargetTokenName(TARGET_NAME);
