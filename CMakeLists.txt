@@ -81,7 +81,7 @@ if (${roscpp_FOUND})
     add_library(target_ros src/target_manager_ros.cpp)
     target_link_libraries(target_ros target ${catkin_LIBRARIES} ${rt_logger_LIBRARIES})
 
-    add_executable(target_node test/target_node.cpp)
+    add_executable(target_node src/target_node.cpp)
     target_link_libraries(target_node target_ros)
 
     add_executable(geometry_test test/geometry_test.cpp)
