@@ -165,6 +165,7 @@ TEST(test_target, RPY )
     auto velocities = calculateVelocities();
 
     Eigen::VectorXd xdot, ydot, zdot;
+    Eigen::VectorXd x,    y,    z;
 
     xdot = rpy_twist_est.col(0);
     ydot = rpy_twist_est.col(1);
@@ -174,6 +175,14 @@ TEST(test_target, RPY )
     EXPECT_NEAR( velocities(1) ,ydot.mean(), 0.01 );
     EXPECT_NEAR( velocities(2) ,zdot.mean(), 0.01 );
 
+    x = rpy_pose_est.col(0);
+    y = rpy_pose_est.col(1);
+    z = rpy_pose_est.col(2);
+
+    EXPECT_NEAR( _end_goal_x, x(x.size()-1), 0.01 );
+    EXPECT_NEAR( _end_goal_y, y(y.size()-1), 0.01 );
+    EXPECT_NEAR( _end_goal_z, z(z.size()-1), 0.01 );
+
     xdot = rpy_ext_twist_est.col(0);
     ydot = rpy_ext_twist_est.col(1);
     zdot = rpy_ext_twist_est.col(2);
@@ -181,6 +190,14 @@ TEST(test_target, RPY )
     EXPECT_NEAR( velocities(0) ,xdot.mean(), 0.01 );
     EXPECT_NEAR( velocities(1) ,ydot.mean(), 0.01 );
     EXPECT_NEAR( velocities(2) ,zdot.mean(), 0.01 );
+
+    x = rpy_ext_pose_est.col(0);
+    y = rpy_ext_pose_est.col(1);
+    z = rpy_ext_pose_est.col(2);
+
+    EXPECT_NEAR( _end_goal_x, x(x.size()-1), 0.01 );
+    EXPECT_NEAR( _end_goal_y, y(y.size()-1), 0.01 );
+    EXPECT_NEAR( _end_goal_z, z(z.size()-1), 0.01 );
 }
 
 
