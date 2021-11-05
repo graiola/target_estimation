@@ -35,7 +35,8 @@ inline void pose7dToTFTransform(const Eigen::Vector7d& e, tf::Transform& t)
 inline void isometryToTFTransform(const Eigen::Isometry3d& e, tf::Transform& t)
 {
   t.setOrigin(tf::Vector3(e.translation().x(),e.translation().y(),e.translation().z()));
-  Eigen::Quaterniond q = rotToQuat(e.rotation());
+  Eigen::Quaterniond q;
+  rotToQuat(e.rotation(),q);
   t.setRotation(tf::Quaternion(q.coeffs().x(),q.coeffs().y(),q.coeffs().z(),q.coeffs().w())); // FIXME check if it works
 }
 
