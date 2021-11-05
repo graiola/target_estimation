@@ -2,7 +2,11 @@ clear all
 close all
 
 prefixs = {'rpy_','rpy_ext_'}
-data = {'meas_pose','est_pose','est_twist'};
+data = {'est_pose','est_twist'};
+
+load time
+load meas_pose
+load pose
 
 for j=1:length(prefixs)
   for i=1:length(data)
@@ -14,7 +18,7 @@ for j=1:length(prefixs)
 
    figure(1)
    for i=1:3
-     subplot(3,2,i)
+     subplot(3,1,i)
      plot(time,meas_pose(:,i),'r')
      hold on
      plot(time,est_pose(:,i))
@@ -22,9 +26,9 @@ for j=1:length(prefixs)
      plot(time,pose(:,i),'b')
    end
    
-    figure(2)
+   figure(2)
    for i=1:3
-     subplot(3,2,i)
+     subplot(3,1,i)
      plot(time,est_twist(:,i))
    end
  

@@ -50,11 +50,6 @@ add_library(target_c SHARED
 )
 target_link_libraries(target_c target kalman)
 
-add_executable(avg_filter_test test/avg_filter_test.cpp)
-
-add_executable(target_manager_test test/target_manager_test.cpp)
-target_link_libraries(target_manager_test target)
-
 install(TARGETS target target_c kalman
         ARCHIVE DESTINATION include
         LIBRARY DESTINATION lib
@@ -84,8 +79,8 @@ if (${roscpp_FOUND})
     add_executable(target_node src/target_node.cpp)
     target_link_libraries(target_node target_ros)
 
-    add_executable(geometry_test test/geometry_test.cpp)
-    target_link_libraries(geometry_test target ${catkin_LIBRARIES} gtest)
+    add_executable(target_manager_test test/target_manager_test.cpp)
+    target_link_libraries(target_manager_test target ${catkin_LIBRARIES} ${rt_logger_LIBRARIES} gtest)
 
     install(TARGETS target target_c target_ros kalman target_node
       ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}

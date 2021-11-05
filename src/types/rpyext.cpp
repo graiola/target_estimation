@@ -133,7 +133,7 @@ void TargetRPYExtended::update(const double& dt)
 void TargetRPYExtended::updateA(const double& dt, const Eigen::Vector3d& rpy, const Eigen::Vector3d& omega)
 {
   A_.block<3,3>(0,0)   = I3_;
-  A_.block<3,3>(0,6)   = I3_ * dt;;
+  A_.block<3,3>(0,6)   = I3_ * dt;
   A_.block<3,3>(3,3)   = EarBaseInvJacobianRpy(rpy,omega,dt);
   A_.block<3,3>(3,9)   = EarBaseInvJacobianOmega(rpy,dt);
   A_.block<3,3>(6,6)   = I3_;

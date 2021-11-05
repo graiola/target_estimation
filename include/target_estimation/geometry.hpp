@@ -235,8 +235,8 @@ inline void pitchToRot(const double& pitch, Eigen::Matrix3d& R)
     double c_p = std::cos(pitch);
     double s_p = std::sin(pitch);
     R << c_p 	,	 0  ,   s_p,
-            0       ,    1  ,   0,
-            -s_p 	,	0   ,  c_p;
+         0       ,    1  ,   0,
+         -s_p 	,	0   ,  c_p;
 }
 
 inline void yawToRot(const double& yaw, Eigen::Matrix3d& R)
@@ -245,8 +245,8 @@ inline void yawToRot(const double& yaw, Eigen::Matrix3d& R)
     double c_y = std::cos(yaw);
     double s_y = std::sin(yaw);
     R << c_y,  -s_y ,      0,
-            s_y,  c_y ,      0,
-            0  ,     0,      1;
+         s_y,  c_y ,      0,
+         0  ,     0,      1;
 }
 
 inline void rollToRotTranspose(const double& roll, Eigen::Matrix3d& R)
@@ -265,8 +265,8 @@ inline void pitchToRotTranspose(const double& pitch, Eigen::Matrix3d& R)
     double c_p = std::cos(pitch);
     double s_p = std::sin(pitch);
     R << c_p 	,	 0  ,   -s_p,
-            0       ,    1  ,   0,
-            s_p 	,	0   ,  c_p;
+         0       ,    1  ,   0,
+         s_p 	,	0   ,  c_p;
 }
 
 inline void yawToRotTranspose(const double& yaw, Eigen::Matrix3d& R)
@@ -275,16 +275,17 @@ inline void yawToRotTranspose(const double& yaw, Eigen::Matrix3d& R)
     double c_y = std::cos(yaw);
     double s_y = std::sin(yaw);
     R << c_y,  s_y ,      0,
-            -s_y,  c_y ,      0,
-            0  ,     0,      1;
+         -s_y,  c_y ,      0,
+         0  ,     0,      1;
 }
 
 /**
- * @brief Function to compute the linear tranformation matrix between euler
+ * @brief rpyToEarWorld Function to compute the linear tranformation matrix between euler
  * rates (in ZYX convention) and omega vector, where omega is expressed in world
  * coordinates to get the component expressed in the world ortogonal frame.
+ * Note: this function was previously called rpyToEarInv
  * @param rpy
- * @return Ear
+ * @return EarWorld
 */
 inline void rpyToEarWorld(const Eigen::Vector3d& rpy, Eigen::Matrix3d& Ear){
 
@@ -303,11 +304,12 @@ inline void rpyToEarWorld(const Eigen::Vector3d& rpy, Eigen::Matrix3d& Ear){
 }
 
 /**
- * @brief rpyToEar Function to compute the linear tranformation matrix between
+ * @brief rpyToEarBase Function to compute the linear tranformation matrix between
  * euler rates (in ZYX convention) and omega vector where omega is expressed
- * in base coordinates (is R*EarWorld)
+ * in base coordinates (EarBase = base_R_world * EarWorld)
+ * Note: this function was previously called rpyToEar
  * @param rpy
- * @return Ear
+ * @return EarBase
  */
 inline void rpyToEarBase(const Eigen::Vector3d & rpy, Eigen::Matrix3d& Ear){
 
@@ -323,6 +325,7 @@ inline void rpyToEarBase(const Eigen::Vector3d & rpy, Eigen::Matrix3d& Ear){
     Ear<<   1,   0,    -s_p,
             0,   c_r,  c_p*s_r,
             0,  -s_r,  c_p*c_r;
+    // XYZ convetion:
     /*Ear<< 1,   0,    s_p,
             0,   c_r,  -c_p*s_r,
             0,   s_r,  c_p*c_r;*/
