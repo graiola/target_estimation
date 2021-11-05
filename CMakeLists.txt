@@ -84,6 +84,9 @@ if (${roscpp_FOUND})
     add_executable(target_node test/target_node.cpp)
     target_link_libraries(target_node target_ros)
 
+    add_executable(geometry_test test/geometry_test.cpp)
+    target_link_libraries(geometry_test target ${catkin_LIBRARIES} gtest)
+
     install(TARGETS target target_c target_ros kalman target_node
       ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
       LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}

@@ -70,177 +70,173 @@ inline double wrapMinMax(double x, double min, double max)
 
 inline void quatToRot(const Eigen::Quaterniond& q, Eigen::Matrix3d& R)
 {
-    R.setZero();
-    R(0, 0) = -1.0 + 2.0 * (q.w() * q.w()) + 2.0 * (q.x() * q.x());
-    R(1, 1) = -1.0 + 2.0 * (q.w() * q.w()) + 2.0 * (q.y() * q.y());
-    R(2, 2) = -1.0 + 2.0 * (q.w() * q.w()) + 2.0 * (q.z() * q.z());
-    R(0, 1) = 2.0 * (q.x() * q.y() + q.w() * q.z());
-    R(0, 2) = 2.0 * (q.x() * q.z() - q.w() * q.y());
-    R(1, 0) = 2.0 * (q.x() * q.y() - q.w() * q.z());
-    R(1, 2) = 2.0 * (q.y() * q.z() + q.w() * q.x());
-    R(2, 0) = 2.0 * (q.x() * q.z() + q.w() * q.y());
-    R(2, 1) = 2.0 * (q.y() * q.z() - q.w() * q.x());
+  double tmp1, tmp2;
+  double squ, sqx, sqy, sqz;
+  squ = q.w()*q.w();
+  sqx = q.x()*q.x();
+  sqy = q.y()*q.y();
+  sqz = q.z()*q.z();
+  R(0,0) =  sqx - sqy - sqz + squ;
+  R(1,1) = -sqx + sqy - sqz + squ;
+  R(2,2) = -sqx - sqy + sqz + squ;
+  tmp1 = q.x()*q.y();
+  tmp2 = q.z()*q.w();
+  R(1,0) = 2.0 * (tmp1 + tmp2);
+  R(0,1) = 2.0 * (tmp1 - tmp2);
+  tmp1 = q.x()*q.z();
+  tmp2 = q.y()*q.w();
+  R(2,0) = 2.0 * (tmp1 - tmp2);
+  R(0,2) = 2.0 * (tmp1 + tmp2);
+  tmp1 = q.y()*q.z();
+  tmp2 = q.x()*q.w();
+  R(2,1) = 2.0 * (tmp1 + tmp2);
+  R(1,2) = 2.0 * (tmp1 - tmp2);
 }
 
-/**
- * @brief rotToQuat
- * @param R
- * @return
- * @remark using formula from attitude document the input matrix.
- * Should be \f${}_aR_w\f$, where \f$a\f$ is the rotated frame
- */
-inline Eigen::Quaterniond rotToQuat(const Eigen::Matrix3d & R)
+inline void rotToQuat(const Eigen::Matrix3d R, Eigen::Quaterniond& q)
 {
-    Eigen::Quaterniond quat;
+  double t, s;
+  t = 1 + R(0,0) + R(1,1) + R(2,2);
+  if (t > 1e-8)
+  {
+    s = 0.5 / std::sqrt(t);
+    q.w() = 0.25 / s;
+    q.x() = (R(2,1) - R(1,2)) * s;
+    q.y() = (R(0,2) - R(2,0)) * s;
+    q.z() = (R(1,0) - R(0,1)) * s;
+  }
+  else if (R(0,0) > R(1,1) && R(0,0) > R(2,2))
+  {
+    s = std::sqrt(1 + R(0,0) - R(1,1) - R(2,2)) * 2;
+    q.x() = 0.25 * s;
+    q.y() = (R(0,1) + R(1,0)) / s;
+    q.z() = (R(0,2) + R(2,0)) / s;
+    q.w() = (R(2,1) - R(1,2)) / s;
+  }
+  else if (R(1,1) > R(2,2))
+  {
+    s = std::sqrt(1 + R(1,1) - R(0,0) - R(2,2)) * 2;
+    q.x() = (R(0,1) + R(1,0)) / s;
+    q.y() = 0.25 * s;
+    q.z() = (R(1,2) + R(2,1)) / s;
+    q.w() = (R(0,2) - R(2,0)) / s;
+  }
+  else
+  {
+    s = std::sqrt(1 + R(2,2) - R(0,0) - R(1,1)) * 2;
+    q.x() = (R(0,2) + R(2,0)) / s;
+    q.y() = (R(1,2) + R(2,1)) / s;
+    q.z() = 0.25 * s;
+    q.w() = (R(1,0) - R(0,1)) / s;
+  }
+  q.normalize();
+}
 
-    ////compute the trace of R
-    //double T = 1 + R(0,0) + R(1,1)  + R(2,2);
-    ////If the trace of the matrix is greater than zero, then
-    ////perform an "instant" calculation.
-    //
-    //if (T>1e-03) {
-    //	quat.w() = 0.5* sqrt(T);
-    //	quat.x() = 0.5*(R(1,2) - R(1,2))/sqrt(T);
-    //	quat.y() = 0.5*(R(2,0) - R(2,0))/sqrt(T);
-    //	quat.z() = 0.5*(R(0,1) - R(0,1))/sqrt(T);
-    //} else {
-    //	std::cout<<"cannot compute quaternion";
-    //}
+inline void quatToRpy(const Eigen::Quaterniond& q, Eigen::Vector3d& rpy)
+{
+  if(-2 * (q.x()*q.z() - q.w()*q.y()) > 0.9999)
+  {
+    // alternate solution
+    rpy(0) = 0;                 // 2*atan2(q.x(), q.w());
+    rpy(1) = M_PI / 2;
+    rpy(2) = 2*std::atan2(q.z(), q.w());  // 0;
+  }
+  else if(-2 * (q.x()*q.z() - q.w()*q.y()) < -0.9999)
+  {
+    // alternate solution
+    rpy(0) =  0;                 // 2*atan2(q.x(), q.w());
+    rpy(1) = -M_PI / 2;
+    rpy(2) =  2*std::atan2(q.z(), q.w());  // 0;
+  }
+  else
+  {
+    rpy(0) = std::atan2(2 * (q.y()*q.z() + q.w()*q.x()), (q.w()*q.w() - q.x()*q.x() - q.y()*q.y() + q.z()*q.z()));
+    rpy(1) = std::asin(-2 * (q.x()*q.z() - q.w()*q.y()));
+    rpy(2) = std::atan2(2 * (q.x()*q.y() + q.w()*q.z()), (q.w()*q.w() + q.x()*q.x() - q.y()*q.y() - q.z()*q.z()));
+  }
+}
 
-    double tr = R.trace();
-    double sqrt_tr;
-
-    if (tr > 1e-06)
-    {
-        sqrt_tr = sqrt(R.trace() + 1);
-        quat.w() = 0.5*sqrt_tr;
-        quat.x() = (R(1,2) - R(2,1))/(2.0*sqrt_tr);
-        quat.y() = (R(2,0) - R(0,2))/(2.0*sqrt_tr);
-        quat.z() = (R(0,1) - R(1,0))/(2.0*sqrt_tr);
-    }
-    else  if ((R(1,1) > R(0,0)) && (R(1,1) > R(2,2)))
-    {
-        // max value at R(1,1)
-        sqrt_tr = sqrt(R(1,1) - R(0,0) - R(2,2) + 1.0 );
-
-        quat.y() = 0.5*sqrt_tr;
-
-        if ( sqrt_tr > 1e-06 ) sqrt_tr = 0.5/sqrt_tr;
-
-
-        quat.w() = (R(2, 0) - R(0, 2))*sqrt_tr;
-        quat.x() = (R(0, 1) + R(1, 0))*sqrt_tr;
-        quat.z() = (R(1, 2) + R(2, 1))*sqrt_tr;
-
-    }
-    else if (R(2,2) > R(0,0))
-    {
-        // max value at R(2,2)
-        sqrt_tr = sqrt(R(2,2) - R(0,0) - R(1,1) + 1.0 );
-
-        quat.z() = 0.5*sqrt_tr;
-
-        if ( sqrt_tr > 1e-06 ) sqrt_tr = 0.5/sqrt_tr;
-
-        quat.w() = (R(0, 1) - R(1, 0))*sqrt_tr;
-        quat.x() = (R(2, 0) + R(0, 2))*sqrt_tr;
-        quat.y() = (R(1, 2) + R(2, 1))*sqrt_tr;
-    }
-    else {
-        // max value at dcm(0,0)
-        sqrt_tr = sqrt(R(0,0) - R(1,1) - R(2,2) + 1.0 );
-
-        quat.x() = 0.5*sqrt_tr;
-
-        if ( sqrt_tr > 1e-06 ) sqrt_tr = 0.5/sqrt_tr;
-
-        quat.w() = (R(1, 2) - R(2, 1))*sqrt_tr;
-        quat.y() = (R(0, 1) + R(1, 0))*sqrt_tr;
-        quat.z() = (R(2, 0) + R(0, 2))*sqrt_tr;
-    }
-
-    return quat;
+inline void rpyToQuat(const Eigen::Vector3d rpy, Eigen::Quaterniond& q)
+{
+  double phi, the, psi;
+  phi = rpy(0) / 2;
+  the = rpy(1) / 2;
+  psi = rpy(2) / 2;
+  q.w() = std::cos(phi) * std::cos(the) * std::cos(psi) + std::sin(phi) * std::sin(the) * std::sin(psi);
+  q.x() = std::sin(phi) * std::cos(the) * std::cos(psi) - std::cos(phi) * std::sin(the) * std::sin(psi);
+  q.y() = std::cos(phi) * std::sin(the) * std::cos(psi) + std::sin(phi) * std::cos(the) * std::sin(psi);
+  q.z() = std::cos(phi) * std::cos(the) * std::sin(psi) - std::sin(phi) * std::sin(the) * std::cos(psi);
+  q.normalize();
 }
 
 inline void rotToRpy(const Eigen::Matrix3d& R, Eigen::Vector3d& rpy)
 {
-    rpy(0) = std::atan2(R(1,2),R(2,2));
-    rpy(1) = -std::asin(R(0,2));
-    rpy(2) = std::atan2(R(0,1),R(0,0));
+  rpy(0) = std::atan2(R(2,1),R(2,2));
+  rpy(1) = std::atan2(-R(2,0),std::sqrt(R(2,1)*R(2,1)+R(2,2)*R(2,2)));
+  rpy(2) = std::atan2(R(1,0),R(0,0));
 }
 
-inline void rpyToRot(const double& roll, const double& pitch, const double& yaw, Eigen::Matrix3d& R)
+inline void rotTransposeToRpy(const Eigen::Matrix3d& R, Eigen::Vector3d& rpy)
 {
-
-    R.setZero();
-
-    double c_y = std::cos(yaw);
-    double s_y = std::sin(yaw);
-
-    double c_r = std::cos(roll);
-    double s_r = std::sin(roll);
-
-    double c_p = std::cos(pitch);
-    double s_p = std::sin(pitch);
-
-    R << c_p*c_y               ,  c_p*s_y                ,  -s_p,
-            s_r*s_p*c_y - c_r*s_y ,  s_r*s_p*s_y + c_r*c_y  ,  s_r*c_p,
-            c_r*s_p*c_y + s_r*s_y ,  c_r*s_p*s_y - s_r*c_y  ,  c_r*c_p;
+  rpy(0) = std::atan2(R(1,2),R(2,2));
+  rpy(1) = -std::asin(R(0,2));
+  rpy(2) = std::atan2(R(0,1),R(0,0));
 }
 
 inline void rpyToRot(const Eigen::Vector3d& rpy, Eigen::Matrix3d& R)
 {
-    rpyToRot(rpy(0),rpy(1),rpy(2),R);
+  R.setZero();
+
+  double c_y = std::cos(rpy(2));
+  double s_y = std::sin(rpy(2));
+
+  double c_r = std::cos(rpy(0));
+  double s_r = std::sin(rpy(0));
+
+  double c_p = std::cos(rpy(1));
+  double s_p = std::sin(rpy(1));
+
+  R << c_p*c_y ,  s_r*s_p*c_y - c_r*s_y                 ,  c_r*s_p*c_y + s_r*s_y  ,
+       c_p*s_y ,  s_r*s_p*s_y + c_r*c_y                 ,  s_y*s_p*c_r - c_y*s_r,
+       -s_p    ,  c_p*s_r                               ,  c_r*c_p;
 }
 
-/*inline void rpyToQuat(const Eigen::Vector3d& rpy, Eigen::Quaterniond& quat){
-
-    Eigen::Matrix3d R;
-    rpyToRot(rpy(0),rpy(1),rpy(2),R);
-    quat = Eigen::Quaterniond(R);
-}*/
-
-inline void rpyToQuat(const Eigen::Vector3d& rpy, Eigen::Quaterniond& quat)
+inline void rpyToRotTranspose(const Eigen::Vector3d& rpy, Eigen::Matrix3d& R)
 {
-    double phi, the, psi;
-    phi = rpy(0) / 2;
-    the = rpy(1) / 2;
-    psi = rpy(2) / 2;
-    quat.w() = cos(phi) * cos(the) * cos(psi) + sin(phi) * sin(the) * sin(psi);
-    quat.x() = sin(phi) * cos(the) * cos(psi) - cos(phi) * sin(the) * sin(psi);
-    quat.y() = cos(phi) * sin(the) * cos(psi) + sin(phi) * cos(the) * sin(psi);
-    quat.z() = cos(phi) * cos(the) * sin(psi) - sin(phi) * sin(the) * cos(psi);
+  R.setZero();
+
+  double c_y = std::cos(rpy(2));
+  double s_y = std::sin(rpy(2));
+
+  double c_r = std::cos(rpy(0));
+  double s_r = std::sin(rpy(0));
+
+  double c_p = std::cos(rpy(1));
+  double s_p = std::sin(rpy(1));
+
+  R << c_p*c_y               ,  c_p*s_y                ,  -s_p,
+       s_r*s_p*c_y - c_r*s_y ,  s_r*s_p*s_y + c_r*c_y  ,  s_r*c_p,
+       c_r*s_p*c_y + s_r*s_y ,  c_r*s_p*s_y - s_r*c_y  ,  c_r*c_p;
 }
 
-/*inline void quatToRpy(const Eigen::Quaterniond& q, Eigen::Vector3d& rpy)
+inline void rollToRot(const double& roll, Eigen::Matrix3d& R)
 {
-    Eigen::Matrix3d R;
-    quatToRot(q,R);
-    rotToRpy(R,rpy);
-}*/
+    R.setZero();
+    double c_r = std::cos(roll);
+    double s_r = std::sin(roll);
+    R <<    1   ,    0     	  ,  	  0,
+            0   ,    c_r ,  -s_r,
+            0   ,    s_r,  c_r;
+}
 
-inline void quatToRpy(const Eigen::Quaterniond& q, Eigen::Vector3d& rpy)
+inline void pitchToRot(const double& pitch, Eigen::Matrix3d& R)
 {
-    if(-2 * (q.x()*q.z() - q.w()*q.y()) > 0.9999)
-    {
-        // alternate solution
-        rpy(0) = 0;                 // 2*atan2(q.x(), q.w());
-        rpy(1) = M_PI / 2;
-        rpy(2) = 2*std::atan2(q.z(), q.w());  // 0;
-    }
-    else if(-2 * (q.x()*q.z() - q.w()*q.y()) < -0.9999)
-    {
-        // alternate solution
-        rpy(0) =  0;                 // 2*atan2(q.x(), q.w());
-        rpy(1) = -M_PI / 2;
-        rpy(2) =  2*std::atan2(q.z(), q.w());  // 0;
-    }
-    else
-    {
-        rpy(0) = std::atan2(2 * (q.y()*q.z() + q.w()*q.x()), (q.w()*q.w() - q.x()*q.x() - q.y()*q.y() + q.z()*q.z()));
-        rpy(1) = std::asin(-2 * (q.x()*q.z() - q.w()*q.y()));
-        rpy(2) = std::atan2(2 * (q.x()*q.y() + q.w()*q.z()), (q.w()*q.w() + q.x()*q.x() - q.y()*q.y() - q.z()*q.z()));
-    }
+    R.setZero();
+    double c_p = std::cos(pitch);
+    double s_p = std::sin(pitch);
+    R << c_p 	,	 0  ,   s_p,
+            0       ,    1  ,   0,
+            -s_p 	,	0   ,  c_p;
 }
 
 inline void yawToRot(const double& yaw, Eigen::Matrix3d& R)
@@ -248,12 +244,12 @@ inline void yawToRot(const double& yaw, Eigen::Matrix3d& R)
     R.setZero();
     double c_y = std::cos(yaw);
     double s_y = std::sin(yaw);
-    R << c_y,  s_y ,      0,
-            -s_y,  c_y ,      0,
+    R << c_y,  -s_y ,      0,
+            s_y,  c_y ,      0,
             0  ,     0,      1;
 }
 
-inline void rollToRot(const double& roll, Eigen::Matrix3d& R)
+inline void rollToRotTranspose(const double& roll, Eigen::Matrix3d& R)
 {
     R.setZero();
     double c_r = std::cos(roll);
@@ -263,7 +259,7 @@ inline void rollToRot(const double& roll, Eigen::Matrix3d& R)
             0   ,    -s_r,  c_r;
 }
 
-inline void pitchToRot(const double& pitch, Eigen::Matrix3d& R)
+inline void pitchToRotTranspose(const double& pitch, Eigen::Matrix3d& R)
 {
     R.setZero();
     double c_p = std::cos(pitch);
@@ -271,6 +267,16 @@ inline void pitchToRot(const double& pitch, Eigen::Matrix3d& R)
     R << c_p 	,	 0  ,   -s_p,
             0       ,    1  ,   0,
             s_p 	,	0   ,  c_p;
+}
+
+inline void yawToRotTranspose(const double& yaw, Eigen::Matrix3d& R)
+{
+    R.setZero();
+    double c_y = std::cos(yaw);
+    double s_y = std::sin(yaw);
+    R << c_y,  s_y ,      0,
+            -s_y,  c_y ,      0,
+            0  ,     0,      1;
 }
 
 /**
@@ -283,7 +289,7 @@ inline void pitchToRot(const double& pitch, Eigen::Matrix3d& R)
 inline void rpyToEarWorld(const Eigen::Vector3d& rpy, Eigen::Matrix3d& Ear){
 
     const double& pitch = rpy(1);
-    const double& yaw = rpy(2);
+    const double& yaw   = rpy(2);
 
     double c_y = std::cos(yaw);
     double s_y = std::sin(yaw);
@@ -305,7 +311,7 @@ inline void rpyToEarWorld(const Eigen::Vector3d& rpy, Eigen::Matrix3d& Ear){
  */
 inline void rpyToEarBase(const Eigen::Vector3d & rpy, Eigen::Matrix3d& Ear){
 
-    const double& roll = rpy(0);
+    const double& roll  = rpy(0);
     const double& pitch = rpy(1);
 
     double c_r = std::cos(roll);
@@ -314,12 +320,12 @@ inline void rpyToEarBase(const Eigen::Vector3d & rpy, Eigen::Matrix3d& Ear){
     double c_p = std::cos(pitch);
     double s_p = std::sin(pitch);
 
-    Ear<< 1,   0,    -s_p,
+    Ear<<   1,   0,    -s_p,
             0,   c_r,  c_p*s_r,
             0,  -s_r,  c_p*c_r;
     /*Ear<< 1,   0,    s_p,
-          0,   c_r,  -c_p*s_r,
-          0,   s_r,  c_p*c_r;*/
+            0,   c_r,  -c_p*s_r,
+            0,   s_r,  c_p*c_r;*/
 }
 
 /**
