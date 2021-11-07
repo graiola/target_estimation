@@ -179,7 +179,6 @@ void TargetRPYExtended::updateTargetState()
   pose_internal_ = RPY_TARGET_pose(x_);
   rpy_ = RPY_TARGET_rpy(x_);
   rpyToQuat(rpy_,q_);
-  q_.normalize(); // Normalize the quaternion
   POSE_quat(pose_) = q_.coeffs();
   T_.translation() = position_;
   T_.linear() = q_.toRotationMatrix();
