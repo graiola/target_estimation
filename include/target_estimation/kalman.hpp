@@ -43,15 +43,30 @@ public:
   */
    virtual void update();
 
-    /**
-  * Return the current state.
-  */
-    Eigen::VectorXd& getState() {return x_hat_;}
+   /**
+    * Return the current state.
+    */
+   Eigen::VectorXd& getState() {return x_hat_;}
 
-    /**
-     * Return the P matrix.
-     */
-    Eigen::MatrixXd& getP() {return P_;}
+   /**
+    * Return the Q matrix.
+    */
+   Eigen::MatrixXd& getQ() {return Q_;}
+
+   /**
+    * Return the R matrix.
+    */
+   Eigen::MatrixXd& getR() {return R_;}
+
+   /**
+    * Return the P matrix.
+    */
+   Eigen::MatrixXd& getP() {return P_;}
+
+   /**
+    * Return the P0 matrix (initial value for P).
+    */
+   Eigen::MatrixXd& getP0() {return P0_;}
 
 
  protected:
