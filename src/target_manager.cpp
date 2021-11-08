@@ -277,7 +277,6 @@ bool TargetManager::getTargetAcceleration(const unsigned int& id, Eigen::Vector6
 unsigned int TargetManager::getClosestInterceptionPose(const double& t1, const double& pos_th, const double& ang_th, Eigen::Vector7d& interception_pose)
 {
     lock_guard<mutex> lg(target_lock_);
-    bool res = false;
     unsigned int closest_target_id = 0;
     double smallest_intersection_time = 10000.0; // Dummy value
     for(const auto& tmp : targets_)
