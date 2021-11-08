@@ -7,7 +7,7 @@ using namespace std;
 RosTargetManager::RosTargetManager(ros::NodeHandle& nh):
   token_name_(""),
   reference_frame_(""),
-  camera_frame_("")
+  observer_frame_("")
 {
   // subscribe to /tf topic
   nh_ = nh;
@@ -19,7 +19,7 @@ RosTargetManager::RosTargetManager(ros::NodeHandle& nh):
   pos_th_ = 0.01;
   ang_th_ = 0.01;
 
-  reference_T_camera_ = Eigen::Isometry3d::Identity();
+  reference_T_observer_ = Eigen::Isometry3d::Identity();
 
   initPose(interception_pose_);
 
@@ -60,7 +60,7 @@ void RosTargetManager::measurementCallBack(const tf2_msgs::TFMessage::ConstPtr& 
       }
 
       meas_lock_.lock();
-      measurements_[id].tr_ = pose_msg->transforms[i]; // Save the measurement w.r.t camera
+      measurements_[id].tr_ = pose_msg->transforms[i]; // Save the measurement w.r.t observer
       meas_lock_.unlock();
 
     }
@@ -83,9 +83,9 @@ void RosTargetManager::update(const double& dt)
 
       transformStampedToPose7d(tr,tmp_vector7d_);
 
-      // Transform the target pose from camera to reference frame
-      pose7dToIsometry(tmp_vector7d_,tmp_isometry3d_); // camera_T_target
-      tmp_isometry3d_ = reference_T_camera_ * tmp_isometry3d_; // reference_T_target = reference_T_camera * camera_T_target
+      // Transform the target pose from observer to reference frame
+      pose7dToIsometry(tmp_vector7d_,tmp_isometry3d_); // observer_T_target
+      tmp_isometry3d_ = reference_T_observer_ * tmp_isometry3d_; // reference_T_target = reference_T_observer * observer_T_target
       isometryToPose7d(tmp_isometry3d_,tmp_vector7d_);
 
       if(manager_.getTarget(id)==nullptr) // Target does not exist, create it
@@ -110,9 +110,9 @@ void RosTargetManager::update(const double& dt)
     pose7dToTFTransform(tmp_vector7d_,tmp_transform_);
     br_.sendTransform(tf::StampedTransform(tmp_transform_,ros_t_,reference_frame_,token_name_+"_filt_"+to_string(target_ids[i])));
   }
-  // Publish the transform between camera and reference
-  isometryToTFTransform(reference_T_camera_,tmp_transform_);
-  br_.sendTransform(tf::StampedTransform(tmp_transform_,ros_t_,reference_frame_,camera_frame_));
+  // Publish the transform between observer and reference
+  isometryToTFTransform(reference_T_observer_,tmp_transform_);
+  br_.sendTransform(tf::StampedTransform(tmp_transform_,ros_t_,reference_frame_,observer_frame_));
 
   manager_.getClosestInterceptionPose(t_,pos_th_,ang_th_,interception_pose_);
 
@@ -132,14 +132,14 @@ void RosTargetManager::setReferenceFrameName(const string& frame)
   reference_frame_ = frame;
 }
 
-void RosTargetManager::setCameraFrameName(const string& frame)
+void RosTargetManager::setObserverFrameName(const string& frame)
 {
-  camera_frame_ = frame;
+  observer_frame_ = frame;
 }
 
-void RosTargetManager::setCameraTransform(const Eigen::Isometry3d& reference_T_camera)
+void RosTargetManager::setObserverTransform(const Eigen::Isometry3d& reference_T_observer)
 {
-  reference_T_camera_ = reference_T_camera;
+  reference_T_observer_ = reference_T_observer;
 }
 
 void RosTargetManager::setPositionConvergenceThreshold(const double& th)

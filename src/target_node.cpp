@@ -33,8 +33,8 @@ int main(int argc, char **argv)
   ros_manager.setInterceptionSphere(interception_sphere_pos,interception_sphere_radius);
   ros_manager.setTargetTokenName(TARGET_NAME);
   ros_manager.setReferenceFrameName(WORLD_FRAME);
-  ros_manager.setCameraFrameName(CAMERA_FRAME);
-  ros_manager.setCameraTransform(world_T_camera);
+  ros_manager.setObserverFrameName(CAMERA_FRAME);
+  ros_manager.setObserverTransform(world_T_camera);
 
   //  visualization_msgs::Marker sphere_marker;
   //  sphere_marker.header.frame_id = WORLD_FRAME;

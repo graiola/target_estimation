@@ -67,9 +67,9 @@ public:
 
   void setReferenceFrameName(const std::string& frame);
 
-  void setCameraFrameName(const std::string& frame);
+  void setObserverFrameName(const std::string& frame);
 
-  void setCameraTransform(const Eigen::Isometry3d& reference_T_camera);
+  void setObserverTransform(const Eigen::Isometry3d& reference_T_observer);
 
   void setPositionConvergenceThreshold(const double& th);
 
@@ -102,9 +102,9 @@ private:
 
   std::string token_name_;
   std::string reference_frame_;
-  std::string camera_frame_;
+  std::string observer_frame_;
 
-  Eigen::Isometry3d reference_T_camera_;
+  Eigen::Isometry3d reference_T_observer_;
   Eigen::Vector7d interception_pose_;
 
   double t_;
