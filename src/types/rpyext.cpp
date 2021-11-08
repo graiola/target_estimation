@@ -23,6 +23,8 @@ TargetRPYExtended::TargetRPYExtended(const unsigned int& id,
                            const double& t0) :
   TargetInterface(id,P0,t0)
 {
+  class_name_ = "TargetRPYExtended";
+
   n_ = static_cast<unsigned int>(Q.rows()); // Number of states
   m_ = static_cast<unsigned int>(R.rows()); // Number of measurements
 
@@ -33,7 +35,7 @@ TargetRPYExtended::TargetRPYExtended(const unsigned int& id,
   assert(m_ <= n_);
   assert(dt0>=0.0);
 
-  // Useful identity matrices
+  // Identity matrix
   I3_.setIdentity();
 
   // Resize tmp vector
@@ -58,32 +60,6 @@ TargetRPYExtended::TargetRPYExtended(const unsigned int& id,
   C_.setZero();
   C_.diagonal() = Eigen::VectorXd::Ones(m_);
 
-  std::cout << std::endl;
-  std::cout << "*** TargetRPYExtended ***" << std::endl;
-  std::cout << "*** Initialization ***" << std::endl;
-  std::cout << "n: "<< n_ << std::endl;
-  std::cout << "m: "<< m_ << std::endl;
-  std::cout << "dt0: "<< dt0 << std::endl;
-  std::cout << "t0: "<< t0 << std::endl;
-  std::cout << "x0:" << std::endl;
-  std::cout << x_.transpose() << std::endl;
-  std::cout << std::endl;
-  std::cout << "*** System Matrices ***" << std::endl;
-  std::cout << "A (linearized):" << std::endl;
-  std::cout << A_ << std::endl;
-  std::cout << "C (linearized):" << std::endl;
-  std::cout << C_ << std::endl;
-  std::cout << std::endl;
-  std::cout << "*** Covariance Matrices ***" << std::endl;
-  std::cout << "Q:" << std::endl;
-  std::cout << Q << std::endl;
-  std::cout << "R:" << std::endl;
-  std::cout << R << std::endl;
-  std::cout << "P0:" << std::endl;
-  std::cout << P0 << std::endl;
-  if(!acceleration_on_)
-    std::cout << "Assuming constant velocities" << std::endl;
-
   // Construct the estimator
   estimator_.reset(new ExtendedKalmanFilter(std::bind(&TargetRPYExtended::f,this,std::placeholders::_1,dt0),
                                             std::bind(&TargetRPYExtended::h,this,std::placeholders::_1),
@@ -92,6 +68,8 @@ TargetRPYExtended::TargetRPYExtended(const unsigned int& id,
   estimator_->init(x_);
 
   updateTargetState();
+
+  printInfo();
 }
 
 void TargetRPYExtended::addMeasurement(const double& dt, const Eigen::Vector7d& meas)

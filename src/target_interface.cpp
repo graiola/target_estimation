@@ -56,6 +56,30 @@ void TargetInterface::log()
 #endif
 }
 
+void TargetInterface::printInfo()
+{
+  std::cout << std::endl;
+  std::cout << "*** "+this->class_name_+" ***" << std::endl;
+  std::cout << "n: "<< n_ << std::endl;
+  std::cout << "m: "<< m_ << std::endl;
+  std::cout << std::endl;
+  std::cout << "*** System Matrices ***" << std::endl;
+  std::cout << "A:" << std::endl;
+  std::cout << A_ << std::endl;
+  std::cout << "C:" << std::endl;
+  std::cout << C_ << std::endl;
+  std::cout << std::endl;
+  std::cout << "*** Covariance Matrices ***" << std::endl;
+  std::cout << "Q:" << std::endl;
+  std::cout << estimator_->getQ() << std::endl;
+  std::cout << "R:" << std::endl;
+  std::cout << estimator_->getR() << std::endl;
+  std::cout << "P0:" << std::endl;
+  std::cout << estimator_->getP0() << std::endl;
+  if(!acceleration_on_)
+    std::cout << "Assuming constant velocities" << std::endl;
+}
+
 double TargetInterface::getPeriodEstimate()
 {
   double omega_norm = TWIST_angular(twist_).norm();

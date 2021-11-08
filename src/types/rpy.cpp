@@ -23,6 +23,8 @@ TargetRpy::TargetRpy(const unsigned int& id,
                      const double& t0) :
   TargetInterface(id,P0,t0)
 {
+  class_name_ = "TargetRpy";
+
   n_ = static_cast<unsigned int>(Q.rows()); // Number of states
   m_ = static_cast<unsigned int>(R.rows()); // Number of measurements
 
@@ -58,35 +60,11 @@ TargetRpy::TargetRpy(const unsigned int& id,
 
   RPY_TARGET_pose(x_)  = pose_internal_;
 
-  std::cout << std::endl;
-  std::cout << "*** TargetRpy ***" << std::endl;
-  std::cout << "*** Initialization ***" << std::endl;
-  std::cout << "n: "<< n_ << std::endl;
-  std::cout << "m: "<< m_ << std::endl;
-  std::cout << "dt0: "<< dt0 << std::endl;
-  std::cout << "t0: "<< t0 << std::endl;
-  std::cout << "x0:" << std::endl;
-  std::cout << x_.transpose() << std::endl;
-  std::cout << std::endl;
-  std::cout << "*** System Matrices ***" << std::endl;
-  std::cout << "A:" << std::endl;
-  std::cout << A_ << std::endl;
-  std::cout << "C:" << std::endl;
-  std::cout << C_ << std::endl;
-  std::cout << std::endl;
-  std::cout << "*** Covariance Matrices ***" << std::endl;
-  std::cout << "Q:" << std::endl;
-  std::cout << Q << std::endl;
-  std::cout << "R:" << std::endl;
-  std::cout << R << std::endl;
-  std::cout << "P0:" << std::endl;
-  std::cout << P0 << std::endl;
-  if(!acceleration_on_)
-    std::cout << "Assuming constant velocities" << std::endl;
-
   estimator_->init(x_);
 
   updateTargetState();
+
+  printInfo();
 }
 
 void TargetRpy::addMeasurement(const double& dt, const Eigen::Vector7d& meas)

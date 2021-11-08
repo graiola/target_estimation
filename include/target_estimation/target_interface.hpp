@@ -41,7 +41,6 @@ public:
      */
   virtual void addMeasurement(const double& dt, const Eigen::Vector7d& meas) = 0;
 
-
   /**
     * @brief update Perform a predict step of the filters when no measurement given
     * @param dt
@@ -191,6 +190,11 @@ public:
      */
   void log();
 
+  /**
+     * @brief print Target's info to screen
+     */
+  void printInfo();
+
 protected:
 
   /**
@@ -208,6 +212,11 @@ protected:
      * @brief updateTime  Update internal time variable
      */
   void updateTime(const double& dt);
+
+  /**
+     * @brief class_name_ name of the class
+     */
+  std::string class_name_;
 
   /**
      * @brief n_ Number of states
