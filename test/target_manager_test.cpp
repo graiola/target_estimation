@@ -232,6 +232,9 @@ TEST(test_target, RPYExt)
     EXPECT_NEAR( _omega(0)     ,omegax.mean(), 0.05 );
     EXPECT_NEAR( _omega(1)     ,omegay.mean(), 0.05 );
     EXPECT_NEAR( _omega(2)     ,omegaz.mean(), 0.05 );
+    EXPECT_NEAR( _omega(0), omegax(omegax.size()-1), 0.01 );
+    EXPECT_NEAR( _omega(1), omegay(omegay.size()-1), 0.01 );
+    EXPECT_NEAR( _omega(2), omegaz(omegaz.size()-1), 0.01 );
 }
 
 
