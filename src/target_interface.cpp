@@ -51,7 +51,9 @@ TargetInterface::TargetInterface(const unsigned int& id, const Eigen::MatrixXd P
 
 TargetInterface::~TargetInterface()
 {
+#ifdef LOGGER_ON
   RtLogger::getLogger().removePublishers();
+#endif
 }
 
 void TargetInterface::log()
