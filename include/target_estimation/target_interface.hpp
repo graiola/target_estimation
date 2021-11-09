@@ -33,6 +33,8 @@ public:
 
   TargetInterface() : id_(-1) {};
 
+  virtual ~TargetInterface();
+
   /**
      * @brief addMeasurement Add a measured value to the estimator and perform an update step
      * of the filters
