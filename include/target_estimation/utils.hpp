@@ -56,7 +56,7 @@ namespace Eigen
 
 inline double toSec(uint32_t sec, uint32_t nsec)
 {
-  return 1.0 * sec + 0.0000001 * nsec;
+  return static_cast<double>(sec) + 1e-9*static_cast<double>(nsec);
 }
 
 inline void initPose(Eigen::Vector7d& pose)
