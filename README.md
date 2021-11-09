@@ -6,4 +6,6 @@ Estimate the pose of incoming targets through kalman filtering.
 
 # ToDo
 
+- [] Cleanup the matlab scripts and add the freq
+
 # Notes
