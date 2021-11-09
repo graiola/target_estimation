@@ -94,9 +94,9 @@ void RosTargetManager::update(const double& dt)
 
       if(last_meas_time > 0.0 && (ros_t_.toSec() - last_meas_time) >= expiration_time_) // Remove expired target
       {
+        ROS_WARN_STREAM("Timeout for target "<<id);
         it = measurements_.erase(it);
         manager_.erase(id);
-        ROS_WARN_STREAM("Timeout for target "<<id);
       }
       else {
         ++it;
