@@ -67,15 +67,15 @@ public:
 
   void setReferenceFrameName(const std::string& frame);
 
-  void setObserverFrameName(const std::string& frame);
-
-  void setObserverTransform(const Eigen::Isometry3d& reference_T_observer);
-
   void setPositionConvergenceThreshold(const double& th);
 
   void setAngularConvergenceThreshold(const double& th);
 
   const Eigen::Vector7d& getInterceptionPose() const;
+
+  void calculateInterceptionPose(bool active);
+
+  void setExpirationTime(double time);
 
 private:
 
@@ -83,6 +83,7 @@ private:
   {
     geometry_msgs::TransformStamped tr_;
     bool new_meas_ = true;
+    double last_meas_time  = 0.0;
   };
 
   typedef std::map<unsigned int, Measurement> meas_map_t;
@@ -101,15 +102,10 @@ private:
   Eigen::MatrixXd R_;
 
   std::string token_name_;
-  std::string reference_frame_;
-  std::string observer_frame_;
 
-  Eigen::Isometry3d reference_T_observer_;
   Eigen::Vector7d interception_pose_;
 
   double t_;
-  double t_prev_;
-  double dt_;
   double pos_th_;
   double ang_th_;
 
@@ -124,6 +120,9 @@ private:
   tf::TransformBroadcaster br_;
 
   ros::Time ros_t_;
+
+  std::atomic<bool> interception_pose_on_;
+  std::atomic<double> expiration_time_;
 };
 
 #endif

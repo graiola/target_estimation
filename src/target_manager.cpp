@@ -113,9 +113,10 @@ void TargetManager::log()
       map.second->log();
 }
 
-std::vector<unsigned int> TargetManager::getAvailableTargets() const
+std::vector<unsigned int> TargetManager::getAvailableTargets()
 {
   std::vector<unsigned int> ids;
+  lock_guard<mutex> lg(target_lock_);
   for (auto const& map : targets_)
     ids.push_back(map.first);
   return ids;
@@ -167,31 +168,33 @@ void TargetManager::init(const std::string& file, const unsigned int& id, const 
     init(id,dt0,Q,R,P,p0,t0,type);
 }
 
-void TargetManager::update(const unsigned int& id, const double& dt, const Eigen::Vector7d& meas)
+bool TargetManager::update(const unsigned int& id, const double& dt, const Eigen::Vector7d& meas)
 {
     lock_guard<mutex> lg(target_lock_);
     if(targets_.find(id) == targets_.end()) {
         // Target not found, skip
         std::cout<<"Target("<<id<<") does not exist!"<<std::endl;
-        return;
+        return false;
     }
     // Add a measurement for Target
     // and update (predict + estimate) the filters
     targets_[id]->addMeasurement(dt,meas);
+    return true;
 }
 
-void TargetManager::update(const unsigned int& id, const double& dt)
+bool TargetManager::update(const unsigned int& id, const double& dt)
 {
     lock_guard<mutex> lg(target_lock_);
     if(targets_.find(id) == targets_.end()) {
         // Target not found, skip
         std::cout<<"Target("<<id<<") does not exist!"<<std::endl;
-        return;
+        return false;
     }
     else
     {
         // Perform only the predict step
         targets_[id]->update(dt);
+        return true;
     }
 }
 
@@ -200,6 +203,22 @@ void TargetManager::update(const double& dt)
     lock_guard<mutex> lg(target_lock_);
     for(const auto& tmp : targets_)
       tmp.second->update(dt);
+}
+
+bool TargetManager::erase(const unsigned int& id)
+{
+    lock_guard<mutex> lg(target_lock_);
+    if(targets_.find(id) == targets_.end()) {
+        // Target not found, skip
+        std::cout<<"Target("<<id<<") does not exist!"<<std::endl;
+        return false;
+    }
+    else
+    {
+        // Remove the target
+        targets_.erase(id);
+        return true;
+    }
 }
 
 void TargetManager::setInterceptionSphere(const Eigen::Vector3d& origin, const double& radius)

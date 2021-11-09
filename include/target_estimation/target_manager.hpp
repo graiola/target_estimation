@@ -75,21 +75,30 @@ public:
    * @param id
    * @param dt
    * @param meas
+   * @return false if the selected target does not exist
    */
-    void update(const unsigned int& id, const double& dt, const Eigen::Vector7d& meas);
+    bool update(const unsigned int& id, const double& dt, const Eigen::Vector7d& meas);
 
     /**
    * @brief update perform a predict step with the filters.
    * @param id
    * @param dt
+   * @return false if the selected target does not exist
    */
-    void update(const unsigned int& id, const double& dt);
+    bool update(const unsigned int& id, const double& dt);
 
     /**
    * @brief update perform a predict step with all the filters.
    * @param dt
    */
     void update(const double& dt);
+
+    /**
+   * @brief erase the target id
+   * @param id
+   * @return false if the selected target does not exist
+   */
+    bool erase(const unsigned int& id);
 
     /**
    * @brief setInterceptionSphere Set the interception sphere params
@@ -101,7 +110,7 @@ public:
     /**
    * @brief getTarget Return a specific target, a nullptr is returned if the selected target does not exist
    * @param id
-   * @return
+   * @return target shared pointer
    */
     TargetInterface::Ptr getTarget(const unsigned int& id);
 
@@ -180,7 +189,7 @@ public:
     /**
    * @brief get the target ids
    */
-    std::vector<unsigned int> getAvailableTargets() const;
+    std::vector<unsigned int> getAvailableTargets();
 
 private:
 

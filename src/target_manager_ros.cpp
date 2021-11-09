@@ -5,21 +5,16 @@
 using namespace std;
 
 RosTargetManager::RosTargetManager(ros::NodeHandle& nh):
-  token_name_(""),
-  reference_frame_(""),
-  observer_frame_("")
+  token_name_("target"),
+  t_(0.0),
+  pos_th_(0.01),
+  ang_th_(0.01),
+  interception_pose_on_(false),
+  expiration_time_(1000.0) // Dummy value
 {
   // subscribe to /tf topic
   nh_ = nh;
-  meas_subscriber_ = nh_.subscribe("/tf", 1 , &RosTargetManager::measurementCallBack, this); // FIXME hardcoded
-
-  t_ = 0.0;
-  dt_ = 0.01;
-  t_prev_ = 0.0;
-  pos_th_ = 0.01;
-  ang_th_ = 0.01;
-
-  reference_T_observer_ = Eigen::Isometry3d::Identity();
+  meas_subscriber_ = nh_.subscribe("/tf", 1 , &RosTargetManager::measurementCallBack, this);
 
   initPose(interception_pose_);
 
@@ -48,21 +43,26 @@ void RosTargetManager::measurementCallBack(const tf2_msgs::TFMessage::ConstPtr& 
       if(!getId(current_tf_name,id)) // If we don't have a correct id
         break;
 
-      if(measurements_.count(id)) // If the target has been seen before check if the measurement is new or not
-      {
-        double current_time_stamp = toSec(pose_msg->transforms[i].header.stamp.sec,pose_msg->transforms[i].header.stamp.nsec);
-        double prev_time_stamp = toSec(measurements_[id].tr_.header.stamp.sec,measurements_[id].tr_.header.stamp.nsec);
-
-        if(current_time_stamp > prev_time_stamp)
-          measurements_[id].new_meas_ = true; // New measurement
-        else
-          measurements_[id].new_meas_ = false; // No new measurement
-      }
+      double current_time_stamp = 0.0;
+      double prev_time_stamp = 0.0;
 
       meas_lock_.lock();
-      measurements_[id].tr_ = pose_msg->transforms[i]; // Save the measurement w.r.t observer
+      if(measurements_.count(id)) // If the target has been seen before check if the measurement is new or not
+      {
+        current_time_stamp = toSec(pose_msg->transforms[i].header.stamp.sec,pose_msg->transforms[i].header.stamp.nsec);
+        prev_time_stamp = toSec(measurements_[id].tr_.header.stamp.sec,measurements_[id].tr_.header.stamp.nsec);
+        if(current_time_stamp > prev_time_stamp) // New measurement
+        {
+          measurements_[id].new_meas_ = true;
+          measurements_[id].last_meas_time = current_time_stamp;
+        }
+        else
+        {
+          measurements_[id].new_meas_ = false; // No new measurement
+        }
+      }
+      measurements_[id].tr_   = pose_msg->transforms[i]; // Save the measurement w.r.t observer
       meas_lock_.unlock();
-
     }
   }
 }
@@ -71,53 +71,57 @@ void RosTargetManager::update(const double& dt)
 {
 
   ros_t_ = ros::Time::now();
-  dt_ = ros_t_.toSec() - t_prev_;
 
   if(meas_lock_.try_lock())
   {
-    for(const auto& tmp : measurements_)
+    auto it = measurements_.cbegin();
+    while (it != measurements_.cend())
     {
-      const unsigned int& id = tmp.first;
-      const geometry_msgs::TransformStamped& tr = tmp.second.tr_;
-      const bool& new_meas = tmp.second.new_meas_;
+      const unsigned int& id = it->first;
+      const geometry_msgs::TransformStamped& tr = it->second.tr_;
+      const bool& new_meas = it->second.new_meas_;
+      const double& last_meas_time = it->second.last_meas_time;
 
       transformStampedToPose7d(tr,tmp_vector7d_);
 
-      // Transform the target pose from observer to reference frame
-      pose7dToIsometry(tmp_vector7d_,tmp_isometry3d_); // observer_T_target
-      tmp_isometry3d_ = reference_T_observer_ * tmp_isometry3d_; // reference_T_target = reference_T_observer * observer_T_target
-      isometryToPose7d(tmp_isometry3d_,tmp_vector7d_);
-
       if(manager_.getTarget(id)==nullptr) // Target does not exist, create it
-        manager_.init(id,dt_,Q_,R_,P_,tmp_vector7d_,0.0,type_);
+        manager_.init(id,dt,Q_,R_,P_,tmp_vector7d_,t_,type_);
 
       if(new_meas)
-        manager_.update(id,dt_,tmp_vector7d_); // Estimate
+        manager_.update(id,dt,tmp_vector7d_); // Estimate
       else
-        manager_.update(id,dt_); // Predict
+        manager_.update(id,dt); // Predict
+
+      if(last_meas_time > 0.0 && (ros_t_.toSec() - last_meas_time) >= expiration_time_) // Remove expired target
+      {
+        it = measurements_.erase(it);
+        manager_.erase(id);
+        ROS_WARN_STREAM("Timeout for target "<<id);
+      }
+      else {
+        ++it;
+      }
     }
     meas_lock_.unlock();
   }
   else
-    manager_.update(dt_); // Predict with all the filters
+    manager_.update(dt); // Predict with all the filters if measurements are updating
 
-  auto target_ids = manager_.getAvailableTargets(); // FIXME prb not thread safe
+  auto target_ids = manager_.getAvailableTargets();
 
   // Publish the target's filtered poses
   for(unsigned int i=0;i<target_ids.size();i++)
   {
     manager_.getTargetPose(target_ids[i],tmp_vector7d_);
     pose7dToTFTransform(tmp_vector7d_,tmp_transform_);
-    br_.sendTransform(tf::StampedTransform(tmp_transform_,ros_t_,reference_frame_,token_name_+"_filt_"+to_string(target_ids[i])));
+    const std::string reference_frame = measurements_[target_ids[i]].tr_.header.frame_id;
+    br_.sendTransform(tf::StampedTransform(tmp_transform_,ros_t_,reference_frame,token_name_+"_filt_"+to_string(target_ids[i])));
   }
-  // Publish the transform between observer and reference
-  isometryToTFTransform(reference_T_observer_,tmp_transform_);
-  br_.sendTransform(tf::StampedTransform(tmp_transform_,ros_t_,reference_frame_,observer_frame_));
 
-  manager_.getClosestInterceptionPose(t_,pos_th_,ang_th_,interception_pose_);
+  if(interception_pose_on_)
+    manager_.getClosestInterceptionPose(t_,pos_th_,ang_th_,interception_pose_);
 
   t_= t_ + dt;
-  t_prev_ = ros_t_.toSec();
 
   manager_.log();
 }
@@ -125,21 +129,6 @@ void RosTargetManager::update(const double& dt)
 void RosTargetManager::setTargetTokenName(const string& token_name)
 {
   token_name_ = token_name;
-}
-
-void RosTargetManager::setReferenceFrameName(const string& frame)
-{
-  reference_frame_ = frame;
-}
-
-void RosTargetManager::setObserverFrameName(const string& frame)
-{
-  observer_frame_ = frame;
-}
-
-void RosTargetManager::setObserverTransform(const Eigen::Isometry3d& reference_T_observer)
-{
-  reference_T_observer_ = reference_T_observer;
 }
 
 void RosTargetManager::setPositionConvergenceThreshold(const double& th)
@@ -157,6 +146,17 @@ void RosTargetManager::setAngularConvergenceThreshold(const double& th)
 const Eigen::Vector7d& RosTargetManager::getInterceptionPose() const
 {
   return interception_pose_;
+}
+
+void RosTargetManager::calculateInterceptionPose(bool active)
+{
+  interception_pose_on_ = active;
+}
+
+void RosTargetManager::setExpirationTime(double time)
+{
+  assert(time>=0.0);
+  expiration_time_ = time;
 }
 
 bool RosTargetManager::parseSquareMatrix(const ros::NodeHandle& n, const std::string& matrix, Eigen::MatrixXd& M)
@@ -195,5 +195,4 @@ bool RosTargetManager::parseTargetType(const ros::NodeHandle& n, TargetManager::
     ROS_ERROR_STREAM("Can not find type");
     return false;
   }
-
 }
