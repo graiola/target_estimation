@@ -1,5 +1,5 @@
-f = 5*1e0; % [Hz]
-dt = 1/f; % Estimated dt
+f = 5.0; % [Hz]
+dt = 1.0/f; % Estimated dt
 type = 'rpy';
 
 %% Compute the Q matrix (process noise) starting from the estimated std of the acceleration white noise
@@ -51,33 +51,5 @@ simga_p_rpy = 1e-2;
 P = [eye(6), eye(6).*simga_p_pos;
     zeros(6), eye(6).*simga_p_rpy] ;
 
-%% Save to yaml file
-CLK=clock;
-YR=num2str(CLK(1),'%04d');
-MTH=num2str(CLK(2),'%02d');
-DAY=num2str(CLK(3),'%02d');
-HOUR=num2str(CLK(4),'%02d');
-MIN=num2str(CLK(5),'%02d');
-SEC=num2str(round(CLK(6)),'%02d');
-date = [YR,'-',MTH,'-',DAY];
-date_time = [YR,'-',MTH,'-',DAY,'_',HOUR,'.',MIN];
-
-% % select destiation folder
-% dir_path = [];
-% dir_path = uigetdir('Select destination folder for the yaml file...');
-% 
-% Save_folder_path = dir_path;
-
-Save_folder_path = ['..',filesep,'config'];
-if(exist(Save_folder_path)~=7) % create new folder if it does not exist
-    mkdir(Save_folder_path);
-end
-
-file_name = [];
-file_name = [Save_folder_path,filesep,'kf_',type,'_params_',num2str(f),'hz_','version_', date,'.yaml'];
-file = fopen( file_name, 'w');
-fprintf(file, 'type: %s\n',type);
-fclose(file);
-matlab2yaml(Q,'Q',file_name,'a');
-matlab2yaml(R,'R',file_name,'a');
-matlab2yaml(P,'P',file_name,'a');
+%% Save to yaml file 
+model2yaml(f,type,Q,R,P)

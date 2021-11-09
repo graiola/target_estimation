@@ -1,5 +1,6 @@
-dt = 0.02; % Estimated dt
-type = "projectile"
+f = 5.0; % [Hz]
+dt = 1.0/f; % Estimated dt
+type = 'projectile';
 
 %% Compute the Q matrix (process noise) starting from the estimated std of the acceleration white noise
 sigma_ddot_x        = 0.001;  % [m/s^2]
@@ -37,10 +38,4 @@ R = Sigma_m.^2;
 P = eye(9);
 
 %% Save to yaml file 
-file_name = ["kf_" type "_params_" sprintf('%1.f',floor(1/dt)) "hz.yaml"]  
-file = fopen( file_name, 'w');
-fprintf(file, 'type: %s\n',type);
-fclose(file);
-matlab2yaml(Q,'Q',file_name,'a');
-matlab2yaml(R,'R',file_name,'a');
-matlab2yaml(P,'P',file_name,'a');
+model2yaml(f,type,Q,R,P)
