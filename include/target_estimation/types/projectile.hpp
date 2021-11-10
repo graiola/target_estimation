@@ -29,12 +29,14 @@ public:
   typedef std::shared_ptr<TargetProjectile> Ptr;
 
   TargetProjectile(const unsigned int& id,
-            const double& dt0,
-            const Eigen::MatrixXd&   Q,
-            const Eigen::MatrixXd&   R,
-            const Eigen::MatrixXd&   P0,
-            const Eigen::Vector7d&   p0,
-            const double& t0 = 0.0);
+                   const double& dt0,
+                   const double& t0,
+                   const Eigen::MatrixXd&   Q,
+                   const Eigen::MatrixXd&   R,
+                   const Eigen::MatrixXd&   P0,
+                   const Eigen::Vector7d&   p0,
+                   const Eigen::Vector6d&   v0,
+                   const Eigen::Vector6d&   a0);
 
   /**
      * @brief addMeasurement Add a measured value to the estimator and perform an update step

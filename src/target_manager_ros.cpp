@@ -85,7 +85,7 @@ void RosTargetManager::update(const double& dt)
       transformStampedToPose7d(tr,tmp_vector7d_);
 
       if(manager_.getTarget(id)==nullptr) // Target does not exist, create it
-        manager_.init(id,dt,Q_,R_,P_,tmp_vector7d_,t_,type_);
+        manager_.init(type_,id,dt,t_,Q_,R_,P_,tmp_vector7d_);
 
       if(new_meas)
         manager_.update(id,dt,tmp_vector7d_); // Estimate

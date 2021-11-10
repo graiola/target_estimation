@@ -37,8 +37,8 @@ add_library(kalman SHARED
 
 add_library(target SHARED
   src/target_interface.cpp
-  src/types/rpy.cpp
-  src/types/rpyext.cpp
+  src/types/angular_rates.cpp
+  src/types/angular_velocities.cpp
   src/types/projectile.cpp
   src/types/uam.cpp
   src/target_manager.cpp

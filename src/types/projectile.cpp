@@ -7,21 +7,23 @@
 using namespace std;
 
 // Helpers
-#define PROJECTILE_TARGET_pos(x)      x.segment(0,3)
-#define PROJECTILE_TARGET_vel(x)      x.segment(3,3)
-#define PROJECTILE_TARGET_acc(x)      x.segment(6,3)
+#define STATE_pos(x)      x.segment(0,3)
+#define STATE_vel(x)      x.segment(3,3)
+#define STATE_acc(x)      x.segment(6,3)
 
 // ----------------------------
 // TargetProjectile
 // ----------------------------
 TargetProjectile::TargetProjectile(const unsigned int& id,
-                     const double& dt0,
-                     const Eigen::MatrixXd&   Q,
-                     const Eigen::MatrixXd&   R,
-                     const Eigen::MatrixXd&   P0,
-                     const Eigen::Vector7d&   p0,
-                     const double& t0) :
-  TargetInterface(id,P0,t0)
+                                   const double& dt0,
+                                   const double& t0,
+                                   const Eigen::MatrixXd&   Q,
+                                   const Eigen::MatrixXd&   R,
+                                   const Eigen::MatrixXd&   P0,
+                                   const Eigen::Vector7d&   p0,
+                                   const Eigen::Vector6d&   v0,
+                                   const Eigen::Vector6d&   a0)
+: TargetInterface(id,P0,t0)
 {
   class_name_ = "TargetProjectile";
 
@@ -50,9 +52,9 @@ TargetProjectile::TargetProjectile(const unsigned int& id,
   // Initialize the state
   x_ = Eigen::VectorXd::Zero(n_);
 
-  PROJECTILE_TARGET_pos(x_) = p0.segment(0,3);
-  PROJECTILE_TARGET_vel(x_) << 0.0, 0.0, 0.0;
-  PROJECTILE_TARGET_acc(x_) << 0.0, 0.0, -GRAVITY;
+  STATE_pos(x_) = POSE_pos(p0);
+  STATE_vel(x_) = TWIST_linear(v0);
+  STATE_acc(x_) << 0.0, 0.0, -GRAVITY;
 
   estimator_->init(x_);
 
@@ -94,9 +96,8 @@ void TargetProjectile::updateA(const double& dt)
   // Discrete LTI Target motion with gravity acceleration acting on the z axis
   A_.setZero();
   A_.diagonal()     = Eigen::VectorXd::Ones(n_);
-  A_.diagonal(n_/2) = Eigen::VectorXd::Ones(n_/2) * dt;
-  if(acceleration_on_)
-    A_.diagonal(n_) = Eigen::VectorXd::Ones(n_) * 0.5 * dt * dt;
+  A_.diagonal(n_/3) = Eigen::VectorXd::Ones((n_*2)/3) * dt;
+  A_.diagonal((n_*2)/3) = Eigen::VectorXd::Ones(n_/3) * 0.5 * dt * dt;
 }
 
 void TargetProjectile::updateTargetState()
@@ -106,15 +107,15 @@ void TargetProjectile::updateTargetState()
   // Read the covariance
   P_ = estimator_->getP();
   // Set our Target's state
-  position_ = PROJECTILE_TARGET_pos(x_);
+  position_ = STATE_pos(x_);
   POSE_pos(pose_) = position_;
   T_.translation() = position_;
   T_.linear() = Eigen::Matrix3d::Identity();
 
-  TWIST_linear(twist_) = PROJECTILE_TARGET_vel(x_);
+  TWIST_linear(twist_) = STATE_vel(x_);
   TWIST_angular(twist_) << 0.0, 0.0, 0.0;
 
-  ACCELERATION_linear(acceleration_) = PROJECTILE_TARGET_acc(x_);
+  ACCELERATION_linear(acceleration_) = STATE_acc(x_);
   ACCELERATION_angular(acceleration_) << 0.0, 0.0, 0.0;
 }
 

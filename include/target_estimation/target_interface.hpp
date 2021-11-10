@@ -135,7 +135,7 @@ public:
 
   /**
      * @brief getEstimatedTwist
-     * @return last estimated Target's linear velocity and angular velocity
+     * @return last estimated Target's linear and angular velocity
      */
   const Eigen::Vector6d& getEstimatedTwist();
 

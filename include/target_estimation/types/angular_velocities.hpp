@@ -2,8 +2,8 @@
 *
 */
 
-#ifndef RPYEXT_HPP
-#define RPYEXT_HPP
+#ifndef ANGULAR_VELOCITIES_HPP
+#define ANGULAR_VELOCITIES_HPP
 
 #include <map>
 #include <string>
@@ -16,24 +16,26 @@
 #include "target_estimation/target_interface.hpp"
 
 /**
- * @brief The TargetRPYExtended class
+ * @brief The TargetAngularVelocities class
  * Extended implementation of the Kalman Filter with state variable defined as:
  * [x y z \psi \theta \phi \dot{x} \dot{y} \dot{z} \omega_x \omega_y \omega_z]
  */
-class TargetRPYExtended : public TargetInterface
+class TargetAngularVelocities : public TargetInterface
 {
 
 public:
 
-  typedef std::shared_ptr<TargetRPYExtended> Ptr;
+  typedef std::shared_ptr<TargetAngularVelocities> Ptr;
 
-  TargetRPYExtended(const unsigned int& id,
+  TargetAngularVelocities(const unsigned int& id,
                    const double& dt0,
+                   const double& t0,
                    const Eigen::MatrixXd&   Q,
                    const Eigen::MatrixXd&   R,
                    const Eigen::MatrixXd&   P0,
                    const Eigen::Vector7d&   p0,
-                   const double& t0 = 0.0);
+                   const Eigen::Vector6d&   v0,
+                   const Eigen::Vector6d&   a0);
 
   /**
      * @brief addMeasurement Add a measured value to the estimator and perform an update step

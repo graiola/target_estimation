@@ -2,23 +2,34 @@
 *
 */
 
-#include "target_estimation/types/rpy.hpp"
+#include "target_estimation/types/angular_rates.hpp"
 
 using namespace std;
 
+// Helpers
+#define STATE_twist(x)           x.segment(6,6)
+#define STATE_vel(x)             x.segment(6,3)
+#define STATE_rates(x)           x.segment(9,3)
+#define STATE_pos(x)             x.segment(0,3)
+#define STATE_pose(x)            x.segment(0,6)
+#define STATE_rpy(x)             x.segment(3,3)
+#define STATE_acc(x)             x.segment(12,6)
+
 // ----------------------------
-// TargetRpy
+// TargetAngularRates
 // ----------------------------
-TargetRpy::TargetRpy(const unsigned int& id,
-                     const double& dt0,
-                     const Eigen::MatrixXd&   Q,
-                     const Eigen::MatrixXd&   R,
-                     const Eigen::MatrixXd&   P0,
-                     const Eigen::Vector7d&   p0,
-                     const double& t0) :
-  TargetInterface(id,P0,t0)
+TargetAngularRates::TargetAngularRates(const unsigned int& id,
+                                       const double& dt0,
+                                       const double& t0,
+                                       const Eigen::MatrixXd&   Q,
+                                       const Eigen::MatrixXd&   R,
+                                       const Eigen::MatrixXd&   P0,
+                                       const Eigen::Vector7d&   p0,
+                                       const Eigen::Vector6d&   v0,
+                                       const Eigen::Vector6d&   a0)
+  : TargetInterface(id,P0,t0)
 {
-  class_name_ = "TargetRpy";
+  class_name_ = "TargetAngularRates";
 
   n_ = static_cast<unsigned int>(Q.rows()); // Number of states
   m_ = static_cast<unsigned int>(R.rows()); // Number of measurements
@@ -53,7 +64,7 @@ TargetRpy::TargetRpy(const unsigned int& id,
   x_ = Eigen::VectorXd::Zero(n_);
   pose7dToPose6d(p0,pose_internal_);
 
-  RPY_TARGET_pose(x_)  = pose_internal_;
+  STATE_pose(x_)  = pose_internal_;
 
   estimator_->init(x_);
 
@@ -62,7 +73,7 @@ TargetRpy::TargetRpy(const unsigned int& id,
   printInfo();
 }
 
-void TargetRpy::addMeasurement(const double& dt, const Eigen::Vector7d& meas)
+void TargetAngularRates::addMeasurement(const double& dt, const Eigen::Vector7d& meas)
 {
   lock_guard<mutex> lg(data_lock_);
 
@@ -86,7 +97,7 @@ void TargetRpy::addMeasurement(const double& dt, const Eigen::Vector7d& meas)
   updateMeasurement(meas);
 }
 
-void TargetRpy::update(const double& dt)
+void TargetAngularRates::update(const double& dt)
 {
   lock_guard<mutex> lg(data_lock_);
 
@@ -98,7 +109,7 @@ void TargetRpy::update(const double& dt)
   updateTime(dt);
 }
 
-void TargetRpy::updateA(const double& dt)
+void TargetAngularRates::updateA(const double& dt)
 {
   // A matrix using this dt
   // Discrete LTI Target motion
@@ -109,39 +120,39 @@ void TargetRpy::updateA(const double& dt)
     A_.diagonal(n_) = Eigen::VectorXd::Ones(n_) * 0.5 * dt * dt;
 }
 
-void TargetRpy::updateTargetState()
+void TargetAngularRates::updateTargetState()
 {
   // Read the estimated state
   x_ = estimator_->getState();
   // Read the covariance
   P_ = estimator_->getP();
   // Set our Target's state
-  position_ = RPY_TARGET_pos(x_);
+  position_ = STATE_pos(x_);
   POSE_pos(pose_) = position_;
-  pose_internal_ = RPY_TARGET_pose(x_);
-  rpy_ = RPY_TARGET_rpy(x_);
+  pose_internal_ = STATE_pose(x_);
+  rpy_ = STATE_rpy(x_);
   rpyToQuat(rpy_,q_);
   POSE_quat(pose_) = q_.coeffs();
   T_.translation() = position_;
   T_.linear() = q_.toRotationMatrix();
 
-  TWIST_linear(twist_) = RPY_TARGET_vel(x_);
+  TWIST_linear(twist_) = STATE_vel(x_);
   // Convert from angular rates to angular velocities (omega)
   rpyToEarBase(rpy_,Ear_);
-  TWIST_angular(twist_) = Ear_ * RPY_TARGET_rates(x_);
+  TWIST_angular(twist_) = Ear_ * STATE_rates(x_);
 
   if(acceleration_on_)
-    acceleration_ = RPY_TARGET_acc(x_);
+    acceleration_ = STATE_acc(x_);
   else
     acceleration_.setZero();
 }
 
-Eigen::Vector7d TargetRpy::getEstimatedPose(const double& t1)
+Eigen::Vector7d TargetAngularRates::getEstimatedPose(const double& t1)
 {
   lock_guard<mutex> lg(data_lock_);
 
   vector6d_tmp_ = pose_internal_ + twist_*(t1-t_) + 0.5 * acceleration_*(t1-t_)*(t1-t_);
-  rpyToQuat(RPY_TARGET_rpy(vector6d_tmp_),quaterniond_tmp_);
+  rpyToQuat(STATE_rpy(vector6d_tmp_),quaterniond_tmp_);
   quaterniond_tmp_.normalize(); // Normalize the quaternion
   POSE_pos(vector7d_tmp_)  = POSE_pos(vector6d_tmp_);
   POSE_quat(vector7d_tmp_) = quaterniond_tmp_.coeffs();
@@ -149,7 +160,7 @@ Eigen::Vector7d TargetRpy::getEstimatedPose(const double& t1)
   return vector7d_tmp_;
 }
 
-Eigen::Vector6d TargetRpy::getEstimatedTwist(const double& t1)
+Eigen::Vector6d TargetAngularRates::getEstimatedTwist(const double& t1)
 {
   lock_guard<mutex> lg(data_lock_);
   return twist_ + acceleration_*(t1-t_);

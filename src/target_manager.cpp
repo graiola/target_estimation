@@ -3,8 +3,8 @@
 */
 
 #include "target_estimation/target_manager.hpp"
-#include "target_estimation/types/rpy.hpp"
-#include "target_estimation/types/rpyext.hpp"
+#include "target_estimation/types/angular_rates.hpp"
+#include "target_estimation/types/angular_velocities.hpp"
 #include "target_estimation/types/projectile.hpp"
 #include "target_estimation/types/uam.hpp"
 #include <stdexcept>
@@ -51,10 +51,10 @@ bool TargetManager::parseTargetType(const YAML::Node& node, target_t& type)
 
 bool TargetManager::selectTargetType(const std::string& type_str, target_t& type)
 {
-    if (std::strcmp(type_str.c_str(),"rpy")==0)
-        type = TargetManager::target_t::RPY;
-    else if (std::strcmp(type_str.c_str(),"rpy_ext") == 0)
-        type = TargetManager::target_t::RPY_EXT;
+    if (std::strcmp(type_str.c_str(),"angular_rates")==0)
+        type = TargetManager::target_t::ANGULAR_RATES;
+    else if (std::strcmp(type_str.c_str(),"angular_velocities") == 0)
+        type = TargetManager::target_t::ANGULAR_VELOCITIES;
     else if (std::strcmp(type_str.c_str(),"projectile") == 0)
         type = TargetManager::target_t::PROJECTILE;
     else if (std::strcmp(type_str.c_str(),"uam") == 0)
@@ -134,18 +134,19 @@ std::vector<unsigned int> TargetManager::getAvailableTargets()
   return ids;
 }
 
-void TargetManager::init(const unsigned int& id, const double& dt0,
-                         const Eigen::Vector7d& p0, const double& t0)
+void TargetManager::init(const unsigned int& id, const double& dt0, const double& t0,
+                         const Eigen::Vector7d& p0, const Eigen::Vector6d& v0, const Eigen::Vector6d& a0)
 {
     if(default_values_loaded_)
-        init(id,dt0,default_Q_,default_R_,default_P_,p0,t0,default_type_);
+        init(default_type_,id,dt0,t0,default_Q_,default_R_,default_P_,p0,v0,a0);
     else
         throw "TargetManager::init failed, can not find default values to load!";
 }
 
-void TargetManager::init(const unsigned int& id, const double& dt0,
+void TargetManager::init(const target_t& type, const unsigned int& id, const double& dt0, const double& t0,
                          const Eigen::MatrixXd& Q, const Eigen::MatrixXd& R, const Eigen::MatrixXd& P0,
-                         const Eigen::Vector7d& p0, const double& t0, const target_t& type)
+                         const Eigen::Vector7d& p0, const Eigen::Vector6d& v0, const Eigen::Vector6d& a0)
+
 {
     lock_guard<mutex> lg(target_lock_);
 
@@ -153,20 +154,20 @@ void TargetManager::init(const unsigned int& id, const double& dt0,
         // Target not found, create it
         switch(type)
         {
-        case target_t::RPY:
-            targets_[id].reset(new TargetRpy(id,dt0,Q,R,P0,p0,t0));
-            std::cout << "Orientation defined as RPY angles" << std::endl;
+        case target_t::ANGULAR_RATES:
+            targets_[id].reset(new TargetAngularRates(id,dt0,t0,Q,R,P0,p0,v0,a0));
+            std::cout << "Using angular rates for the orientation" << std::endl;
             break;  
-        case target_t::RPY_EXT:
-            targets_[id].reset(new TargetRPYExtended(id,dt0,Q,R,P0,p0,t0));
-            std::cout << "Orientation defined as RPY angles with omega" << std::endl;
+        case target_t::ANGULAR_VELOCITIES:
+            targets_[id].reset(new TargetAngularVelocities(id,dt0,t0,Q,R,P0,p0,v0,a0));
+            std::cout << "Using angular velocities for the orientation" << std::endl;
             break;
         case target_t::PROJECTILE:
-            targets_[id].reset(new TargetProjectile(id,dt0,Q,R,P0,p0,t0));
-            std::cout << "Catching some bullets! No orientation needed" << std::endl;
+            targets_[id].reset(new TargetProjectile(id,dt0,t0,Q,R,P0,p0,v0,a0));
+            std::cout << "Catching some bullets!" << std::endl;
             break;
         case target_t::UAM:
-            targets_[id].reset(new TargetUAM(id,dt0,Q,R,P0,p0,t0));
+            targets_[id].reset(new TargetUAM(id,dt0,t0,Q,R,P0,p0,v0,a0));
             std::cout << "Uniformly Accelerated Motion" << std::endl;
             break;
         }
@@ -175,13 +176,13 @@ void TargetManager::init(const unsigned int& id, const double& dt0,
         std::cout<<"Target("<<id<<") already exists!"<<std::endl;
 }
 
-void TargetManager::init(const std::string& file, const unsigned int& id, const double& dt0,
-                         const Eigen::Vector7d& p0, const double& t0)
+void TargetManager::init(const std::string& file, const unsigned int& id, const double& dt0, const double& t0,
+                         const Eigen::Vector7d& p0, const Eigen::Vector6d& v0, const Eigen::Vector6d& a0)
 {
     Eigen::MatrixXd Q, P, R;
     target_t type;
     loadYamlFile(file,Q,R,P,type);
-    init(id,dt0,Q,R,P,p0,t0,type);
+    init(type,id,dt0,t0,Q,R,P,p0,v0,a0);
 }
 
 bool TargetManager::update(const unsigned int& id, const double& dt, const Eigen::Vector7d& meas)

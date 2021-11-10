@@ -18,7 +18,7 @@ public:
 
     typedef std::map<unsigned int,TargetInterface::Ptr> targets_map_t;
 
-    enum target_t {RPY=0,RPY_EXT,PROJECTILE,UAM};
+    enum target_t {ANGULAR_RATES=0,ANGULAR_VELOCITIES,PROJECTILE,UAM};
 
     /**
    * @brief TargetManager Create an empty TargetManager
@@ -36,40 +36,52 @@ public:
    * @brief init  Initialize a new target with default covariance matrices and type
    * @param id    Target's id
    * @param dt0   Estimated initial sample time
+   * @param t0    Initial time
    * @param p0    Initial estimation of the target's position
    *              Note: we assume p0 = [x y z qx qy qz qw] i.e. size(p0) = 7
-   * @param t0    Initial time
+   * @param v0    Initial estimation of the target's velocity
+   *              Note: we assume v0 = [\dot{x} \dot{y} \dot{z} \omega_x \omega_y \omega_z] i.e. size(v0) = 6
+   * @param a0    Initial estimation of the target's acceleration
+   *              Note: we assume v0 = [\ddot{x} \ddot{y} \ddot{z} \dot{\omega}_x \dot{\omega}_y \dot{\omega}_z] i.e. size(a0) = 6
    */
-    void init(const unsigned int& id, const double& dt0,
-              const Eigen::Vector7d& p0, const double& t0 = 0.0);
+    void init(const unsigned int& id, const double& dt0, const double& t0,
+              const Eigen::Vector7d& p0, const Eigen::Vector6d& v0 = Eigen::Vector6d::Zero(), const Eigen::Vector6d& a0 = Eigen::Vector6d::Zero());
 
     /**
    * @brief init  Initialize a new target
+   * @param type  Kalman Filter type
    * @param id    Target's id
    * @param dt0   Estimated initial sample time
+   * @param t0    Initial time
    * @param Q     Process noise covariance
    * @param R     Measurement noise covariance
    * @param P0    Initial estimation of the error covariance matrix
    * @param p0    Initial estimation of the target's position
    *              Note: we assume p0 = [x y z qx qy qz qw] i.e. size(p0) = 7
-   * @param t0    Initial time
-   * @param type  Kalman Filter type
+   * @param v0    Initial estimation of the target's velocity
+   *              Note: we assume v0 = [\dot{x} \dot{y} \dot{z} \omega_x \omega_y \omega_z] i.e. size(v0) = 6
+   * @param a0    Initial estimation of the target's acceleration
+   *              Note: we assume v0 = [\ddot{x} \ddot{y} \ddot{z} \dot{\omega}_x \dot{\omega}_y \dot{\omega}_z] i.e. size(a0) = 6
    */
-    void init(const unsigned int& id, const double& dt0,
+    void init(const target_t& type, const unsigned int& id, const double& dt0, const double& t0,
               const Eigen::MatrixXd& Q, const Eigen::MatrixXd& R, const Eigen::MatrixXd& P0,
-              const Eigen::Vector7d& p0, const double& t0 = 0.0, const target_t& type = target_t::RPY);
+              const Eigen::Vector7d& p0, const Eigen::Vector6d &v0 = Eigen::Vector6d::Zero(), const Eigen::Vector6d &a0 = Eigen::Vector6d::Zero());
 
     /**
    * @brief init  Initialize a new target
    * @param file  YAML file path with the covariance matrices and target type
    * @param id    Target's id
    * @param dt0   Estimated initial sample time
+   * @param t0    Initial time
    * @param p0    Initial estimation of the target's position
    *              Note: we assume p0 = [x y z qx qy qz qw] i.e. size(p0) = 7
-   * @param t0    Initial time
+   * @param v0    Initial estimation of the target's velocity
+   *              Note: we assume v0 = [\dot{x} \dot{y} \dot{z} \omega_x \omega_y \omega_z] i.e. size(v0) = 6
+   * @param a0    Initial estimation of the target's acceleration
+   *              Note: we assume v0 = [\ddot{x} \ddot{y} \ddot{z} \dot{\omega}_x \dot{\omega}_y \dot{\omega}_z] i.e. size(a0) = 6
    */
-    void init(const std::string& file, const unsigned int& id, const double& dt0,
-              const Eigen::Vector7d& p0, const double& t0 = 0.0);
+    void init(const std::string& file, const unsigned int& id, const double& dt0, const double& t0,
+              const Eigen::Vector7d& p0, const Eigen::Vector6d& v0 = Eigen::Vector6d::Zero(), const Eigen::Vector6d& a0 = Eigen::Vector6d::Zero());
     /**
    * @brief update Add a measurement to the given Target ID. Perform an update step with the filters.
    * @param id
@@ -195,7 +207,7 @@ public:
    * @brief selectTargetType Convert from string to target_t type
    * @param type_str
    * @param type
-   * @return
+   * @return false if type_str does not
    */
     bool selectTargetType(const std::string& type_str, target_t& type);
 

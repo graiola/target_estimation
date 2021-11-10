@@ -2,8 +2,8 @@
 *
 */
 
-#ifndef RPY_HPP
-#define RPY_HPP
+#ifndef ANGULAR_RATES_HPP
+#define ANGULAR_RATES_HPP
 
 #include <map>
 #include <string>
@@ -16,7 +16,7 @@
 #include "target_estimation/target_interface.hpp"
 
 /**
- * @brief The TargetRpy class
+ * @brief The TargetAngularRates class
  * Linear implementation of the Kalman Filter with state variable defined as:
  * [x y z \psi \theta \phi \dot{x} \dot{y} \dot{z} \dot{\psi} \dot{\theta} \dot{\phi}]
  * if we assume constant velocities, otherwise:
@@ -27,20 +27,22 @@
  * the body frame. The linear approximation works well for small angular rates, but it degenerates for
  * big angular changes. For this reason we implemented a version using the ekf to compute the orientation kinematics.
  */
-class TargetRpy : public TargetInterface
+class TargetAngularRates : public TargetInterface
 {
 
 public:
 
-  typedef std::shared_ptr<TargetRpy> Ptr;
+  typedef std::shared_ptr<TargetAngularRates> Ptr;
 
-  TargetRpy(const unsigned int& id,
-            const double& dt0,
-            const Eigen::MatrixXd&   Q,
-            const Eigen::MatrixXd&   R,
-            const Eigen::MatrixXd&   P0,
-            const Eigen::Vector7d&   p0,
-            const double& t0 = 0.0);
+  TargetAngularRates(const unsigned int& id,
+                     const double& dt0,
+                     const double& t0,
+                     const Eigen::MatrixXd&   Q,
+                     const Eigen::MatrixXd&   R,
+                     const Eigen::MatrixXd&   P0,
+                     const Eigen::Vector7d&   p0,
+                     const Eigen::Vector6d&   v0,
+                     const Eigen::Vector6d&   a0);
 
   /**
      * @brief addMeasurement Add a measured value to the estimator and perform an update step

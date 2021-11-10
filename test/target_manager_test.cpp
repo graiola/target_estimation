@@ -128,7 +128,7 @@ void generateEstimation(const unsigned int id, const Eigen::MatrixXd& meas_pose,
   }
 }
 
-TEST(test_target, RPY)
+TEST(test_target, AngularRates)
 {
     Eigen::MatrixXd Q,R,P;
     generateMatrices(Q,R,P);
@@ -139,7 +139,7 @@ TEST(test_target, RPY)
     unsigned int id = 0;
     Eigen::Vector7d p0;
     initPose(p0);
-    _manager.init(id,_dt,Q,R,P,p0,0.0,TargetManager::target_t::RPY);
+    _manager.init(TargetManager::target_t::ANGULAR_RATES,id,_dt,0.0,Q,R,P,p0);
 
     Eigen::MatrixXd est_pose, est_twist, sigma_xyz;
     generateEstimation(id,meas_pose,est_pose,est_twist,sigma_xyz);
@@ -182,7 +182,7 @@ TEST(test_target, RPY)
     //EXPECT_NEAR( _omega(2) ,omegaz.mean(), 0.01 );
 }
 
-TEST(test_target, RPYExt)
+TEST(test_target, AngularVelocities)
 {
     Eigen::MatrixXd Q,R,P;
     generateMatrices(Q,R,P);
@@ -193,7 +193,7 @@ TEST(test_target, RPYExt)
     unsigned int id = 1;
     Eigen::Vector7d p0;
     initPose(p0);
-    _manager.init(id,_dt,Q,R,P,p0,0.0,TargetManager::target_t::RPY_EXT);
+    _manager.init(TargetManager::target_t::ANGULAR_VELOCITIES,id,_dt,0.0,Q,R,P,p0);
 
     Eigen::MatrixXd est_pose, est_twist, sigma_xyz;
     generateEstimation(id,meas_pose,est_pose,est_twist,sigma_xyz);

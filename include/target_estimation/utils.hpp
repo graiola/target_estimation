@@ -7,20 +7,7 @@
 #include <vector>
 #include <Eigen/Core>
 
-
-/**
-  * Helper macros
-  */
-// RPY target
-#define RPY_TARGET_twist(x)           x.segment(6,6)
-#define RPY_TARGET_vel(x)             x.segment(6,3)
-#define RPY_TARGET_rates(x)           x.segment(9,3)
-#define RPY_TARGET_pos(x)             x.segment(0,3)
-#define RPY_TARGET_pose(x)            x.segment(0,6)
-#define RPY_TARGET_rpy(x)             x.segment(3,3)
-#define RPY_TARGET_acc(x)             x.segment(12,6)
-#define RPY_TARGET_omega(x)           x.segment(9,3)
-// Generic
+// Generic helpers
 #define POSE_pos(x)                   x.segment(0,3)
 #define POSE_quat(x)                  x.segment(3,4)
 #define POSE_rpy(x)                   x.segment(3,3)

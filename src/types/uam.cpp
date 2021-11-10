@@ -7,20 +7,22 @@
 using namespace std;
 
 // Helpers
-#define UAM_pos(x)      x.segment(0,3)
-#define UAM_vel(x)      x.segment(3,3)
-#define UAM_acc(x)      x.segment(6,3)
+#define STATE_pos(x)      x.segment(0,3)
+#define STATE_vel(x)      x.segment(3,3)
+#define STATE_acc(x)      x.segment(6,3)
 
 // ----------------------------
 // TargetUAM
 // ----------------------------
 TargetUAM::TargetUAM(const unsigned int& id,
                      const double& dt0,
+                     const double& t0,
                      const Eigen::MatrixXd&   Q,
                      const Eigen::MatrixXd&   R,
                      const Eigen::MatrixXd&   P0,
                      const Eigen::Vector7d&   p0,
-                     const double& t0) :
+                     const Eigen::Vector6d&   v0,
+                     const Eigen::Vector6d&   a0) :
   TargetInterface(id,P0,t0)
 {
   class_name_ = "TargetUAM";
@@ -50,9 +52,9 @@ TargetUAM::TargetUAM(const unsigned int& id,
   // Initialize the state
   x_ = Eigen::VectorXd::Zero(n_);
 
-  UAM_pos(x_) = p0.segment(0,3);
-  UAM_vel(x_) << 0.0, 0.0, 0.0;
-  UAM_acc(x_) << 0.0, 0.0, 0.0;
+  STATE_pos(x_) = POSE_pos(p0);
+  STATE_vel(x_) = TWIST_linear(v0);
+  STATE_acc(x_) = ACCELERATION_linear(a0);
 
   estimator_->init(x_);
 
@@ -105,15 +107,15 @@ void TargetUAM::updateTargetState()
   // Read the covariance
   P_ = estimator_->getP();
   // Set our Target's state
-  position_ = UAM_pos(x_);
+  position_ = STATE_pos(x_);
   POSE_pos(pose_) = position_;
   T_.translation() = position_;
   T_.linear() = Eigen::Matrix3d::Identity();
 
-  TWIST_linear(twist_) = UAM_vel(x_);
+  TWIST_linear(twist_) = STATE_vel(x_);
   TWIST_angular(twist_) << 0.0, 0.0, 0.0;
 
-  ACCELERATION_linear(acceleration_) = UAM_acc(x_);
+  ACCELERATION_linear(acceleration_) = STATE_acc(x_);
   ACCELERATION_angular(acceleration_) << 0.0, 0.0, 0.0;
 }
 

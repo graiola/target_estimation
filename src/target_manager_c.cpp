@@ -20,7 +20,7 @@ target_manager_c * target_manager_new(const char* file) {
 void target_manager_init(const target_manager_c *self, const unsigned int id, const double dt0, double p0[], const double t0) {
     TargetManager *manager = (TargetManager *)self;
     Eigen::Map<Eigen::Vector7d> p0_map(p0);
-    manager->init(id,dt0,p0_map,t0);
+    manager->init(id,dt0,t0,p0_map);
 }
 
 void target_manager_update_meas(const target_manager_c *self, const unsigned int id, const double dt, double meas[]) {
