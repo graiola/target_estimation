@@ -4,11 +4,6 @@
 
 #include "target_estimation/types/rpy.hpp"
 
-#ifdef LOGGER_ON
-#include <rt_logger/rt_logger.h>
-using namespace rt_logger;
-#endif
-
 using namespace std;
 
 // ----------------------------

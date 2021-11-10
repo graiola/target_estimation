@@ -18,7 +18,7 @@ public:
 
     typedef std::map<unsigned int,TargetInterface::Ptr> targets_map_t;
 
-    enum target_t {RPY=0,RPY_EXT,PROJECTILE};
+    enum target_t {RPY=0,RPY_EXT,PROJECTILE,UAM};
 
     /**
    * @brief TargetManager Create an empty TargetManager
@@ -191,6 +191,14 @@ public:
    */
     std::vector<unsigned int> getAvailableTargets();
 
+    /**
+   * @brief selectTargetType Convert from string to target_t type
+   * @param type_str
+   * @param type
+   * @return
+   */
+    bool selectTargetType(const std::string& type_str, target_t& type);
+
 private:
 
     /**
@@ -204,7 +212,7 @@ private:
 
     /**
    * @brief parseTargetType
-   * @param node
+   * @param yaml node
    * @param type
    * @return
    */

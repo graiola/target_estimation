@@ -6,6 +6,7 @@
 #include "target_estimation/types/rpy.hpp"
 #include "target_estimation/types/rpyext.hpp"
 #include "target_estimation/types/projectile.hpp"
+#include "target_estimation/types/uam.hpp"
 #include <stdexcept>
 
 using namespace std;
@@ -37,18 +38,29 @@ bool TargetManager::parseTargetType(const YAML::Node& node, target_t& type)
     try
     {
         type_str = node["type"].as<std::string>();
-        if (std::strcmp(type_str.c_str(),"rpy")==0)
-            type = TargetManager::target_t::RPY;
-        else if (std::strcmp(type_str.c_str(),"rpy_ext") == 0)
-            type = TargetManager::target_t::RPY_EXT;
-        else if (std::strcmp(type_str.c_str(),"projectile") == 0)
-            type = TargetManager::target_t::PROJECTILE;
+        if(!selectTargetType(type_str,type))
+           std::cerr <<"Can not parse type: "<<type_str<<std::endl;
     }
     catch(YAML::ParserException& exception)
     {
         std::cerr << exception.what() << std::endl;
         return false;
     }
+    return true;
+}
+
+bool TargetManager::selectTargetType(const std::string& type_str, target_t& type)
+{
+    if (std::strcmp(type_str.c_str(),"rpy")==0)
+        type = TargetManager::target_t::RPY;
+    else if (std::strcmp(type_str.c_str(),"rpy_ext") == 0)
+        type = TargetManager::target_t::RPY_EXT;
+    else if (std::strcmp(type_str.c_str(),"projectile") == 0)
+        type = TargetManager::target_t::PROJECTILE;
+    else if (std::strcmp(type_str.c_str(),"uam") == 0)
+        type = TargetManager::target_t::UAM;
+    else
+      return false;
     return true;
 }
 
@@ -152,6 +164,10 @@ void TargetManager::init(const unsigned int& id, const double& dt0,
         case target_t::PROJECTILE:
             targets_[id].reset(new TargetProjectile(id,dt0,Q,R,P0,p0,t0));
             std::cout << "Catching some bullets! No orientation needed" << std::endl;
+            break;
+        case target_t::UAM:
+            targets_[id].reset(new TargetUAM(id,dt0,Q,R,P0,p0,t0));
+            std::cout << "Uniformly Accelerated Motion" << std::endl;
             break;
         }
     }

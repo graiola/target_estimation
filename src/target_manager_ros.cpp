@@ -181,14 +181,10 @@ bool RosTargetManager::parseTargetType(const ros::NodeHandle& n, TargetManager::
   std::string type_str;
   if (n.getParam("type", type_str))
   {
-    if (std::strcmp(type_str.c_str(),"rpy")==0)
-      type = TargetManager::target_t::RPY;
-    else if (std::strcmp(type_str.c_str(),"rpy_ext") == 0)
-      type = TargetManager::target_t::RPY_EXT;
-    else if (std::strcmp(type_str.c_str(),"projectile") == 0)
-      type = TargetManager::target_t::PROJECTILE;
-
-    return true;
+    if(manager_.selectTargetType(type_str,type))
+      return true;
+    else
+      return false;
   }
   else
   {

@@ -40,6 +40,7 @@ add_library(target SHARED
   src/types/rpy.cpp
   src/types/rpyext.cpp
   src/types/projectile.cpp
+  src/types/uam.cpp
   src/target_manager.cpp
   src/solver.cpp
 )

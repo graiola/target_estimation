@@ -2,19 +2,19 @@
 *
 */
 
-#include "target_estimation/types/projectile.hpp"
+#include "target_estimation/types/uam.hpp"
 
 using namespace std;
 
 // Helpers
-#define PROJECTILE_TARGET_pos(x)      x.segment(0,3)
-#define PROJECTILE_TARGET_vel(x)      x.segment(3,3)
-#define PROJECTILE_TARGET_acc(x)      x.segment(6,3)
+#define UAM_pos(x)      x.segment(0,3)
+#define UAM_vel(x)      x.segment(3,3)
+#define UAM_acc(x)      x.segment(6,3)
 
 // ----------------------------
-// TargetProjectile
+// TargetUAM
 // ----------------------------
-TargetProjectile::TargetProjectile(const unsigned int& id,
+TargetUAM::TargetUAM(const unsigned int& id,
                      const double& dt0,
                      const Eigen::MatrixXd&   Q,
                      const Eigen::MatrixXd&   R,
@@ -23,7 +23,7 @@ TargetProjectile::TargetProjectile(const unsigned int& id,
                      const double& t0) :
   TargetInterface(id,P0,t0)
 {
-  class_name_ = "TargetProjectile";
+  class_name_ = "TargetUAM";
 
   n_ = static_cast<unsigned int>(Q.rows()); // Number of states
   m_ = static_cast<unsigned int>(R.rows()); // Number of measurements
@@ -50,9 +50,9 @@ TargetProjectile::TargetProjectile(const unsigned int& id,
   // Initialize the state
   x_ = Eigen::VectorXd::Zero(n_);
 
-  PROJECTILE_TARGET_pos(x_) = p0.segment(0,3);
-  PROJECTILE_TARGET_vel(x_) << 0.0, 0.0, 0.0;
-  PROJECTILE_TARGET_acc(x_) << 0.0, 0.0, -GRAVITY;
+  UAM_pos(x_) = p0.segment(0,3);
+  UAM_vel(x_) << 0.0, 0.0, 0.0;
+  UAM_acc(x_) << 0.0, 0.0, 0.0;
 
   estimator_->init(x_);
 
@@ -61,7 +61,7 @@ TargetProjectile::TargetProjectile(const unsigned int& id,
   printInfo();
 }
 
-void TargetProjectile::addMeasurement(const double& dt, const Eigen::Vector7d& meas)
+void TargetUAM::addMeasurement(const double& dt, const Eigen::Vector7d& meas)
 {
   lock_guard<mutex> lg(data_lock_);
 
@@ -76,7 +76,7 @@ void TargetProjectile::addMeasurement(const double& dt, const Eigen::Vector7d& m
   updateMeasurement(meas);
 }
 
-void TargetProjectile::update(const double& dt)
+void TargetUAM::update(const double& dt)
 {
   lock_guard<mutex> lg(data_lock_);
 
@@ -88,37 +88,36 @@ void TargetProjectile::update(const double& dt)
   updateTime(dt);
 }
 
-void TargetProjectile::updateA(const double& dt)
+void TargetUAM::updateA(const double& dt)
 {
   // A matrix using this dt
-  // Discrete LTI Target motion with gravity acceleration acting on the z axis
+  // Discrete LTI Target motion
   A_.setZero();
   A_.diagonal()     = Eigen::VectorXd::Ones(n_);
-  A_.diagonal(n_/2) = Eigen::VectorXd::Ones(n_/2) * dt;
-  if(acceleration_on_)
-    A_.diagonal(n_) = Eigen::VectorXd::Ones(n_) * 0.5 * dt * dt;
+  A_.diagonal(n_/3) = Eigen::VectorXd::Ones((n_*2)/3) * dt;
+  A_.diagonal((n_*2)/3) = Eigen::VectorXd::Ones(n_/3) * 0.5 * dt * dt;
 }
 
-void TargetProjectile::updateTargetState()
+void TargetUAM::updateTargetState()
 {
   // Read the estimated state
   x_ = estimator_->getState();
   // Read the covariance
   P_ = estimator_->getP();
   // Set our Target's state
-  position_ = PROJECTILE_TARGET_pos(x_);
+  position_ = UAM_pos(x_);
   POSE_pos(pose_) = position_;
   T_.translation() = position_;
   T_.linear() = Eigen::Matrix3d::Identity();
 
-  TWIST_linear(twist_) = PROJECTILE_TARGET_vel(x_);
+  TWIST_linear(twist_) = UAM_vel(x_);
   TWIST_angular(twist_) << 0.0, 0.0, 0.0;
 
-  ACCELERATION_linear(acceleration_) = PROJECTILE_TARGET_acc(x_);
+  ACCELERATION_linear(acceleration_) = UAM_acc(x_);
   ACCELERATION_angular(acceleration_) << 0.0, 0.0, 0.0;
 }
 
-Eigen::Vector7d TargetProjectile::getEstimatedPose(const double& t1)
+Eigen::Vector7d TargetUAM::getEstimatedPose(const double& t1)
 {
   lock_guard<mutex> lg(data_lock_);
 
@@ -131,7 +130,7 @@ Eigen::Vector7d TargetProjectile::getEstimatedPose(const double& t1)
   return vector7d_tmp_;
 }
 
-Eigen::Vector6d TargetProjectile::getEstimatedTwist(const double& t1)
+Eigen::Vector6d TargetUAM::getEstimatedTwist(const double& t1)
 {
   lock_guard<mutex> lg(data_lock_);
   return twist_ + acceleration_*(t1-t_);

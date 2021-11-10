@@ -20,10 +20,6 @@
 #define RPY_TARGET_rpy(x)             x.segment(3,3)
 #define RPY_TARGET_acc(x)             x.segment(12,6)
 #define RPY_TARGET_omega(x)           x.segment(9,3)
-// Projectile target
-#define PROJECTILE_TARGET_pos(x)      x.segment(0,3)
-#define PROJECTILE_TARGET_vel(x)      x.segment(3,3)
-#define PROJECTILE_TARGET_acc(x)      x.segment(6,3)
 // Generic
 #define POSE_pos(x)                   x.segment(0,3)
 #define POSE_quat(x)                  x.segment(3,4)
