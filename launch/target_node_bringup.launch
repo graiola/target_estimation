@@ -8,11 +8,11 @@
    <!-- Load the kalman filter model -->
    <rosparam command="load" file="$(find target_estimation)/models/$(arg kf_model).yaml" ns="target_estimation"/>
 
-   <!-- Start the node -->
-   <node name="target_node" pkg="target_estimation" type="target_node" respawn="false" output="screen">
-        <param name="token" value="$(arg token)"/>
-        <param name="timeout" value="$(arg timeout)"/>
-   </node>
+   <!-- Spawn the target node -->
+   <include file="$(find target_estimation)/launch/target_node_spawn.launch">
+           <arg name="token" value="$(arg token)"/>
+           <arg name="timeout" value="$(arg timeout)"/>
+   </include>
 
    <!-- start plotJuggler and Rviz -->
    <group if="$(arg gui)">
