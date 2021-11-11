@@ -51,6 +51,9 @@ add_library(target_c SHARED
 )
 target_link_libraries(target_c target kalman)
 
+add_executable(avg_filter_test test/avg_filter_test.cpp)
+target_link_libraries(avg_filter_test target gtest)
+
 install(TARGETS target target_c kalman
         ARCHIVE DESTINATION include
         LIBRARY DESTINATION lib

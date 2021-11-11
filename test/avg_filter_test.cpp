@@ -6,8 +6,8 @@
 const double stddev = 1;
 const double mean = 5.0;
 // Statistical generators
-std::default_random_engine generator;
-std::normal_distribution<double> normal_dist(mean,stddev);
+static std::default_random_engine generator;
+static std::normal_distribution<double> normal_dist(mean,stddev);
 
 TEST(test_filter, AvgFilter )
 {
