@@ -18,7 +18,7 @@ public:
 
     typedef std::map<unsigned int,TargetInterface::Ptr> targets_map_t;
 
-    enum target_t {ANGULAR_RATES=0,ANGULAR_VELOCITIES,PROJECTILE,UAM};
+    enum target_t {ANGULAR_RATES=0,ANGULAR_VELOCITIES,PROJECTILE,UNIFORMLY_ACCELERATED};
 
     /**
    * @brief TargetManager Create an empty TargetManager

@@ -40,7 +40,7 @@ add_library(target SHARED
   src/types/angular_rates.cpp
   src/types/angular_velocities.cpp
   src/types/projectile.cpp
-  src/types/uam.cpp
+  src/types/uniformly_accelerated.cpp
   src/target_manager.cpp
   src/solver.cpp
 )

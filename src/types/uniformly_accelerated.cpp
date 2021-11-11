@@ -2,7 +2,7 @@
 *
 */
 
-#include "target_estimation/types/uam.hpp"
+#include "target_estimation/types/uniformly_accelerated.hpp"
 
 using namespace std;
 
@@ -12,9 +12,9 @@ using namespace std;
 #define STATE_acc(x)      x.segment(6,3)
 
 // ----------------------------
-// TargetUAM
+// TargetUniformlyAccelerated
 // ----------------------------
-TargetUAM::TargetUAM(const unsigned int& id,
+TargetUniformlyAccelerated::TargetUniformlyAccelerated(const unsigned int& id,
                      const double& dt0,
                      const double& t0,
                      const Eigen::MatrixXd&   Q,
@@ -25,7 +25,7 @@ TargetUAM::TargetUAM(const unsigned int& id,
                      const Eigen::Vector6d&   a0) :
   TargetInterface(id,P0,t0)
 {
-  class_name_ = "TargetUAM";
+  class_name_ = "TargetUniformlyAccelerated";
 
   n_ = static_cast<unsigned int>(Q.rows()); // Number of states
   m_ = static_cast<unsigned int>(R.rows()); // Number of measurements
@@ -63,7 +63,7 @@ TargetUAM::TargetUAM(const unsigned int& id,
   printInfo();
 }
 
-void TargetUAM::addMeasurement(const double& dt, const Eigen::Vector7d& meas)
+void TargetUniformlyAccelerated::addMeasurement(const double& dt, const Eigen::Vector7d& meas)
 {
   lock_guard<mutex> lg(data_lock_);
 
@@ -78,7 +78,7 @@ void TargetUAM::addMeasurement(const double& dt, const Eigen::Vector7d& meas)
   updateMeasurement(meas);
 }
 
-void TargetUAM::update(const double& dt)
+void TargetUniformlyAccelerated::update(const double& dt)
 {
   lock_guard<mutex> lg(data_lock_);
 
@@ -90,7 +90,7 @@ void TargetUAM::update(const double& dt)
   updateTime(dt);
 }
 
-void TargetUAM::updateA(const double& dt)
+void TargetUniformlyAccelerated::updateA(const double& dt)
 {
   // A matrix using this dt
   // Discrete LTI Target motion
@@ -100,7 +100,7 @@ void TargetUAM::updateA(const double& dt)
   A_.diagonal((n_*2)/3) = Eigen::VectorXd::Ones(n_/3) * 0.5 * dt * dt;
 }
 
-void TargetUAM::updateTargetState()
+void TargetUniformlyAccelerated::updateTargetState()
 {
   // Read the estimated state
   x_ = estimator_->getState();
@@ -119,7 +119,7 @@ void TargetUAM::updateTargetState()
   ACCELERATION_angular(acceleration_) << 0.0, 0.0, 0.0;
 }
 
-Eigen::Vector7d TargetUAM::getEstimatedPose(const double& t1)
+Eigen::Vector7d TargetUniformlyAccelerated::getEstimatedPose(const double& t1)
 {
   lock_guard<mutex> lg(data_lock_);
 
@@ -132,7 +132,7 @@ Eigen::Vector7d TargetUAM::getEstimatedPose(const double& t1)
   return vector7d_tmp_;
 }
 
-Eigen::Vector6d TargetUAM::getEstimatedTwist(const double& t1)
+Eigen::Vector6d TargetUniformlyAccelerated::getEstimatedTwist(const double& t1)
 {
   lock_guard<mutex> lg(data_lock_);
   return twist_ + acceleration_*(t1-t_);
