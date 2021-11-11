@@ -2,7 +2,7 @@
 *
 */
 
-#include "target_estimation/types/projectile.hpp"
+#include "target_estimation/types/uniform_acceleration.hpp"
 
 using namespace std;
 
@@ -12,20 +12,20 @@ using namespace std;
 #define STATE_acc(x)      x.segment(6,3)
 
 // ----------------------------
-// TargetProjectile
+// TargetUniformAcceleration
 // ----------------------------
-TargetProjectile::TargetProjectile(const unsigned int& id,
-                                   const double& dt0,
-                                   const double& t0,
-                                   const Eigen::MatrixXd&   Q,
-                                   const Eigen::MatrixXd&   R,
-                                   const Eigen::MatrixXd&   P0,
-                                   const Eigen::Vector7d&   p0,
-                                   const Eigen::Vector6d&   v0,
-                                   const Eigen::Vector6d&   /*a0*/)
-: TargetInterface(id,P0,t0)
+TargetUniformAcceleration::TargetUniformAcceleration(const unsigned int& id,
+                     const double& dt0,
+                     const double& t0,
+                     const Eigen::MatrixXd&   Q,
+                     const Eigen::MatrixXd&   R,
+                     const Eigen::MatrixXd&   P0,
+                     const Eigen::Vector7d&   p0,
+                     const Eigen::Vector6d&   v0,
+                     const Eigen::Vector6d&   a0) :
+  TargetInterface(id,P0,t0)
 {
-  class_name_ = "TargetProjectile";
+  class_name_ = "TargetUniformAcceleration";
 
   n_ = static_cast<unsigned int>(Q.rows()); // Number of states
   m_ = static_cast<unsigned int>(R.rows()); // Number of measurements
@@ -37,7 +37,6 @@ TargetProjectile::TargetProjectile(const unsigned int& id,
   assert(dt0>=0.0);
 
   A_.resize(n_, n_);
-  A_.setZero();
   updateA(dt0);
 
   // Output matrix
@@ -53,7 +52,7 @@ TargetProjectile::TargetProjectile(const unsigned int& id,
 
   STATE_pos(x_) = POSE_pos(p0);
   STATE_vel(x_) = TWIST_linear(v0);
-  STATE_acc(x_) << 0.0, 0.0, -GRAVITY;
+  STATE_acc(x_) = ACCELERATION_linear(a0);
 
   estimator_->init(x_);
 
@@ -62,7 +61,7 @@ TargetProjectile::TargetProjectile(const unsigned int& id,
   printInfo();
 }
 
-void TargetProjectile::addMeasurement(const double& dt, const Eigen::Vector7d& meas)
+void TargetUniformAcceleration::addMeasurement(const double& dt, const Eigen::Vector7d& meas)
 {
   lock_guard<mutex> lg(data_lock_);
 
@@ -77,7 +76,7 @@ void TargetProjectile::addMeasurement(const double& dt, const Eigen::Vector7d& m
   updateMeasurement(meas);
 }
 
-void TargetProjectile::update(const double& dt)
+void TargetUniformAcceleration::update(const double& dt)
 {
   lock_guard<mutex> lg(data_lock_);
 
@@ -89,16 +88,17 @@ void TargetProjectile::update(const double& dt)
   updateTime(dt);
 }
 
-void TargetProjectile::updateA(const double& dt)
+void TargetUniformAcceleration::updateA(const double& dt)
 {
   // A matrix using this dt
-  // Discrete LTI Target motion with gravity acceleration acting on the z axis
-  A_.diagonal()         = Eigen::VectorXd::Ones(n_);
-  A_.diagonal(n_/3)     = Eigen::VectorXd::Ones((n_*2)/3) * dt;
+  // Discrete LTI Target motion
+  A_.setZero();
+  A_.diagonal()     = Eigen::VectorXd::Ones(n_);
+  A_.diagonal(n_/3) = Eigen::VectorXd::Ones((n_*2)/3) * dt;
   A_.diagonal((n_*2)/3) = Eigen::VectorXd::Ones(n_/3) * 0.5 * dt * dt;
 }
 
-void TargetProjectile::updateTargetState()
+void TargetUniformAcceleration::updateTargetState()
 {
   // Read the estimated state
   x_ = estimator_->getState();
@@ -117,7 +117,7 @@ void TargetProjectile::updateTargetState()
   ACCELERATION_angular(acceleration_) << 0.0, 0.0, 0.0;
 }
 
-Eigen::Vector7d TargetProjectile::getEstimatedPose(const double& t1)
+Eigen::Vector7d TargetUniformAcceleration::getEstimatedPose(const double& t1)
 {
   lock_guard<mutex> lg(data_lock_);
 
@@ -130,7 +130,7 @@ Eigen::Vector7d TargetProjectile::getEstimatedPose(const double& t1)
   return vector7d_tmp_;
 }
 
-Eigen::Vector6d TargetProjectile::getEstimatedTwist(const double& t1)
+Eigen::Vector6d TargetUniformAcceleration::getEstimatedTwist(const double& t1)
 {
   lock_guard<mutex> lg(data_lock_);
   return twist_ + acceleration_*(t1-t_);

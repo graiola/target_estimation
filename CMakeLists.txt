@@ -40,7 +40,8 @@ add_library(target SHARED
   src/types/angular_rates.cpp
   src/types/angular_velocities.cpp
   src/types/projectile.cpp
-  src/types/uniformly_accelerated.cpp
+  src/types/uniform_acceleration.cpp
+  src/types/uniform_velocity.cpp
   src/target_manager.cpp
   src/solver.cpp
 )
@@ -62,7 +63,7 @@ install(TARGETS target target_c kalman
 
 if (${roscpp_FOUND})
     message(STATUS "${Yellow}ROS found, compiling ros dependent code${ColorReset}")
-    find_package(catkin REQUIRED COMPONENTS roscpp geometry_msgs message_generation tf)
+    find_package(catkin REQUIRED COMPONENTS roscpp geometry_msgs message_generation tf rostest)
 
     add_message_files(FILES TargetEstimation.msg)
 
@@ -83,22 +84,23 @@ if (${roscpp_FOUND})
     add_executable(target_node src/target_node.cpp)
     target_link_libraries(target_node target_ros)
 
-    add_executable(target_manager_test test/target_manager_test.cpp)
-    target_link_libraries(target_manager_test target ${catkin_LIBRARIES} ${rt_logger_LIBRARIES} gtest)
-
     install(TARGETS target target_c target_ros kalman target_node
       ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
       LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
       RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
     )
 
-    install(DIRECTORY launch/
-      DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/launch
-      PATTERN ".svn" EXCLUDE)
+   install(DIRECTORY launch/
+     DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/launch
+     PATTERN ".svn" EXCLUDE)
 
-    install(DIRECTORY models/
-      DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/models
-      PATTERN ".svn" EXCLUDE)
+   install(DIRECTORY models/
+     DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/models
+     PATTERN ".svn" EXCLUDE)
+
+   install(DIRECTORY matlab/
+     DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/matlab
+     PATTERN ".svn" EXCLUDE)
 
    install(DIRECTORY rviz/
      DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/rviz
@@ -107,5 +109,14 @@ if (${roscpp_FOUND})
    install(DIRECTORY plot_juggler_files/
      DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/plot_juggler_files
      PATTERN ".svn" EXCLUDE)
+
+   # To launch the tests: catkin run_tests
+   if (CATKIN_ENABLE_TESTING)
+       add_rostest_gtest(target_manager_test
+         test/target_manager_test.test
+         test/target_manager_test.cpp)
+       target_link_libraries(target_manager_test target ${catkin_LIBRARIES} ${rt_logger_LIBRARIES})
+   endif()
+
 endif()
 

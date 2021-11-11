@@ -25,7 +25,7 @@ TargetAngularVelocities::TargetAngularVelocities(const unsigned int& id,
                                                  const Eigen::MatrixXd&   R,
                                                  const Eigen::MatrixXd&   P0,
                                                  const Eigen::Vector7d&   p0,
-                                                 const Eigen::Vector6d&   /*v0*/,
+                                                 const Eigen::Vector6d&   v0,
                                                  const Eigen::Vector6d&   /*a0*/)
   : TargetInterface(id,P0,t0)
 {
@@ -34,14 +34,12 @@ TargetAngularVelocities::TargetAngularVelocities(const unsigned int& id,
   n_ = static_cast<unsigned int>(Q.rows()); // Number of states
   m_ = static_cast<unsigned int>(R.rows()); // Number of measurements
 
-  // Supported cases:
+  // Supported case:
   // n = 12: [x y z \psi \theta \phi
   //          \dot{x} \dot{y} \dot{z} omega_x omega_y omega_z]
   assert(n_ == 12);
   assert(m_ <= n_);
   assert(dt0>=0.0);
-
-  acceleration_on_ = false;
 
   // Identity matrix
   I3_.setIdentity();
@@ -55,9 +53,11 @@ TargetAngularVelocities::TargetAngularVelocities(const unsigned int& id,
   pose7dToPose6d(p0,pose_internal_);
 
   STATE_pose(x_)  = pose_internal_;
+  STATE_twist(x_) = v0;
 
   // Linearized transition matrix
   A_.resize(n_, n_);
+  A_.setZero();
   updateA(dt0,STATE_rpy(x_),STATE_omega(x_));
 
   // Linearized output matrix

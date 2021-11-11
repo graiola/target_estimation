@@ -332,11 +332,6 @@ protected:
   Eigen::MatrixXd A_;
 
   /**
-     * @brief acceleration_on_ true if the acceleration is integrated in the dynamical system
-     */
-  bool acceleration_on_;
-
-  /**
      * @brief Temporary variables
      */
   Eigen::Vector3d vector3d_tmp_;

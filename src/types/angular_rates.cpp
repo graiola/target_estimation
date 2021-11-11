@@ -34,22 +34,16 @@ TargetAngularRates::TargetAngularRates(const unsigned int& id,
   n_ = static_cast<unsigned int>(Q.rows()); // Number of states
   m_ = static_cast<unsigned int>(R.rows()); // Number of measurements
 
-  // Supported cases:
-  // n = 12: [x y z \psi \theta \phi
-  //          \dot{x} \dot{y} \dot{z} \dot{\psi} \dot{\theta} \dot{\phi}]
+  // Supported case:
   // n = 18: [x y z \psi \theta \phi
   //          \dot{x} \dot{y} \dot{z} \dot{\psi} \dot{\theta} \dot{\phi}
   //          \ddot{x} \ddot{y} \ddot{z} \ddot{\psi} \ddot{\theta} \ddot{\phi}]
-  assert(n_ == 12 || n_ == 18);
+  assert(n_ == 18);
   assert(m_ <= n_);
   assert(dt0>=0.0);
 
-  if(n_ == 18)
-    acceleration_on_ = true;
-  else
-    acceleration_on_ = false;
-
   A_.resize(n_, n_);
+  A_.setZero();
   updateA(dt0);
 
   // Output matrix
@@ -65,6 +59,8 @@ TargetAngularRates::TargetAngularRates(const unsigned int& id,
   pose7dToPose6d(p0,pose_internal_);
 
   STATE_pose(x_)  = pose_internal_;
+  STATE_twist(x_) = v0;
+  STATE_acc(x_)   = a0;
 
   estimator_->init(x_);
 
@@ -113,15 +109,9 @@ void TargetAngularRates::updateA(const double& dt)
 {
   // A matrix using this dt
   // Discrete LTI Target motion
-  A_.setZero();
   A_.diagonal()     = Eigen::VectorXd::Ones(n_);
-  if(acceleration_on_)
-   {
-     A_.diagonal(n_/3) = Eigen::VectorXd::Ones((n_*2)/3) * dt;
-     A_.diagonal((n_*2)/3) = Eigen::VectorXd::Ones(n_/3) * 0.5 * dt * dt;
-   }
-   else
-     A_.diagonal(n_/2) = Eigen::VectorXd::Ones(n_/2) * dt;
+  A_.diagonal(n_/3) = Eigen::VectorXd::Ones((n_*2)/3) * dt;
+  A_.diagonal((n_*2)/3) = Eigen::VectorXd::Ones(n_/3) * 0.5 * dt * dt;
 }
 
 void TargetAngularRates::updateTargetState()
@@ -145,10 +135,7 @@ void TargetAngularRates::updateTargetState()
   rpyToEarBase(rpy_,Ear_);
   TWIST_angular(twist_) = Ear_ * STATE_rates(x_);
 
-  if(acceleration_on_)
-    acceleration_ = STATE_acc(x_);
-  else
-    acceleration_.setZero();
+  acceleration_ = STATE_acc(x_);
 }
 
 Eigen::Vector7d TargetAngularRates::getEstimatedPose(const double& t1)

@@ -13,51 +13,38 @@ const double _pObserved_mean = 0.0;
 // Statistical generators
 static std::default_random_engine _generator;
 static std::normal_distribution<double> normal_dist(_pObserved_mean, _pObserved_stddev);
-static double _dt = 0.001;
 static unsigned int _n_points = 10000;
 static double _end_goal_x = 0.2;
 static double _end_goal_y = 0.3;
 static double _end_goal_z = 0.4;
 static Eigen::Vector3d _omega(3.0, 0.01, 0.1);
 
-void generateMatrices(Eigen::MatrixXd& Q, Eigen::MatrixXd& R, Eigen::MatrixXd& P)
+bool parseSquareMatrix(const ros::NodeHandle& n, const std::string& matrix, Eigen::MatrixXd& M)
 {
-  Q.resize(12,12);
-  R.resize(6,6);
-  P.resize(12,12);
+  std::vector<double> Mv;
+  if (n.getParam(matrix, Mv))
+  {
+    unsigned int size = static_cast<unsigned int>(std::sqrt(Mv.size()));
+    M = Eigen::Map<Eigen::MatrixXd>(Mv.data(),size,size);
+  }
+  else
+  {
+    ROS_ERROR_STREAM("Can not find matrix: "<<matrix);
+    return false;
+  }
 
-  Q      << 2.5000e-17,   0.0000e+00,   0.0000e+00,   0.0000e+00,   0.0000e+00,   0.0000e+00,   5.0000e-14,   0.0000e+00,   0.0000e+00,   0.0000e+00,   0.0000e+00,   0.0000e+00,
-            0.0000e+00,   2.5000e-17,   0.0000e+00,   0.0000e+00,   0.0000e+00,   0.0000e+00,   0.0000e+00,   5.0000e-14,   0.0000e+00,   0.0000e+00,   0.0000e+00,   0.0000e+00,
-            0.0000e+00,   0.0000e+00,   2.5000e-17,   0.0000e+00,   0.0000e+00,   0.0000e+00,   0.0000e+00,   0.0000e+00,   5.0000e-14,   0.0000e+00,   0.0000e+00,   0.0000e+00,
-            0.0000e+00,   0.0000e+00,   0.0000e+00,   2.5000e-19,   0.0000e+00,   0.0000e+00,   0.0000e+00,   0.0000e+00,   0.0000e+00,   5.0000e-16,   0.0000e+00,   0.0000e+00,
-            0.0000e+00,   0.0000e+00,   0.0000e+00,   0.0000e+00,   2.5000e-19,   0.0000e+00,   0.0000e+00,   0.0000e+00,   0.0000e+00,   0.0000e+00,   5.0000e-16,   0.0000e+00,
-            0.0000e+00,   0.0000e+00,   0.0000e+00,   0.0000e+00,   0.0000e+00,   2.5000e-19,   0.0000e+00,   0.0000e+00,   0.0000e+00,   0.0000e+00,   0.0000e+00,   5.0000e-16,
-            5.0000e-14,   0.0000e+00,   0.0000e+00,   0.0000e+00,   0.0000e+00,   0.0000e+00,   1.0000e-10,   0.0000e+00,   0.0000e+00,   0.0000e+00,   0.0000e+00,   0.0000e+00,
-            0.0000e+00,   5.0000e-14,   0.0000e+00,   0.0000e+00,   0.0000e+00,   0.0000e+00,   0.0000e+00,   1.0000e-10,   0.0000e+00,   0.0000e+00,   0.0000e+00,   0.0000e+00,
-            0.0000e+00,   0.0000e+00,   5.0000e-14,   0.0000e+00,   0.0000e+00,   0.0000e+00,   0.0000e+00,   0.0000e+00,   1.0000e-10,   0.0000e+00,   0.0000e+00,   0.0000e+00,
-            0.0000e+00,   0.0000e+00,   0.0000e+00,   5.0000e-16,   0.0000e+00,   0.0000e+00,   0.0000e+00,   0.0000e+00,   0.0000e+00,   1.0000e-12,   0.0000e+00,   0.0000e+00,
-            0.0000e+00,   0.0000e+00,   0.0000e+00,   0.0000e+00,   5.0000e-16,   0.0000e+00,   0.0000e+00,   0.0000e+00,   0.0000e+00,   0.0000e+00,   1.0000e-12,   0.0000e+00,
-            0.0000e+00,   0.0000e+00,   0.0000e+00,   0.0000e+00,   0.0000e+00,   5.0000e-16,   0.0000e+00,   0.0000e+00,   0.0000e+00,   0.0000e+00,   0.0000e+00,   1.0000e-12;
+  return true;
+}
 
-  R      << 1.0000e-04,   0.0000e+00,   0.0000e+00,   0.0000e+00,   0.0000e+00,   0.0000e+00,
-            0.0000e+00,   1.0000e-04,   0.0000e+00,   0.0000e+00,   0.0000e+00,   0.0000e+00,
-            0.0000e+00,   0.0000e+00,   1.0000e-04,   0.0000e+00,   0.0000e+00,   0.0000e+00,
-            0.0000e+00,   0.0000e+00,   0.0000e+00,   1.0000e-04,   0.0000e+00,   0.0000e+00,
-            0.0000e+00,   0.0000e+00,   0.0000e+00,   0.0000e+00,   1.0000e-04,   0.0000e+00,
-            0.0000e+00,   0.0000e+00,   0.0000e+00,   0.0000e+00,   0.0000e+00,   1.0000e-04;
-
-  P      << 1.00000,   0.00000,   0.00000,   0.00000,   0.00000,   0.00000,   0.00000,   0.00000,   0.00000,   0.00000,   0.00000,   0.00000,
-            0.00000,   1.00000,   0.00000,   0.00000,   0.00000,   0.00000,   0.00000,   0.00000,   0.00000,   0.00000,   0.00000,   0.00000,
-            0.00000,   0.00000,   1.00000,   0.00000,   0.00000,   0.00000,   0.00000,   0.00000,   0.00000,   0.00000,   0.00000,   0.00000,
-            0.00000,   0.00000,   0.00000,   1.00000,   0.00000,   0.00000,   0.00000,   0.00000,   0.00000,   0.00000,   0.00000,   0.00000,
-            0.00000,   0.00000,   0.00000,   0.00000,   1.00000,   0.00000,   0.00000,   0.00000,   0.00000,   0.00000,   0.00000,   0.00000,
-            0.00000,   0.00000,   0.00000,   0.00000,   0.00000,   1.00000,   0.00000,   0.00000,   0.00000,   0.00000,   0.00000,   0.00000,
-            0.00000,   0.00000,   0.00000,   0.00000,   0.00000,   0.00000,   0.01000,   0.00000,   0.00000,   0.00000,   0.00000,   0.00000,
-            0.00000,   0.00000,   0.00000,   0.00000,   0.00000,   0.00000,   0.00000,   0.01000,   0.00000,   0.00000,   0.00000,   0.00000,
-            0.00000,   0.00000,   0.00000,   0.00000,   0.00000,   0.00000,   0.00000,   0.00000,   0.01000,   0.00000,   0.00000,   0.00000,
-            0.00000,   0.00000,   0.00000,   0.00000,   0.00000,   0.00000,   0.00000,   0.00000,   0.00000,   0.01000,   0.00000,   0.00000,
-            0.00000,   0.00000,   0.00000,   0.00000,   0.00000,   0.00000,   0.00000,   0.00000,   0.00000,   0.00000,   0.01000,   0.00000,
-            0.00000,   0.00000,   0.00000,   0.00000,   0.00000,   0.00000,   0.00000,   0.00000,   0.00000,   0.00000,   0.00000,   0.01000;
+void loadModel(const std::string& model_name, Eigen::MatrixXd& Q, Eigen::MatrixXd& R, Eigen::MatrixXd& P, double& dt)
+{
+  ros::NodeHandle nh(model_name);
+  parseSquareMatrix(nh,"Q",Q);
+  parseSquareMatrix(nh,"R",R);
+  parseSquareMatrix(nh,"P",P);
+  double f;
+  nh.getParam("frequency",f);
+  dt = 1.0/f;
 }
 
 void generateMeasurements(const double dt, const unsigned int n_points,
@@ -97,15 +84,15 @@ void generateMeasurements(const double dt, const unsigned int n_points,
   }
 }
 
-Eigen::Vector3d calculateVelocities()
+Eigen::Vector3d calculateVelocities(const double& dt)
 {
-  double total_time = _n_points * _dt;
+  double total_time = _n_points * dt;
   Eigen::Vector3d velocities;
   velocities << _end_goal_x, _end_goal_y, _end_goal_z;
   return velocities/total_time;
 }
 
-void generateEstimation(const unsigned int id, const Eigen::MatrixXd& meas_pose, Eigen::MatrixXd& est_pose, Eigen::MatrixXd& est_twist, Eigen::MatrixXd& sigma_xyz)
+void generateEstimation(const unsigned int id, const double& dt, const Eigen::MatrixXd& meas_pose, Eigen::MatrixXd& est_pose, Eigen::MatrixXd& est_twist, Eigen::MatrixXd& sigma_xyz)
 {
   // Feed measurements into filter, output estimated states
   est_pose.resize(_n_points,7);
@@ -119,7 +106,7 @@ void generateEstimation(const unsigned int id, const Eigen::MatrixXd& meas_pose,
   for(unsigned int i = 0; i < _n_points; i++)
   {
       current_meas_pose = meas_pose.row(i);
-      _manager.update(id,_dt,current_meas_pose);
+      _manager.update(id,dt,current_meas_pose);
       _manager.getTargetPose(id,current_est_pose);
       est_pose.row(i) = current_est_pose;
       _manager.getTargetTwist(id,current_est_twist);
@@ -128,21 +115,22 @@ void generateEstimation(const unsigned int id, const Eigen::MatrixXd& meas_pose,
   }
 }
 
-TEST(test_target, AngularRates)
+TEST(test_target, UniformVelocity)
 {
     Eigen::MatrixXd Q,R,P;
-    generateMatrices(Q,R,P);
+    double dt;
+    loadModel("model_uniform_velocity_params",Q,R,P,dt);
     Eigen::MatrixXd real_pose, meas_pose;
     Eigen::VectorXd time;
-    generateMeasurements(_dt,_n_points,_end_goal_x,_end_goal_y,_end_goal_z,_omega,meas_pose,real_pose,time);
+    generateMeasurements(dt,_n_points,_end_goal_x,_end_goal_y,_end_goal_z,_omega,meas_pose,real_pose,time);
 
     unsigned int id = 0;
     Eigen::Vector7d p0;
     initPose(p0);
-    _manager.init(TargetManager::target_t::ANGULAR_RATES,id,_dt,0.0,Q,R,P,p0);
+    _manager.init(TargetManager::target_t::UNIFORM_VELOCITY,id,dt,0.0,Q,R,P,p0);
 
     Eigen::MatrixXd est_pose, est_twist, sigma_xyz;
-    generateEstimation(id,meas_pose,est_pose,est_twist,sigma_xyz);
+    generateEstimation(id,dt,meas_pose,est_pose,est_twist,sigma_xyz);
 
     // Save the data for the plots
     writeTxtFile("time_"+std::to_string(id),time);
@@ -151,7 +139,99 @@ TEST(test_target, AngularRates)
     writeTxtFile("est_pose_"+std::to_string(id),est_pose);
     writeTxtFile("est_twist_"+std::to_string(id),est_twist);
 
-    auto velocities = calculateVelocities();
+    auto velocities = calculateVelocities(dt);
+
+    Eigen::VectorXd xdot, ydot, zdot;
+    Eigen::VectorXd x,    y,    z;
+
+    x = est_pose.col(0);
+    y = est_pose.col(1);
+    z = est_pose.col(2);
+
+    EXPECT_NEAR( _end_goal_x, x(x.size()-1), 0.01 );
+    EXPECT_NEAR( _end_goal_y, y(y.size()-1), 0.01 );
+    EXPECT_NEAR( _end_goal_z, z(z.size()-1), 0.01 );
+
+    xdot   = est_twist.col(0);
+    ydot   = est_twist.col(1);
+    zdot   = est_twist.col(2);
+
+    EXPECT_NEAR( velocities(0) ,xdot.mean(), 0.01 );
+    EXPECT_NEAR( velocities(1) ,ydot.mean(), 0.01 );
+    EXPECT_NEAR( velocities(2) ,zdot.mean(), 0.01 );
+}
+
+TEST(test_target, UniformAcceleration)
+{
+    Eigen::MatrixXd Q,R,P;
+    double dt;
+    loadModel("model_uniform_acceleration_params",Q,R,P,dt);
+    Eigen::MatrixXd real_pose, meas_pose;
+    Eigen::VectorXd time;
+    generateMeasurements(dt,_n_points,_end_goal_x,_end_goal_y,_end_goal_z,_omega,meas_pose,real_pose,time);
+
+    unsigned int id = 1;
+    Eigen::Vector7d p0;
+    initPose(p0);
+    _manager.init(TargetManager::target_t::UNIFORM_ACCELERATION,id,dt,0.0,Q,R,P,p0);
+
+    Eigen::MatrixXd est_pose, est_twist, sigma_xyz;
+    generateEstimation(id,dt,meas_pose,est_pose,est_twist,sigma_xyz);
+
+    // Save the data for the plots
+    writeTxtFile("time_"+std::to_string(id),time);
+    writeTxtFile("real_pose_"+std::to_string(id),real_pose);
+    writeTxtFile("meas_pose_"+std::to_string(id),meas_pose);
+    writeTxtFile("est_pose_"+std::to_string(id),est_pose);
+    writeTxtFile("est_twist_"+std::to_string(id),est_twist);
+
+    auto velocities = calculateVelocities(dt);
+
+    Eigen::VectorXd xdot, ydot, zdot;
+    Eigen::VectorXd x,    y,    z;
+
+    x = est_pose.col(0);
+    y = est_pose.col(1);
+    z = est_pose.col(2);
+
+    EXPECT_NEAR( _end_goal_x, x(x.size()-1), 0.01 );
+    EXPECT_NEAR( _end_goal_y, y(y.size()-1), 0.01 );
+    EXPECT_NEAR( _end_goal_z, z(z.size()-1), 0.01 );
+
+    xdot   = est_twist.col(0);
+    ydot   = est_twist.col(1);
+    zdot   = est_twist.col(2);
+
+    EXPECT_NEAR( velocities(0) ,xdot.mean(), 0.01 );
+    EXPECT_NEAR( velocities(1) ,ydot.mean(), 0.01 );
+    EXPECT_NEAR( velocities(2) ,zdot.mean(), 0.01 );
+}
+
+TEST(test_target, AngularRates)
+{
+    Eigen::MatrixXd Q,R,P;
+    double dt;
+    loadModel("model_angular_rates_params",Q,R,P,dt);
+    Eigen::MatrixXd real_pose, meas_pose;
+    Eigen::VectorXd time;
+    generateMeasurements(dt,_n_points,_end_goal_x,_end_goal_y,_end_goal_z,_omega,meas_pose,real_pose,time);
+
+    unsigned int id = 2;
+    Eigen::Vector7d p0;
+    initPose(p0);
+    _manager.init(TargetManager::target_t::ANGULAR_RATES,id,dt,0.0,Q,R,P,p0);
+
+    Eigen::MatrixXd est_pose, est_twist, sigma_xyz;
+    generateEstimation(id,dt,meas_pose,est_pose,est_twist,sigma_xyz);
+
+    // Save the data for the plots
+    writeTxtFile("time_"+std::to_string(id),time);
+    writeTxtFile("real_pose_"+std::to_string(id),real_pose);
+    writeTxtFile("meas_pose_"+std::to_string(id),meas_pose);
+    writeTxtFile("est_pose_"+std::to_string(id),est_pose);
+    writeTxtFile("est_twist_"+std::to_string(id),est_twist);
+
+    auto velocities = calculateVelocities(dt);
 
     Eigen::VectorXd xdot, ydot, zdot;
     Eigen::VectorXd omegax, omegay, omegaz;
@@ -175,7 +255,7 @@ TEST(test_target, AngularRates)
     EXPECT_NEAR( velocities(0) ,xdot.mean(), 0.01 );
     EXPECT_NEAR( velocities(1) ,ydot.mean(), 0.01 );
     EXPECT_NEAR( velocities(2) ,zdot.mean(), 0.01 );
-    // Note: for RPY target does not make sense to check if the omegas
+    // Note: for AngularRates target does not make sense to check if the omegas
     // are correct
     //EXPECT_NEAR( _omega(0) ,omegax.mean(), 0.01 );
     //EXPECT_NEAR( _omega(1) ,omegay.mean(), 0.01 );
@@ -185,18 +265,19 @@ TEST(test_target, AngularRates)
 TEST(test_target, AngularVelocities)
 {
     Eigen::MatrixXd Q,R,P;
-    generateMatrices(Q,R,P);
+    double dt;
+    loadModel("model_angular_velocities_params",Q,R,P,dt);
     Eigen::MatrixXd real_pose, meas_pose;
     Eigen::VectorXd time;
-    generateMeasurements(_dt,_n_points,_end_goal_x,_end_goal_y,_end_goal_z,_omega,meas_pose,real_pose,time);
+    generateMeasurements(dt,_n_points,_end_goal_x,_end_goal_y,_end_goal_z,_omega,meas_pose,real_pose,time);
 
-    unsigned int id = 1;
+    unsigned int id = 3;
     Eigen::Vector7d p0;
     initPose(p0);
-    _manager.init(TargetManager::target_t::ANGULAR_VELOCITIES,id,_dt,0.0,Q,R,P,p0);
+    _manager.init(TargetManager::target_t::ANGULAR_VELOCITIES,id,dt,0.0,Q,R,P,p0);
 
     Eigen::MatrixXd est_pose, est_twist, sigma_xyz;
-    generateEstimation(id,meas_pose,est_pose,est_twist,sigma_xyz);
+    generateEstimation(id,dt,meas_pose,est_pose,est_twist,sigma_xyz);
 
     // Save the data for the plots
     writeTxtFile("time_"+std::to_string(id),time);
@@ -205,7 +286,7 @@ TEST(test_target, AngularVelocities)
     writeTxtFile("est_pose_"+std::to_string(id),est_pose);
     writeTxtFile("est_twist_"+std::to_string(id),est_twist);
 
-    auto velocities = calculateVelocities();
+    auto velocities = calculateVelocities(dt);
 
     Eigen::VectorXd xdot, ydot, zdot;
     Eigen::VectorXd omegax, omegay, omegaz;
@@ -232,9 +313,9 @@ TEST(test_target, AngularVelocities)
     EXPECT_NEAR( _omega(0)     ,omegax.mean(), 0.05 );
     EXPECT_NEAR( _omega(1)     ,omegay.mean(), 0.05 );
     EXPECT_NEAR( _omega(2)     ,omegaz.mean(), 0.05 );
-    EXPECT_NEAR( _omega(0), omegax(omegax.size()-1), 0.01 );
-    EXPECT_NEAR( _omega(1), omegay(omegay.size()-1), 0.01 );
-    EXPECT_NEAR( _omega(2), omegaz(omegaz.size()-1), 0.01 );
+    EXPECT_NEAR( _omega(0), omegax(omegax.size()-1), 0.1 );
+    EXPECT_NEAR( _omega(1), omegay(omegay.size()-1), 0.1 );
+    EXPECT_NEAR( _omega(2), omegaz(omegaz.size()-1), 0.1 );
 }
 
 

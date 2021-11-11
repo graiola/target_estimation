@@ -1,12 +1,12 @@
 <?xml version="1.0" ?>
 <launch>
    <arg name="gui" default="false"/>
-   <arg name="kf_model" default="kf_rpy_ext_params_50hz"/>
+   <arg name="model" default="model_uniform_velocity_params.yaml"/>
    <arg name="token" default="target"/>
    <arg name="timeout" default="5.0"/>
 
    <!-- Load the kalman filter model -->
-   <rosparam command="load" file="$(find target_estimation)/models/$(arg kf_model).yaml" ns="target_estimation"/>
+   <rosparam command="load" file="$(find target_estimation)/models/$(arg model).yaml" ns="target_estimation"/>
 
    <!-- Spawn the target node -->
    <include file="$(find target_estimation)/launch/target_node_spawn.launch">

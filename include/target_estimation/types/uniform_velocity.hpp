@@ -2,8 +2,8 @@
 *
 */
 
-#ifndef UNIFORMLY_ACCELERATED_HPP
-#define UNIFORMLY_ACCELERATED_HPP
+#ifndef UNIFORM_VELOCITY_HPP
+#define UNIFORM_VELOCITY_HPP
 
 #include <map>
 #include <string>
@@ -16,18 +16,18 @@
 #include "target_estimation/target_interface.hpp"
 
 /**
- * @brief The TargetUniformlyAccelerated class
- * Linear implementation of a kalman filter describing a uniformly accelerated motion (UAM) with state variable defined as:
- * [x y z \dot{x} \dot{y} \dot{z} \ddot{x} \ddot{y} \ddot{z}]
+ * @brief The TargetUniformVelocity class
+ * Linear implementation of a kalman filter describing a uniform rectilinear motion (URM) with state variable defined as:
+ * [x y z \dot{x} \dot{y} \dot{z}]
  */
-class TargetUniformlyAccelerated : public TargetInterface
+class TargetUniformVelocity : public TargetInterface
 {
 
 public:
 
-  typedef std::shared_ptr<TargetUniformlyAccelerated> Ptr;
+  typedef std::shared_ptr<TargetUniformVelocity> Ptr;
 
-  TargetUniformlyAccelerated(const unsigned int& id,
+  TargetUniformVelocity(const unsigned int& id,
             const double& dt0,
             const double& t0,
             const Eigen::MatrixXd&   Q,

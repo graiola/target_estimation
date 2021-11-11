@@ -2,19 +2,18 @@
 *
 */
 
-#include "target_estimation/types/uniformly_accelerated.hpp"
+#include "target_estimation/types/uniform_velocity.hpp"
 
 using namespace std;
 
 // Helpers
 #define STATE_pos(x)      x.segment(0,3)
 #define STATE_vel(x)      x.segment(3,3)
-#define STATE_acc(x)      x.segment(6,3)
 
 // ----------------------------
-// TargetUniformlyAccelerated
+// TargetUniformVelocity
 // ----------------------------
-TargetUniformlyAccelerated::TargetUniformlyAccelerated(const unsigned int& id,
+TargetUniformVelocity::TargetUniformVelocity(const unsigned int& id,
                      const double& dt0,
                      const double& t0,
                      const Eigen::MatrixXd&   Q,
@@ -22,23 +21,22 @@ TargetUniformlyAccelerated::TargetUniformlyAccelerated(const unsigned int& id,
                      const Eigen::MatrixXd&   P0,
                      const Eigen::Vector7d&   p0,
                      const Eigen::Vector6d&   v0,
-                     const Eigen::Vector6d&   a0) :
+                     const Eigen::Vector6d&   /*a0*/) :
   TargetInterface(id,P0,t0)
 {
-  class_name_ = "TargetUniformlyAccelerated";
+  class_name_ = "TargetUniformVelocity";
 
   n_ = static_cast<unsigned int>(Q.rows()); // Number of states
   m_ = static_cast<unsigned int>(R.rows()); // Number of measurements
 
   // Supported case:
-  // n = 9: [x y z \dot{x} \dot{y} \dot{z} \ddot{x} \ddot{y} \ddot{z}]
-  assert(n_ == 9);
+  // n = 6: [x y z \dot{x} \dot{y} \dot{z}]
+  assert(n_ == 6);
   assert(m_ <= n_);
   assert(dt0>=0.0);
 
-  acceleration_on_ = true;
-
   A_.resize(n_, n_);
+  A_.setZero();
   updateA(dt0);
 
   // Output matrix
@@ -54,7 +52,6 @@ TargetUniformlyAccelerated::TargetUniformlyAccelerated(const unsigned int& id,
 
   STATE_pos(x_) = POSE_pos(p0);
   STATE_vel(x_) = TWIST_linear(v0);
-  STATE_acc(x_) = ACCELERATION_linear(a0);
 
   estimator_->init(x_);
 
@@ -63,7 +60,7 @@ TargetUniformlyAccelerated::TargetUniformlyAccelerated(const unsigned int& id,
   printInfo();
 }
 
-void TargetUniformlyAccelerated::addMeasurement(const double& dt, const Eigen::Vector7d& meas)
+void TargetUniformVelocity::addMeasurement(const double& dt, const Eigen::Vector7d& meas)
 {
   lock_guard<mutex> lg(data_lock_);
 
@@ -78,7 +75,7 @@ void TargetUniformlyAccelerated::addMeasurement(const double& dt, const Eigen::V
   updateMeasurement(meas);
 }
 
-void TargetUniformlyAccelerated::update(const double& dt)
+void TargetUniformVelocity::update(const double& dt)
 {
   lock_guard<mutex> lg(data_lock_);
 
@@ -90,17 +87,15 @@ void TargetUniformlyAccelerated::update(const double& dt)
   updateTime(dt);
 }
 
-void TargetUniformlyAccelerated::updateA(const double& dt)
+void TargetUniformVelocity::updateA(const double& dt)
 {
   // A matrix using this dt
   // Discrete LTI Target motion
-  A_.setZero();
   A_.diagonal()     = Eigen::VectorXd::Ones(n_);
-  A_.diagonal(n_/3) = Eigen::VectorXd::Ones((n_*2)/3) * dt;
-  A_.diagonal((n_*2)/3) = Eigen::VectorXd::Ones(n_/3) * 0.5 * dt * dt;
+  A_.diagonal(n_/2) = Eigen::VectorXd::Ones(n_/2) * dt;
 }
 
-void TargetUniformlyAccelerated::updateTargetState()
+void TargetUniformVelocity::updateTargetState()
 {
   // Read the estimated state
   x_ = estimator_->getState();
@@ -115,15 +110,15 @@ void TargetUniformlyAccelerated::updateTargetState()
   TWIST_linear(twist_) = STATE_vel(x_);
   TWIST_angular(twist_) << 0.0, 0.0, 0.0;
 
-  ACCELERATION_linear(acceleration_) = STATE_acc(x_);
+  ACCELERATION_linear(acceleration_)  << 0.0, 0.0, 0.0;
   ACCELERATION_angular(acceleration_) << 0.0, 0.0, 0.0;
 }
 
-Eigen::Vector7d TargetUniformlyAccelerated::getEstimatedPose(const double& t1)
+Eigen::Vector7d TargetUniformVelocity::getEstimatedPose(const double& t1)
 {
   lock_guard<mutex> lg(data_lock_);
 
-  POSE_pos(vector6d_tmp_) = position_ + TWIST_linear(twist_)*(t1-t_) + 0.5 * ACCELERATION_linear(acceleration_)*(t1-t_)*(t1-t_);
+  POSE_pos(vector6d_tmp_) = position_ + TWIST_linear(twist_)*(t1-t_);
 
   quaterniond_tmp_.setIdentity();
   POSE_pos(vector7d_tmp_)  = POSE_pos(vector6d_tmp_);
@@ -132,8 +127,8 @@ Eigen::Vector7d TargetUniformlyAccelerated::getEstimatedPose(const double& t1)
   return vector7d_tmp_;
 }
 
-Eigen::Vector6d TargetUniformlyAccelerated::getEstimatedTwist(const double& t1)
+Eigen::Vector6d TargetUniformVelocity::getEstimatedTwist(const double& /*t1*/)
 {
   lock_guard<mutex> lg(data_lock_);
-  return twist_ + acceleration_*(t1-t_);
+  return twist_;
 }

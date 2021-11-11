@@ -29,7 +29,6 @@ TargetInterface::TargetInterface(const unsigned int& id, const Eigen::MatrixXd P
   q_.setIdentity();
   twist_.setZero();
   acceleration_.setZero();
-  acceleration_on_ = false;
   t_ = t0;
   P_ = P0;
   pos_error_filter_.reset(new MovingAvgFilter(250)); // with 50hz loop we have 5.0 secs of filter
@@ -83,8 +82,6 @@ void TargetInterface::printInfo()
   std::cout << estimator_->getR() << std::endl;
   std::cout << "P0:" << std::endl;
   std::cout << estimator_->getP0() << std::endl;
-  if(!acceleration_on_)
-    std::cout << "Assuming constant velocities" << std::endl;
 }
 
 double TargetInterface::getPeriodEstimate()
@@ -118,24 +115,24 @@ double TargetInterface::getIntersectionTime(const double& t1, const Eigen::Vecto
   // Polynomial coefficients
   Eigen::VectorXd coeff;
 
-  if(acceleration_on_)
-  {
-    // 2rd order system
-    coeff.resize(5);
-    coeff(4) = 0.25 * ax*ax + ay*ay + az*az;
-    coeff(3) = vx*ax + vy*ay + vz*az;
-    coeff(2) = vx*vx + vy*vy + vz*vz + x*ax + y*ay + z*az;
-    coeff(1) = 2*(x*vx + y*vy + z*vz);
-    coeff(0) = x*x + y*y + z*z - R*R;
-  }
-  else
-  {
-    // 1st order system
-    coeff.resize(3);
-    coeff(2) = vx*vx + vy*vy + vz*vz;
-    coeff(1) = 2*(x*vx + y*vy + z*vz);
-    coeff(0) = x*x + y*y + z*z - R*R;
-  }
+  //if(acceleration_on_)
+  //{
+  // 2rd order system
+  coeff.resize(5);
+  coeff(4) = 0.25 * ax*ax + ay*ay + az*az;
+  coeff(3) = vx*ax + vy*ay + vz*az;
+  coeff(2) = vx*vx + vy*vy + vz*vz + x*ax + y*ay + z*az;
+  coeff(1) = 2*(x*vx + y*vy + z*vz);
+  coeff(0) = x*x + y*y + z*z - R*R;
+  //}
+  //else
+  //{
+  //  // 1st order system
+  //  coeff.resize(3);
+  //  coeff(2) = vx*vx + vy*vy + vz*vz;
+  //  coeff(1) = 2*(x*vx + y*vy + z*vz);
+  //  coeff(0) = x*x + y*y + z*z - R*R;
+  //}
 
   double delta_intersect_t = solver_.lowestRealRoot(coeff);
 

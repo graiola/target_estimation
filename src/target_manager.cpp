@@ -6,7 +6,8 @@
 #include "target_estimation/types/angular_rates.hpp"
 #include "target_estimation/types/angular_velocities.hpp"
 #include "target_estimation/types/projectile.hpp"
-#include "target_estimation/types/uniformly_accelerated.hpp"
+#include "target_estimation/types/uniform_acceleration.hpp"
+#include "target_estimation/types/uniform_velocity.hpp"
 #include <stdexcept>
 
 using namespace std;
@@ -57,8 +58,10 @@ bool TargetManager::selectTargetType(const std::string& type_str, target_t& type
         type = TargetManager::target_t::ANGULAR_VELOCITIES;
     else if (std::strcmp(type_str.c_str(),"projectile") == 0)
         type = TargetManager::target_t::PROJECTILE;
-    else if (std::strcmp(type_str.c_str(),"uniformly_accelerated") == 0)
-        type = TargetManager::target_t::UNIFORMLY_ACCELERATED;
+    else if (std::strcmp(type_str.c_str(),"uniform_acceleration") == 0)
+        type = TargetManager::target_t::UNIFORM_ACCELERATION;
+    else if (std::strcmp(type_str.c_str(),"uniform_velocity") == 0)
+        type = TargetManager::target_t::UNIFORM_VELOCITY;
     else
       return false;
     return true;
@@ -166,9 +169,13 @@ void TargetManager::init(const target_t& type, const unsigned int& id, const dou
             targets_[id].reset(new TargetProjectile(id,dt0,t0,Q,R,P0,p0,v0,a0));
             std::cout << "Catching some bullets!" << std::endl;
             break;
-        case target_t::UNIFORMLY_ACCELERATED:
-            targets_[id].reset(new TargetUniformlyAccelerated(id,dt0,t0,Q,R,P0,p0,v0,a0));
-            std::cout << "Uniformly Accelerated Target" << std::endl;
+        case target_t::UNIFORM_ACCELERATION:
+            targets_[id].reset(new TargetUniformAcceleration(id,dt0,t0,Q,R,P0,p0,v0,a0));
+            std::cout << "Uniformly accelerated motion" << std::endl;
+            break;
+        case target_t::UNIFORM_VELOCITY:
+            targets_[id].reset(new TargetUniformVelocity(id,dt0,t0,Q,R,P0,p0,v0,a0));
+            std::cout << "Uniform rectilinear motion" << std::endl;
             break;
         }
     }
