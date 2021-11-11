@@ -7,8 +7,8 @@ Estimate the pose of incoming targets through kalman filtering.
 # ToDo
 
 - [x] Cleanup the matlab scripts and add the freq
-- [] Add sigma to the tests/plots
-- [] Export intersection with the ros target manager
-- [] Add transformation from target to observer in the yaml (so that the projectile has the z oriented with the world frame for example)
+- [ ] Add sigma to the tests/plots
+- [ ] Export intersection with the ros target manager
+- [ ] Add transformation from target to observer in the yaml (so that the projectile has the z oriented with the world frame for example)
 
 # Notes
