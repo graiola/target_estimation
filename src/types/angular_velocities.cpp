@@ -25,8 +25,8 @@ TargetAngularVelocities::TargetAngularVelocities(const unsigned int& id,
                                                  const Eigen::MatrixXd&   R,
                                                  const Eigen::MatrixXd&   P0,
                                                  const Eigen::Vector7d&   p0,
-                                                 const Eigen::Vector6d&   v0,
-                                                 const Eigen::Vector6d&   a0)
+                                                 const Eigen::Vector6d&   /*v0*/,
+                                                 const Eigen::Vector6d&   /*a0*/)
   : TargetInterface(id,P0,t0)
 {
   class_name_ = "TargetAngularVelocities";
@@ -40,6 +40,8 @@ TargetAngularVelocities::TargetAngularVelocities(const unsigned int& id,
   assert(n_ == 12);
   assert(m_ <= n_);
   assert(dt0>=0.0);
+
+  acceleration_on_ = false;
 
   // Identity matrix
   I3_.setIdentity();

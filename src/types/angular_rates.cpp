@@ -115,9 +115,13 @@ void TargetAngularRates::updateA(const double& dt)
   // Discrete LTI Target motion
   A_.setZero();
   A_.diagonal()     = Eigen::VectorXd::Ones(n_);
-  A_.diagonal(n_/2) = Eigen::VectorXd::Ones(n_/2) * dt;
   if(acceleration_on_)
-    A_.diagonal(n_) = Eigen::VectorXd::Ones(n_) * 0.5 * dt * dt;
+   {
+     A_.diagonal(n_/3) = Eigen::VectorXd::Ones((n_*2)/3) * dt;
+     A_.diagonal((n_*2)/3) = Eigen::VectorXd::Ones(n_/3) * 0.5 * dt * dt;
+   }
+   else
+     A_.diagonal(n_/2) = Eigen::VectorXd::Ones(n_/2) * dt;
 }
 
 void TargetAngularRates::updateTargetState()
