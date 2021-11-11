@@ -24,6 +24,11 @@ public:
     KalmanFilterInterface();
 
     /**
+  * Destructor.
+  */
+    virtual ~KalmanFilterInterface() {}
+
+    /**
   * Initialize the filter with initial states as zero.
   */
     void init();
@@ -130,6 +135,12 @@ public:
             const Eigen::MatrixXd& P
             );
 
+
+    /**
+  * Destructor.
+  */
+    virtual ~LinearKalmanFilter() {}
+
     /**
   * Update the estimated state based on predicted values using an updated dynamics matrix
   */
@@ -190,6 +201,11 @@ public:
             const Eigen::MatrixXd& R,
             const Eigen::MatrixXd& P
             );
+
+    /**
+  * Destructor.
+  */
+    virtual ~ExtendedKalmanFilter() {}
 
     /**
   * Update the estimated state based on predicted values using an updated transition function
