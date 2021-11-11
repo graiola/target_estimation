@@ -66,8 +66,9 @@ void TargetInterface::printInfo()
 {
   std::cout << std::endl;
   std::cout << "*** "+this->class_name_+" ***" << std::endl;
-  std::cout << "n: "<< n_ << std::endl;
-  std::cout << "m: "<< m_ << std::endl;
+  std::cout << "id: "<< id_ << std::endl;
+  std::cout << "n:  "<< n_ << std::endl;
+  std::cout << "m:  "<< m_ << std::endl;
   std::cout << std::endl;
   std::cout << "*** System Matrices ***" << std::endl;
   std::cout << "A:" << std::endl;
