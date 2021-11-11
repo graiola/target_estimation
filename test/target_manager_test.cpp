@@ -8,7 +8,7 @@
 
 static TargetManager _manager;
 // Simulated measurement noise
-const double _pObserved_stddev = 0.001; // 1mm
+const double _pObserved_stddev = 0.01; //1cm //0.001; 1mm
 const double _pObserved_mean = 0.0;
 // Statistical generators
 static std::default_random_engine _generator;
@@ -18,6 +18,7 @@ static double _end_goal_x = 0.2;
 static double _end_goal_y = 0.3;
 static double _end_goal_z = 0.4;
 static Eigen::Vector3d _omega(3.0, 0.01, 0.1);
+const std::string folder = "/tmp/";
 
 bool parseSquareMatrix(const ros::NodeHandle& n, const std::string& matrix, Eigen::MatrixXd& M)
 {
@@ -39,18 +40,49 @@ bool parseSquareMatrix(const ros::NodeHandle& n, const std::string& matrix, Eige
 void loadModel(const std::string& model_name, Eigen::MatrixXd& Q, Eigen::MatrixXd& R, Eigen::MatrixXd& P, double& dt)
 {
   ros::NodeHandle nh(model_name);
-  parseSquareMatrix(nh,"Q",Q);
-  parseSquareMatrix(nh,"R",R);
-  parseSquareMatrix(nh,"P",P);
+  ASSERT_TRUE(parseSquareMatrix(nh,"Q",Q));
+  ASSERT_TRUE(parseSquareMatrix(nh,"R",R));
+  ASSERT_TRUE(parseSquareMatrix(nh,"P",P));
   double f;
-  nh.getParam("frequency",f);
+  ASSERT_TRUE(nh.getParam("frequency",f));
   dt = 1.0/f;
 }
 
-void generateMeasurements(const double dt, const unsigned int n_points,
-                          const double end_goal_x, const double end_goal_y, const double end_goal_z,
-                          const Eigen::Vector3d omega,
-                          Eigen::MatrixXd& meas_pose, Eigen::MatrixXd& real_pose, Eigen::VectorXd& time)
+void generateParabolicMeasurements(const double dt, const unsigned int n_points,
+                                   Eigen::MatrixXd& meas_pose, Eigen::MatrixXd& real_pose, Eigen::VectorXd& time)
+{
+  // List of position measurements x,y,z
+  // Generate a parabolic motion on x y z
+  time      = Eigen::VectorXd::Zero(n_points);
+  meas_pose = Eigen::MatrixXd::Zero(n_points,7);
+  real_pose = Eigen::MatrixXd::Zero(n_points,7);
+
+  Eigen::Vector3d p0, v0, a0;
+  p0 << 0.0, 0.0, 3.0;
+  v0 << 0.01, 0.01, 1;
+  a0 << 0.0, 0.0, -GRAVITY;
+
+  // Update the measurement
+  for(unsigned int i=0;i<n_points;i++)
+  {
+
+    time(i) = i * dt;
+
+    real_pose(i,0) = p0(0) + v0(0) * time(i) + 0.5 * a0(0) * time(i)*time(i);
+    real_pose(i,1) = p0(1) + v0(1) * time(i) + 0.5 * a0(1) * time(i)*time(i);
+    real_pose(i,2) = p0(2) + v0(2) * time(i) + 0.5 * a0(2) * time(i)*time(i);
+
+    meas_pose(i,0) = real_pose(i,0) + normal_dist(_generator);
+    meas_pose(i,1) = real_pose(i,1) + normal_dist(_generator);
+    meas_pose(i,2) = real_pose(i,2) + normal_dist(_generator);
+  }
+
+}
+
+void generateLinearMeasurements(const double dt, const unsigned int n_points,
+                                const double end_goal_x, const double end_goal_y, const double end_goal_z,
+                                const Eigen::Vector3d omega,
+                                Eigen::MatrixXd& meas_pose, Eigen::MatrixXd& real_pose, Eigen::VectorXd& time)
 {
   // List of position measurements x,y,z and quaternion
   // Generate a linear motion on x y z and an angular motion using omega
@@ -62,11 +94,11 @@ void generateMeasurements(const double dt, const unsigned int n_points,
   real_pose.col(2) = Eigen::VectorXd::LinSpaced(n_points, 0.0, end_goal_z); // Move on the z
   Eigen::Quaterniond q_meas = Eigen::Quaterniond::Identity();
 
-  double t = 0.0;
-
   // Update the measurement
   for(unsigned int i=0;i<n_points;i++)
   {
+      time(i) = i * dt;
+
       meas_pose(i,0) = real_pose(i,0) + normal_dist(_generator);
       meas_pose(i,1) = real_pose(i,1) + normal_dist(_generator);
       meas_pose(i,2) = real_pose(i,2) + normal_dist(_generator);
@@ -79,8 +111,6 @@ void generateMeasurements(const double dt, const unsigned int n_points,
       // Calculate next orientation
       q_meas.coeffs() = Qtran(dt,omega) * q_meas.coeffs();
       q_meas.normalize();
-
-      time(i) = t += dt;
   }
 }
 
@@ -122,22 +152,20 @@ TEST(test_target, UniformVelocity)
     loadModel("model_uniform_velocity_params",Q,R,P,dt);
     Eigen::MatrixXd real_pose, meas_pose;
     Eigen::VectorXd time;
-    generateMeasurements(dt,_n_points,_end_goal_x,_end_goal_y,_end_goal_z,_omega,meas_pose,real_pose,time);
+    generateLinearMeasurements(dt,_n_points,_end_goal_x,_end_goal_y,_end_goal_z,_omega,meas_pose,real_pose,time);
 
     unsigned int id = 0;
-    Eigen::Vector7d p0;
-    initPose(p0);
-    _manager.init(TargetManager::target_t::UNIFORM_VELOCITY,id,dt,0.0,Q,R,P,p0);
+    _manager.init(TargetManager::target_t::UNIFORM_VELOCITY,id,dt,0.0,Q,R,P,meas_pose.row(0));
 
     Eigen::MatrixXd est_pose, est_twist, sigma_xyz;
     generateEstimation(id,dt,meas_pose,est_pose,est_twist,sigma_xyz);
 
     // Save the data for the plots
-    writeTxtFile("time_"+std::to_string(id),time);
-    writeTxtFile("real_pose_"+std::to_string(id),real_pose);
-    writeTxtFile("meas_pose_"+std::to_string(id),meas_pose);
-    writeTxtFile("est_pose_"+std::to_string(id),est_pose);
-    writeTxtFile("est_twist_"+std::to_string(id),est_twist);
+    writeTxtFile(folder+"time_"+std::to_string(id),time);
+    writeTxtFile(folder+"real_pose_"+std::to_string(id),real_pose);
+    writeTxtFile(folder+"meas_pose_"+std::to_string(id),meas_pose);
+    writeTxtFile(folder+"est_pose_"+std::to_string(id),est_pose);
+    writeTxtFile(folder+"est_twist_"+std::to_string(id),est_twist);
 
     auto velocities = calculateVelocities(dt);
 
@@ -168,22 +196,20 @@ TEST(test_target, UniformAcceleration)
     loadModel("model_uniform_acceleration_params",Q,R,P,dt);
     Eigen::MatrixXd real_pose, meas_pose;
     Eigen::VectorXd time;
-    generateMeasurements(dt,_n_points,_end_goal_x,_end_goal_y,_end_goal_z,_omega,meas_pose,real_pose,time);
+    generateLinearMeasurements(dt,_n_points,_end_goal_x,_end_goal_y,_end_goal_z,_omega,meas_pose,real_pose,time);
 
     unsigned int id = 1;
-    Eigen::Vector7d p0;
-    initPose(p0);
-    _manager.init(TargetManager::target_t::UNIFORM_ACCELERATION,id,dt,0.0,Q,R,P,p0);
+    _manager.init(TargetManager::target_t::UNIFORM_ACCELERATION,id,dt,0.0,Q,R,P,meas_pose.row(0));
 
     Eigen::MatrixXd est_pose, est_twist, sigma_xyz;
     generateEstimation(id,dt,meas_pose,est_pose,est_twist,sigma_xyz);
 
     // Save the data for the plots
-    writeTxtFile("time_"+std::to_string(id),time);
-    writeTxtFile("real_pose_"+std::to_string(id),real_pose);
-    writeTxtFile("meas_pose_"+std::to_string(id),meas_pose);
-    writeTxtFile("est_pose_"+std::to_string(id),est_pose);
-    writeTxtFile("est_twist_"+std::to_string(id),est_twist);
+    writeTxtFile(folder+"time_"+std::to_string(id),time);
+    writeTxtFile(folder+"real_pose_"+std::to_string(id),real_pose);
+    writeTxtFile(folder+"meas_pose_"+std::to_string(id),meas_pose);
+    writeTxtFile(folder+"est_pose_"+std::to_string(id),est_pose);
+    writeTxtFile(folder+"est_twist_"+std::to_string(id),est_twist);
 
     auto velocities = calculateVelocities(dt);
 
@@ -214,22 +240,20 @@ TEST(test_target, AngularRates)
     loadModel("model_angular_rates_params",Q,R,P,dt);
     Eigen::MatrixXd real_pose, meas_pose;
     Eigen::VectorXd time;
-    generateMeasurements(dt,_n_points,_end_goal_x,_end_goal_y,_end_goal_z,_omega,meas_pose,real_pose,time);
+    generateLinearMeasurements(dt,_n_points,_end_goal_x,_end_goal_y,_end_goal_z,_omega,meas_pose,real_pose,time);
 
     unsigned int id = 2;
-    Eigen::Vector7d p0;
-    initPose(p0);
-    _manager.init(TargetManager::target_t::ANGULAR_RATES,id,dt,0.0,Q,R,P,p0);
+    _manager.init(TargetManager::target_t::ANGULAR_RATES,id,dt,0.0,Q,R,P,meas_pose.row(0));
 
     Eigen::MatrixXd est_pose, est_twist, sigma_xyz;
     generateEstimation(id,dt,meas_pose,est_pose,est_twist,sigma_xyz);
 
     // Save the data for the plots
-    writeTxtFile("time_"+std::to_string(id),time);
-    writeTxtFile("real_pose_"+std::to_string(id),real_pose);
-    writeTxtFile("meas_pose_"+std::to_string(id),meas_pose);
-    writeTxtFile("est_pose_"+std::to_string(id),est_pose);
-    writeTxtFile("est_twist_"+std::to_string(id),est_twist);
+    writeTxtFile(folder+"time_"+std::to_string(id),time);
+    writeTxtFile(folder+"real_pose_"+std::to_string(id),real_pose);
+    writeTxtFile(folder+"meas_pose_"+std::to_string(id),meas_pose);
+    writeTxtFile(folder+"est_pose_"+std::to_string(id),est_pose);
+    writeTxtFile(folder+"est_twist_"+std::to_string(id),est_twist);
 
     auto velocities = calculateVelocities(dt);
 
@@ -269,22 +293,20 @@ TEST(test_target, AngularVelocities)
     loadModel("model_angular_velocities_params",Q,R,P,dt);
     Eigen::MatrixXd real_pose, meas_pose;
     Eigen::VectorXd time;
-    generateMeasurements(dt,_n_points,_end_goal_x,_end_goal_y,_end_goal_z,_omega,meas_pose,real_pose,time);
+    generateLinearMeasurements(dt,_n_points,_end_goal_x,_end_goal_y,_end_goal_z,_omega,meas_pose,real_pose,time);
 
     unsigned int id = 3;
-    Eigen::Vector7d p0;
-    initPose(p0);
-    _manager.init(TargetManager::target_t::ANGULAR_VELOCITIES,id,dt,0.0,Q,R,P,p0);
+    _manager.init(TargetManager::target_t::ANGULAR_VELOCITIES,id,dt,0.0,Q,R,P,meas_pose.row(0));
 
     Eigen::MatrixXd est_pose, est_twist, sigma_xyz;
     generateEstimation(id,dt,meas_pose,est_pose,est_twist,sigma_xyz);
 
     // Save the data for the plots
-    writeTxtFile("time_"+std::to_string(id),time);
-    writeTxtFile("real_pose_"+std::to_string(id),real_pose);
-    writeTxtFile("meas_pose_"+std::to_string(id),meas_pose);
-    writeTxtFile("est_pose_"+std::to_string(id),est_pose);
-    writeTxtFile("est_twist_"+std::to_string(id),est_twist);
+    writeTxtFile(folder+"time_"+std::to_string(id),time);
+    writeTxtFile(folder+"real_pose_"+std::to_string(id),real_pose);
+    writeTxtFile(folder+"meas_pose_"+std::to_string(id),meas_pose);
+    writeTxtFile(folder+"est_pose_"+std::to_string(id),est_pose);
+    writeTxtFile(folder+"est_twist_"+std::to_string(id),est_twist);
 
     auto velocities = calculateVelocities(dt);
 
@@ -313,9 +335,53 @@ TEST(test_target, AngularVelocities)
     EXPECT_NEAR( _omega(0)     ,omegax.mean(), 0.05 );
     EXPECT_NEAR( _omega(1)     ,omegay.mean(), 0.05 );
     EXPECT_NEAR( _omega(2)     ,omegaz.mean(), 0.05 );
-    EXPECT_NEAR( _omega(0), omegax(omegax.size()-1), 0.1 );
-    EXPECT_NEAR( _omega(1), omegay(omegay.size()-1), 0.1 );
-    EXPECT_NEAR( _omega(2), omegaz(omegaz.size()-1), 0.1 );
+    EXPECT_NEAR( _omega(0), omegax(omegax.size()-1), 0.01 );
+    EXPECT_NEAR( _omega(1), omegay(omegay.size()-1), 0.01 );
+    EXPECT_NEAR( _omega(2), omegaz(omegaz.size()-1), 0.01 );
+}
+
+TEST(test_target, Projectile)
+{
+    Eigen::MatrixXd Q,R,P;
+    double dt;
+    loadModel("model_projectile_params",Q,R,P,dt);
+    Eigen::MatrixXd real_pose, meas_pose;
+    Eigen::VectorXd time;
+    generateParabolicMeasurements(dt,_n_points,meas_pose,real_pose,time);
+
+    unsigned int id = 4;
+    _manager.init(TargetManager::target_t::PROJECTILE,id,dt,0.0,Q,R,P,meas_pose.row(0));
+
+    Eigen::MatrixXd est_pose, est_twist, sigma_xyz;
+    generateEstimation(id,dt,meas_pose,est_pose,est_twist,sigma_xyz);
+
+    // Save the data for the plots
+    writeTxtFile(folder+"time_"+std::to_string(id),time);
+    writeTxtFile(folder+"real_pose_"+std::to_string(id),real_pose);
+    writeTxtFile(folder+"meas_pose_"+std::to_string(id),meas_pose);
+    writeTxtFile(folder+"est_pose_"+std::to_string(id),est_pose);
+    writeTxtFile(folder+"est_twist_"+std::to_string(id),est_twist);
+
+    //auto velocities = calculateVelocities(dt);
+    //
+    //Eigen::VectorXd xdot, ydot, zdot;
+    //Eigen::VectorXd x,    y,    z;
+    //
+    //x = est_pose.col(0);
+    //y = est_pose.col(1);
+    //z = est_pose.col(2);
+    //
+    //EXPECT_NEAR( _end_goal_x, x(x.size()-1), 0.01 );
+    //EXPECT_NEAR( _end_goal_y, y(y.size()-1), 0.01 );
+    //EXPECT_NEAR( _end_goal_z, z(z.size()-1), 0.01 );
+    //
+    //xdot   = est_twist.col(0);
+    //ydot   = est_twist.col(1);
+    //zdot   = est_twist.col(2);
+    //
+    //EXPECT_NEAR( velocities(0) ,xdot.mean(), 0.01 );
+    //EXPECT_NEAR( velocities(1) ,ydot.mean(), 0.01 );
+    //EXPECT_NEAR( velocities(2) ,zdot.mean(), 0.01 );
 }
 
 

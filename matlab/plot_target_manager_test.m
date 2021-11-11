@@ -1,35 +1,28 @@
 clear all
 close all
 
-prefixs = {'rpy_','rpy_ext_'}
-data = {'est_pose','est_twist'};
+models = {"1","2","3","4"};
+position_labels = {"x","y","z"};
 
-load time
-load meas_pose
-load pose
-
-for j=1:length(prefixs)
-  for i=1:length(data)
-      full_data_name = [prefixs{j} data{i}];
-      load(full_data_name);
-      eval([data{i} '=' full_data_name ';']);
-   end
- 
-
-   figure(1)
-   for i=1:3
-     subplot(3,1,i)
-     plot(time,meas_pose(:,i),'r')
-     hold on
-     plot(time,est_pose(:,i))
-     hold on
-     plot(time,pose(:,i),'b')
-   end
-   
-   figure(2)
-   for i=1:3
-     subplot(3,1,i)
-     plot(time,est_twist(:,i))
-   end
- 
- end
+for j=1:length(models)
+  
+  time       = load(["/tmp/time_",      models{j}]);
+  meas_pose  = load(["/tmp/meas_pose_", models{j}]);
+  est_pose   = load(["/tmp/est_pose_",  models{j}]);
+  real_pose  = load(["/tmp/real_pose_", models{j}]);
+  est_twist  = load(["/tmp/est_twist_", models{j}]);
+  
+  figure(j)
+  for i=1:3
+    subplot(3,1,i)
+    hold on
+    plot(time,meas_pose(:,i),'y')
+    hold on
+    plot(time,est_pose(:,i),'b')
+    hold on
+    plot(time,real_pose(:,i),'r')
+    xlabel('time [s]')
+    ylabel(position_labels{i})
+  end
+  %hold off 
+end
