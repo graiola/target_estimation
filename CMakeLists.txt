@@ -63,13 +63,7 @@ install(TARGETS target target_c kalman
 
 if (${roscpp_FOUND})
     message(STATUS "${Yellow}ROS found, compiling ros dependent code${ColorReset}")
-    find_package(catkin REQUIRED COMPONENTS roscpp geometry_msgs message_generation tf rostest)
-
-    add_message_files(FILES TargetEstimation.msg)
-
-    generate_messages(
-        DEPENDENCIES
-        geometry_msgs)
+    find_package(catkin REQUIRED COMPONENTS roscpp geometry_msgs tf rostest)
 
     catkin_package(
         LIBRARIES target kalman
