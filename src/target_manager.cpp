@@ -5,7 +5,6 @@
 #include "target_estimation/target_manager.hpp"
 #include "target_estimation/types/angular_rates.hpp"
 #include "target_estimation/types/angular_velocities.hpp"
-#include "target_estimation/types/projectile.hpp"
 #include "target_estimation/types/uniform_acceleration.hpp"
 #include "target_estimation/types/uniform_velocity.hpp"
 #include <stdexcept>
@@ -151,6 +150,10 @@ void TargetManager::init(const target_t& type, const unsigned int& id, const dou
                          const Eigen::Vector7d& p0, const Eigen::Vector6d& v0, const Eigen::Vector6d& a0)
 
 {
+
+    Eigen::Vector6d ag = a0;
+    ag(2) = - GRAVITY;
+
     lock_guard<mutex> lg(target_lock_);
 
     if(targets_.find(id) == targets_.end()) {
@@ -166,7 +169,7 @@ void TargetManager::init(const target_t& type, const unsigned int& id, const dou
             std::cout << "Using angular velocities for the orientation" << std::endl;
             break;
         case target_t::PROJECTILE:
-            targets_[id].reset(new TargetProjectile(id,dt0,t0,Q,R,P0,p0,v0,a0));
+            targets_[id].reset(new TargetUniformAcceleration(id,dt0,t0,Q,R,P0,p0,v0,ag));
             std::cout << "Catching some bullets!" << std::endl;
             break;
         case target_t::UNIFORM_ACCELERATION:
