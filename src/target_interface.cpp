@@ -21,12 +21,8 @@ TargetInterface::TargetInterface(const unsigned int& id, const Eigen::MatrixXd P
   id_ = static_cast<int>(id);
   n_meas_ = 0;
   T_.setIdentity();
-  initPose(pose_);
   initPose(intersection_pose_);
   initPose(measured_pose_);
-  position_.setZero();
-  rpy_.setZero();
-  q_.setIdentity();
   twist_.setZero();
   acceleration_.setZero();
   t_ = t0;
@@ -38,13 +34,11 @@ TargetInterface::TargetInterface(const unsigned int& id, const Eigen::MatrixXd P
   std::string name = "/target_"+std::to_string(id); // Note that we publish in the ros namespace "/"
   //                                   Publisher name              Data               Data name         //
   RtLogger::getLogger().addPublisher(  name,                       measured_pose_,    "measurement"      );
-  RtLogger::getLogger().addPublisher(  name,                       pose_,             "pose"             );
-  RtLogger::getLogger().addPublisher(  name,                       intersection_pose_,"intersection_pose");
+  RtLogger::getLogger().addPublisher(  name,                       pose_internal_,    "pose"             );
   RtLogger::getLogger().addPublisher(  name,                       twist_,            "twist"            );
   RtLogger::getLogger().addPublisher(  name,                       acceleration_,     "acceleration"     );
-  RtLogger::getLogger().addPublisher(  name,                       position_,         "position"         );
-  RtLogger::getLogger().addPublisher(  name,                       rpy_,              "rpy"              );
   RtLogger::getLogger().addPublisher(  name,                       P_,                "covariance"       );
+  RtLogger::getLogger().addPublisher(  name,                       intersection_pose_,"intersection_pose");
 #endif
 }
 
@@ -182,29 +176,15 @@ double TargetInterface::getTime()
   return t_;
 }
 
-const Eigen::Vector7d& TargetInterface::getEstimatedPose() {
-  lock_guard<mutex> lg(data_lock_);
-  return pose_;
-}
-
 const Eigen::Isometry3d& TargetInterface::getEstimatedTransform() {
   lock_guard<mutex> lg(data_lock_);
   return T_;
 }
 
-const Eigen::Vector3d& TargetInterface::getEstimatedPosition() {
+const Eigen::Vector7d& TargetInterface::getEstimatedPose() {
   lock_guard<mutex> lg(data_lock_);
-  return position_;
-}
-
-const Eigen::Quaterniond& TargetInterface::getEstimatedOrientation() {
-  lock_guard<mutex> lg(data_lock_);
-  return q_;
-}
-
-const Eigen::Vector3d& TargetInterface::getEstimatedRPY() {
-  lock_guard<mutex> lg(data_lock_);
-  return rpy_;
+  isometryToPose7d(T_,vector7d_tmp_);
+  return vector7d_tmp_;
 }
 
 const Eigen::Vector6d& TargetInterface::getEstimatedTwist() {
@@ -233,7 +213,8 @@ const Eigen::Vector7d& TargetInterface::getMeasuredPose()
 Eigen::Vector7d TargetInterface::getEstimatedPose(const double& /*t1*/)
 {
   lock_guard<mutex> lg(data_lock_);
-  return pose_;
+  isometryToPose7d(T_,vector7d_tmp_);
+  return vector7d_tmp_;
 }
 
 Eigen::Vector6d TargetInterface::getEstimatedTwist(const double& /*t1*/)

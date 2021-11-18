@@ -84,22 +84,15 @@ private:
   virtual void updateTargetState() override;
 
   /**
-     * @brief pose_internal_ Internal representation of the target's pose in terms
-     * of [x y z roll pitch yaw]
+     * @brief ear_ Analytical Jacobian: https://robotacademy.net.au/lesson/the-analytic-jacobian/
      */
-  Eigen::Vector6d pose_internal_;
+  Eigen::Matrix3d Ear_;
 
   /**
      * @brief meas_internal_ Internal representation of the target's measurement in terms
      * of [x y z roll pitch yaw]
      */
   Eigen::Vector3d meas_rpy_internal_;
-
-
-  /**
-     * @brief ear_ Analytical Jacobian: https://robotacademy.net.au/lesson/the-analytic-jacobian/
-     */
-  Eigen::Matrix3d Ear_;
 };
 
 #endif

@@ -107,34 +107,16 @@ public:
   double getTime();
 
   /**
-     * @brief getEstimatedPose
-     * @return last estimated Target's pose
-     */
-  const Eigen::Vector7d& getEstimatedPose();
-
-  /**
      * @brief getEstimatedTransform
      * @return last estimated Target's pose
      */
   const Eigen::Isometry3d& getEstimatedTransform();
 
   /**
-     * @brief getEstimatedPosition
-     * @return last estimated Target's position (x,y,z)
+     * @brief getEstimatedPose
+     * @return last estimated Target's pose
      */
-  const Eigen::Vector3d& getEstimatedPosition();
-
-  /**
-     * @brief getEstimatedOrientation
-     * @return last estimated Target's orientation (quaternion)
-     */
-  const Eigen::Quaterniond& getEstimatedOrientation();
-
-  /**
-     * @brief getEstimatedRPY
-     * @return last estimated Target's orientation (rpy)
-     */
-  const Eigen::Vector3d& getEstimatedRPY();
+  const Eigen::Vector7d& getEstimatedPose();
 
   /**
      * @brief getEstimatedTwist
@@ -249,26 +231,6 @@ protected:
   Eigen::Isometry3d T_;
 
   /**
-     * @brief pose_ Estimated pose
-     */
-  Eigen::Vector7d pose_;
-
-  /**
-     * @brief position_ Estimated position
-     */
-  Eigen::Vector3d position_;
-
-  /**
-     * @brief q_ Estimated orientation, represented as quaternion
-     */
-  Eigen::Quaterniond q_;
-
-  /**
-     * @brief q_ Estimated orientation, represented as roll pitch and yaw angles
-     */
-  Eigen::Vector3d rpy_;
-
-  /**
      * @brief twist_ Estimated twist
      */
   Eigen::Vector6d twist_;
@@ -277,6 +239,12 @@ protected:
      * @brief acceleration_ Estimated acceleration
      */
   Eigen::Vector6d acceleration_;
+
+  /**
+     * @brief pose_internal_ Internal representation of the target's pose in terms
+     * of [x y z roll pitch yaw]
+     */
+  Eigen::Vector6d pose_internal_;
 
   /**
      * @brief intersection_pose_ Computed insercetion pose with the sphere

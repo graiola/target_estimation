@@ -74,11 +74,12 @@ void TargetAngularRates::addMeasurement(const double& dt, const Eigen::Vector7d&
   lock_guard<mutex> lg(data_lock_);
 
   updateA(dt);
+  updateMeasurement(meas);
 
   // Convert from 7d pose to 6d and
   // unwrap the angles because the estimator integrates over continuous angles
-  POSE_pos(vector6d_tmp_) = POSE_pos(meas); // pos
-  quaterniond_tmp_.coeffs() = POSE_quat(meas); // quat
+  POSE_pos(vector6d_tmp_) = POSE_pos(measured_pose_); // pos
+  quaterniond_tmp_.coeffs() = POSE_quat(measured_pose_); // quat
   quaterniond_tmp_.normalize(); // Normalize the quaternion
   quatToRpy(quaterniond_tmp_,vector3d_tmp_);
   vector3d_tmp_ = unwrap(meas_rpy_internal_,vector3d_tmp_);
@@ -90,7 +91,6 @@ void TargetAngularRates::addMeasurement(const double& dt, const Eigen::Vector7d&
 
   updateTargetState();
   updateTime(dt);
-  updateMeasurement(meas);
 }
 
 void TargetAngularRates::update(const double& dt)
@@ -120,22 +120,21 @@ void TargetAngularRates::updateTargetState()
   x_ = estimator_->getState();
   // Read the covariance
   P_ = estimator_->getP();
-  // Set our Target's state
-  position_ = STATE_pos(x_);
-  POSE_pos(pose_) = position_;
-  pose_internal_ = STATE_pose(x_);
-  rpy_ = STATE_rpy(x_);
-  rpyToQuat(rpy_,q_);
-  POSE_quat(pose_) = q_.coeffs();
-  T_.translation() = position_;
-  T_.linear() = q_.toRotationMatrix();
-
+  // Create T
+  T_.translation() = STATE_pos(x_);
+  vector3d_tmp_    = STATE_rpy(x_); //RPY
+  rpyToQuat(vector3d_tmp_,quaterniond_tmp_);
+  T_.linear() = quaterniond_tmp_.toRotationMatrix();
+  // Update twist
   TWIST_linear(twist_) = STATE_vel(x_);
-  // Convert from angular rates to angular velocities (omega)
-  rpyToEarBase(rpy_,Ear_);
+  rotToRpy(T_.linear(),vector3d_tmp_);
+  // - Convert from angular rates to angular velocities (omega)
+  rpyToEarBase(vector3d_tmp_,Ear_);
   TWIST_angular(twist_) = Ear_ * STATE_rates(x_);
-
+  // Update acceleration
   acceleration_ = STATE_acc(x_);
+  // Update internal variables
+  isometryToPose6d(T_,pose_internal_);
 }
 
 Eigen::Vector7d TargetAngularRates::getEstimatedPose(const double& t1)

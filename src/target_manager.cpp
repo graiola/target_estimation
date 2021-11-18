@@ -276,28 +276,6 @@ bool TargetManager::getTargetPose(const unsigned int& id, Eigen::Vector7d& pose)
         return false;
 }
 
-bool TargetManager::getTargetOrientation(const unsigned int& id, Eigen::Quaterniond& orientation)
-{
-    if(getTarget(id)!=nullptr)
-    {
-        orientation = getTarget(id)->getEstimatedOrientation();
-        return true;
-    }
-    else
-        return false;
-}
-
-bool TargetManager::getTargetOrientation(const unsigned int& id, Eigen::Vector3d& orientation)
-{
-    if(getTarget(id)!=nullptr)
-    {
-        orientation = getTarget(id)->getEstimatedRPY();
-        return true;
-    }
-    else
-        return false;
-}
-
 bool TargetManager::getTargetTwist(const unsigned int& id, Eigen::Vector6d& twist)
 {
     if(getTarget(id)!=nullptr)

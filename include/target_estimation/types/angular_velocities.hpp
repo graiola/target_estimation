@@ -96,27 +96,20 @@ private:
   Eigen::VectorXd vectorXd_tmp_;
 
   /**
-     * @brief pose_internal_ Internal representation of the target's pose in terms
-     * of [x y z roll pitch yaw]
+     * @brief EarInv_ Inverse of the Analytical Jacobian
      */
-  Eigen::Vector6d pose_internal_;
+  Eigen::Matrix3d EarInv_;
+
+  /**
+   * @brief y_
+   */
+  Eigen::Vector6d y_;
 
   /**
      * @brief meas_internal_ Internal representation of the target's measurement in terms
      * of [x y z roll pitch yaw]
      */
   Eigen::Vector3d meas_rpy_internal_;
-
-  /**
-     * @brief EarInv_ Inverse of the Analytical Jacobian
-     */
-  Eigen::Matrix3d EarInv_;
-
-
-  /**
-   * @brief y_
-   */
-  Eigen::Vector6d y_;
 };
 
 #endif

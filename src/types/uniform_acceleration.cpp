@@ -66,14 +66,14 @@ void TargetUniformAcceleration::addMeasurement(const double& dt, const Eigen::Ve
   lock_guard<mutex> lg(data_lock_);
 
   updateA(dt);
+  updateMeasurement(meas);
 
-  vector3d_tmp_ << meas(0), meas(1), meas(2); // xyz
+  vector3d_tmp_ << measured_pose_(0), measured_pose_(1), measured_pose_(2); // xyz
 
   std::dynamic_pointer_cast<LinearKalmanFilter>(estimator_)->update(vector3d_tmp_, A_);
 
   updateTargetState();
   updateTime(dt);
-  updateMeasurement(meas);
 }
 
 void TargetUniformAcceleration::update(const double& dt)
@@ -104,25 +104,24 @@ void TargetUniformAcceleration::updateTargetState()
   x_ = estimator_->getState();
   // Read the covariance
   P_ = estimator_->getP();
-  // Set our Target's state
-  position_ = STATE_pos(x_);
-  POSE_pos(pose_) = position_;
-  T_.translation() = position_;
+  // Update T
+  T_.translation() = STATE_pos(x_);
   T_.linear() = Eigen::Matrix3d::Identity();
-
+  // Update twist
   TWIST_linear(twist_) = STATE_vel(x_);
   TWIST_angular(twist_) << 0.0, 0.0, 0.0;
-
+  // Update acceleration
   ACCELERATION_linear(acceleration_) = STATE_acc(x_);
   ACCELERATION_angular(acceleration_) << 0.0, 0.0, 0.0;
+  // Update internal variables
+  isometryToPose6d(T_,pose_internal_);
 }
 
 Eigen::Vector7d TargetUniformAcceleration::getEstimatedPose(const double& t1)
 {
   lock_guard<mutex> lg(data_lock_);
 
-  POSE_pos(vector6d_tmp_) = position_ + TWIST_linear(twist_)*(t1-t_) + 0.5 * ACCELERATION_linear(acceleration_)*(t1-t_)*(t1-t_);
-
+  POSE_pos(vector6d_tmp_) = T_.translation() + TWIST_linear(twist_)*(t1-t_) + 0.5 * ACCELERATION_linear(acceleration_)*(t1-t_)*(t1-t_);
   quaterniond_tmp_.setIdentity();
   POSE_pos(vector7d_tmp_)  = POSE_pos(vector6d_tmp_);
   POSE_quat(vector7d_tmp_) = quaterniond_tmp_.coeffs();
