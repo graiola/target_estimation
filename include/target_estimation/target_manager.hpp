@@ -16,6 +16,8 @@ class TargetManager {
 
 public:
 
+    typedef std::shared_ptr<TargetManager> Ptr;
+
     typedef std::map<unsigned int,TargetInterface::Ptr> targets_map_t;
 
     enum target_t {ANGULAR_RATES=0,ANGULAR_VELOCITIES,PROJECTILE,UNIFORM_ACCELERATION,UNIFORM_VELOCITY};
@@ -113,13 +115,6 @@ public:
     bool erase(const unsigned int& id);
 
     /**
-   * @brief setInterceptionSphere Set the interception sphere params
-   * @param origin
-   * @param radius
-   */
-    void setInterceptionSphere(const Eigen::Vector3d& origin, const double& radius);
-
-    /**
    * @brief getTarget Return a specific target, a nullptr is returned if the selected target does not exist
    * @param id
    * @return target shared pointer
@@ -165,27 +160,6 @@ public:
    * @return false if the selected target does not exist
    */
     bool getTargetAcceleration(const unsigned int& id, Eigen::Vector6d& acc);
-
-    /**
-   * @brief getInterceptionPose Compute the interception pose for the robot to capture the target
-   * @param id
-   * @param t
-   * @param pos_th defines the convergence threshold for the interception position
-   * @param ang_th defines the convergence threshold for the interception orientation
-   * @param interception_pose
-   * @return true if there is a valid interception pose
-   */
-    bool getInterceptionPose(const unsigned int& id, const double& t, const double& pos_th, const double& ang_th, Eigen::Vector7d& interception_pose);
-
-    /**
-   * @brief getClosestInterceptionPose Compute the interception pose for the closest target based on intersection time
-   * @param t
-   * @param pos_th defines the convergence threshold for the interception position
-   * @param ang_th defines the convergence threshold for the interception orientation
-   * @param interception_pose
-   * @return closest target id
-   */
-    unsigned int getClosestInterceptionPose(const double &t1, const double &pos_th, const double &ang_th, Eigen::Vector7d &interception_pose);
 
     /**
    * @brief getNumberMeasurements Return the number of measurements done so far
@@ -250,16 +224,6 @@ private:
    * @brief target_lock_ Used to prevent concurrent access to Target vectors
    */
     std::mutex target_lock_;
-
-    /**
-   * @brief sphere_origin_ Sphere origin
-   */
-    Eigen::Vector3d sphere_origin_;
-
-    /**
-   * @brief sphere_radius_ Sphere radius
-   */
-    double sphere_radius_;
 
     /**
    * @brief default_Q_

@@ -58,21 +58,9 @@ public:
 
   RosTargetManager(ros::NodeHandle& nh);
 
-  void setInterceptionSphere(const Eigen::Vector3d& pos, const double& radius);
-
   void update(const double& dt);
 
   void setTargetTokenName(const std::string& token_name);
-
-  void setReferenceFrameName(const std::string& frame);
-
-  void setPositionConvergenceThreshold(const double& th);
-
-  void setAngularConvergenceThreshold(const double& th);
-
-  const Eigen::Vector7d& getInterceptionPose() const;
-
-  void calculateInterceptionPose(bool active);
 
   void setExpirationTime(double time);
 
@@ -102,11 +90,7 @@ private:
 
   std::string token_name_;
 
-  Eigen::Vector7d interception_pose_;
-
   double t_;
-  double pos_th_;
-  double ang_th_;
 
   std::mutex meas_lock_;
 
@@ -120,7 +104,6 @@ private:
 
   ros::Time ros_t_;
 
-  std::atomic<bool> interception_pose_on_;
   std::atomic<double> expiration_time_;
 };
 

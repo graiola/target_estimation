@@ -34,14 +34,6 @@ void target_manager_update(const target_manager_c *self, const unsigned int id, 
     manager->update(id,dt);
 }
 
-bool target_manager_get_int_pose(const target_manager_c *self, const unsigned int id, const double t, const double pos_th, const double ang_th, double int_pose[]) {
-    TargetManager *manager = (TargetManager *)self;
-    bool res;
-    res = manager->getInterceptionPose(id,t,pos_th,ang_th,vector7d_tmp_);
-    Eigen::Map<Eigen::Vector7d>(int_pose,7,1) = vector7d_tmp_;
-    return res;
-}
-
 bool target_manager_get_est_pose(const target_manager_c *self, const unsigned int id, double pose[]) {
     TargetManager *manager = (TargetManager *)self;
     bool res;
@@ -64,13 +56,6 @@ bool target_manager_get_est_acceleration(const target_manager_c *self, const uns
     res = manager->getTargetAcceleration(id,vector6d_tmp_);
     Eigen::Map<Eigen::Vector6d>(acceleration,6,1) = vector6d_tmp_;
     return res;
-}
-
-void target_manager_set_int_sphere(const target_manager_c *self, double origin[], double radius)
-{
-    TargetManager *manager = (TargetManager *)self;
-    Eigen::Map<Eigen::Vector3d> origin_map(origin);
-    return manager->setInterceptionSphere(origin_map,radius);
 }
 
 int target_manager_get_n_measurements(const target_manager_c *self, const unsigned int id)
