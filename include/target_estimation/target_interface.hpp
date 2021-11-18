@@ -182,8 +182,13 @@ public:
      */
   void printInfo();
 
-protected:
+  /**
+ * @brief setTargetRotation Set the rotation matrix transform observer_R_target
+ * @param observer_T_target
+ */
+  void setTargetRotation(const Eigen::Matrix3d& observer_R_target);
 
+protected:
   /**
      * @brief updateTargetState Update the internal variables representing
      * the state of the target
@@ -191,7 +196,14 @@ protected:
   virtual void updateTargetState() = 0;
 
   /**
-     * @brief updateMeasurement Update the measurement and the measurement counter
+     * @brief transformTargetState transform the state from target_T_state to observer_T_state if
+     * observer_R_target is set
+     */
+  void transformTargetState();
+
+  /**
+     * @brief updateMeasurement Update the measurement and the measurement counter, perform
+     * the transformation from observer_T_meas to target_T_meas if observer_R_target is set
      */
   void updateMeasurement(const Eigen::Vector7d& meas);
 
@@ -308,6 +320,7 @@ protected:
   Eigen::Vector3d vector3d_tmp_;
   Eigen::Vector6d vector6d_tmp_;
   Eigen::Vector7d vector7d_tmp_;
+  Eigen::Matrix3d matrix3d_tmp_;
   Eigen::Isometry3d isometry3d_tmp_;
   Eigen::Quaterniond quaterniond_tmp_;
   Eigen::Vector3d pos_tmp_;

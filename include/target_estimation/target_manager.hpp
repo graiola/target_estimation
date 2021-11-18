@@ -113,6 +113,12 @@ public:
     bool erase(const unsigned int& id);
 
     /**
+   * @brief setTargetRotation Set the rotation matrix observer_R_target
+   * @param observer_T_target
+   */
+    void setTargetRotation(const Eigen::Matrix3d& observer_R_target);
+
+    /**
    * @brief setInterceptionSphere Set the interception sphere params
    * @param origin
    * @param radius
@@ -285,6 +291,20 @@ private:
    * @brief default_values_loaded_
    */
     bool default_values_loaded_;
+
+    /**
+   * @brief observer_R_target_
+   */
+    Eigen::Matrix3d observer_R_target_;
+
+    /**
+       * @brief Temporary variables
+       */
+    Eigen::Vector3d vector3d_tmp_;
+    Eigen::Vector6d vector6d_tmp_;
+    Eigen::Vector7d vector7d_tmp_;
+    Eigen::Matrix3d matrix3d_tmp_;
+    Eigen::Isometry3d isometry3d_tmp_;
 
 };
 

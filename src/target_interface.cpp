@@ -79,6 +79,20 @@ void TargetInterface::printInfo()
   std::cout << estimator_->getP0() << std::endl;
 }
 
+//void TargetInterface::setTargetRotation(const Eigen::Matrix3d& observer_R_target)
+//{
+//  observer_R_target_ = observer_R_target;
+//}
+//
+//void TargetInterface::transformTargetState()
+//{
+//   T_ = observer_R_target_ * T_;
+//   TWIST_linear(twist_) = observer_R_target_ * TWIST_linear(twist_);
+//   TWIST_angular(twist_) = observer_R_target_ * TWIST_angular(twist_);
+//   ACCELERATION_linear(acceleration_) = observer_R_target_ * ACCELERATION_linear(acceleration_);
+//   ACCELERATION_angular(acceleration_) = observer_R_target_ * ACCELERATION_angular(acceleration_);
+//}
+
 double TargetInterface::getPeriodEstimate()
 {
   double omega_norm = TWIST_angular(twist_).norm();

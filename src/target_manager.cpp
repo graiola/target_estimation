@@ -110,6 +110,7 @@ TargetManager::TargetManager()
     sphere_origin_ << 0.0, 0.0, 0.0;
     sphere_radius_ = 0.0;
     default_values_loaded_ = false;
+    observer_R_target_ = Eigen::Matrix3d::Identity();
 }
 
 TargetManager::TargetManager(const std::string& file)
@@ -205,7 +206,10 @@ bool TargetManager::update(const unsigned int& id, const double& dt, const Eigen
     }
     // Add a measurement for Target
     // and update (predict + estimate) the filters
-    targets_[id]->addMeasurement(dt,meas);
+    pose7dToIsometry(meas,isometry3d_tmp_); // observer_T_meas
+    isometry3d_tmp_ = observer_R_target_.transpose() * isometry3d_tmp_; // target_T_meas = target_R_observer * observer_T_meas
+    isometryToPose7d(isometry3d_tmp_,vector7d_tmp_);
+    targets_[id]->addMeasurement(dt,vector7d_tmp_);
     return true;
 }
 
@@ -246,6 +250,12 @@ bool TargetManager::erase(const unsigned int& id)
         targets_.erase(id);
         return true;
     }
+}
+
+void TargetManager::setTargetRotation(const Eigen::Matrix3d& observer_R_target)
+{
+     lock_guard<mutex> lg(target_lock_);
+     observer_R_target_ = observer_R_target;
 }
 
 void TargetManager::setInterceptionSphere(const Eigen::Vector3d& origin, const double& radius)
