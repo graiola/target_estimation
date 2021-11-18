@@ -7,16 +7,11 @@ using namespace std;
 RosTargetManager::RosTargetManager(ros::NodeHandle& nh):
   token_name_("target"),
   t_(0.0),
-  pos_th_(0.01),
-  ang_th_(0.01),
-  interception_pose_on_(false),
   expiration_time_(1000.0) // Dummy value
 {
   // subscribe to /tf topic
   nh_ = nh;
   meas_subscriber_ = nh_.subscribe("/tf", 1 , &RosTargetManager::measurementCallBack, this);
-
-  initPose(interception_pose_);
 
   // Load the parameters for initializing the KF
   if(!parseSquareMatrix(nh_,"Q",Q_) || !parseSquareMatrix(nh_,"R",R_) || !parseSquareMatrix(nh_,"P",P_))
@@ -24,11 +19,6 @@ RosTargetManager::RosTargetManager(ros::NodeHandle& nh):
 
   if(!parseTargetType(nh_,type_))
     throw std::runtime_error("Can not load filter type!");
-}
-
-void RosTargetManager::setInterceptionSphere(const Eigen::Vector3d& pos, const double& radius)
-{
-  manager_.setInterceptionSphere(pos,radius);
 }
 
 void RosTargetManager::measurementCallBack(const tf2_msgs::TFMessage::ConstPtr& pose_msg)
@@ -118,9 +108,6 @@ void RosTargetManager::update(const double& dt)
     br_.sendTransform(tf::StampedTransform(tmp_transform_,ros_t_,reference_frame,token_name_+"_filt_"+to_string(target_ids[i])));
   }
 
-  if(interception_pose_on_)
-    manager_.getClosestInterceptionPose(t_,pos_th_,ang_th_,interception_pose_);
-
   t_= t_ + dt;
 
   manager_.log();
@@ -129,28 +116,6 @@ void RosTargetManager::update(const double& dt)
 void RosTargetManager::setTargetTokenName(const string& token_name)
 {
   token_name_ = token_name;
-}
-
-void RosTargetManager::setPositionConvergenceThreshold(const double& th)
-{
-  assert(th>=0.0);
-  pos_th_ = th;
-}
-
-void RosTargetManager::setAngularConvergenceThreshold(const double& th)
-{
-  assert(th>=0.0);
-  ang_th_ = th;
-}
-
-const Eigen::Vector7d& RosTargetManager::getInterceptionPose() const
-{
-  return interception_pose_;
-}
-
-void RosTargetManager::calculateInterceptionPose(bool active)
-{
-  interception_pose_on_ = active;
 }
 
 void RosTargetManager::setExpirationTime(double time)

@@ -14,7 +14,6 @@
 #include <memory>
 
 #include "target_estimation/kalman.hpp"
-#include "target_estimation/solver.hpp"
 #include "target_estimation/utils.hpp"
 #include "target_estimation/geometry.hpp"
 
@@ -71,27 +70,6 @@ public:
   virtual Eigen::Vector6d getEstimatedAcceleration(const double& t);
 
   /**
-     * @brief getIntersectionTime
-     * @param t
-     * @param origin
-     * @param radius
-     * @return the time the Target will first intersect with a sphere at the given origin and radius, or -1 if it will not happen.
-     */
-  double getIntersectionTime(const double& t, const Eigen::Vector3d& origin, const double& radius);
-
-  /**
-     * @brief getIntersectionPose
-     * @param t
-     * @param pos_th maximum allowable position error [m]
-     * @param ang_th maximum allowable angular error [rad]
-     * @param origin
-     * @param radius
-     * @param intersection_pose
-     * @return true if an intersection pose with a sphere at the given origin and radius exists, false otherwise.
-     */
-  bool getIntersectionPose(const double& t, const double& pos_th, const double& ang_th, const Eigen::Vector3d& origin, const double& radius, Eigen::Vector7d& intersection_pose);
-
-  /**
      * @brief getPeriodEstimate
      * @return estimated rotation period
      */
@@ -144,12 +122,6 @@ public:
      * @return last estimated Target's acceleration
      */
   const Eigen::Vector6d& getEstimatedAcceleration();
-
-  /**
-     * @brief getIntersectionPose
-     * @return last computed Target's intersection pose
-     */
-  const Eigen::Vector7d& getIntersectionPose();
 
   /**
      * @brief getMeasuredPose
@@ -276,11 +248,6 @@ protected:
   Eigen::Vector6d acceleration_;
 
   /**
-     * @brief intersection_pose_ Computed insercetion pose with the sphere
-     */
-  Eigen::Vector7d intersection_pose_;
-
-  /**
      * @brief measured_pose_ Measured pose
      */
   Eigen::Vector7d measured_pose_;
@@ -311,17 +278,6 @@ protected:
   std::mutex data_lock_;
 
   /**
-     * @brief solver_ Polynomial solver
-     */
-  Solver solver_;
-
-  /**
-     * @brief Moving average filters
-     */
-  MovingAvgFilter::Ptr pos_error_filter_;
-  MovingAvgFilter::Ptr ang_error_filter_;
-
-  /**
      * @brief C_ output matrix
      */
   Eigen::MatrixXd C_;
@@ -339,9 +295,6 @@ protected:
   Eigen::Vector7d vector7d_tmp_;
   Eigen::Isometry3d isometry3d_tmp_;
   Eigen::Quaterniond quaterniond_tmp_;
-  Eigen::Vector3d pos_tmp_;
-  Eigen::Vector3d vel_tmp_;
-  Eigen::Vector3d acc_tmp_;
 };
 
 #endif

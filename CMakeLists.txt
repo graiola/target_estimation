@@ -42,7 +42,7 @@ add_library(target SHARED
   src/types/uniform_acceleration.cpp
   src/types/uniform_velocity.cpp
   src/target_manager.cpp
-  src/solver.cpp
+  src/intersection_solver.cpp
 )
 target_link_libraries(target kalman yaml-cpp ${catkin_LIBRARIES})
 
