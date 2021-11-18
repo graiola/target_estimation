@@ -53,6 +53,7 @@ public:
      * @brief getEstimatedPose
      * @param t
      * @return Target's estimated pose at time t [x y z qx qy qz qw]
+     * NOTE: if not implemented in subclass, return current value
      */
   virtual Eigen::Vector7d getEstimatedPose(const double& t);
 
@@ -60,6 +61,7 @@ public:
      * @brief getEstimatedTwist
      * @param t
      * @return Target's estimated twist at time t
+     * NOTE: if not implemented in subclass, return current value
      */
   virtual Eigen::Vector6d getEstimatedTwist(const double& t);
 
@@ -67,6 +69,7 @@ public:
      * @brief getEstimatedAcceleration
      * @param t
      * @return Target's estimated acceleration at time t
+     * NOTE: if not implemented in subclass, return current value
      */
   virtual Eigen::Vector6d getEstimatedAcceleration(const double& t);
 
