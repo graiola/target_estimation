@@ -4,6 +4,7 @@
 #include <iostream>
 #include <iomanip>
 #include <vector>
+#include <string>
 
 #include <visualization_msgs/Marker.h>
 #include <Eigen/Core>
@@ -51,6 +52,66 @@ inline void pose7dToTransformStamped(const Eigen::Vector7d& e, geometry_msgs::Tr
   t.transform.rotation.w = e(6);
 }
 
+class Measurement
+{
+public:
+
+  Measurement()
+  {
+    new_meas_ = true;
+    last_meas_time_  = 0.0;
+  }
+
+  inline bool read(geometry_msgs::TransformStamped& tr)
+  {
+    bool read_successful = false;
+    if(new_meas_ && meas_lock_.try_lock())
+    {
+      tr = tr_;
+      read_successful = true;
+      meas_lock_.unlock();
+    }
+    return read_successful;
+  }
+
+  inline void update(const geometry_msgs::TransformStamped& tr)
+  {
+    double current_time_stamp = 0.0;
+    double prev_time_stamp = 0.0;
+    meas_lock_.lock();
+    current_time_stamp = toSec(tr.header.stamp.sec,tr.header.stamp.nsec);
+    prev_time_stamp = toSec(tr_.header.stamp.sec,tr_.header.stamp.nsec);
+    if(current_time_stamp > prev_time_stamp) // New measurement
+    {
+      new_meas_ = true;
+      last_meas_time_ = current_time_stamp;
+    }
+    else
+    {
+      new_meas_ = false; // No new measurement
+    }
+    tr_ = tr; // Save the measurement w.r.t observer
+    meas_lock_.unlock();
+  }
+
+  double getTime() const
+  {
+    return last_meas_time_;
+  }
+
+  std::string getFrameId()
+  {
+    return tr_.header.frame_id;
+  }
+
+private:
+
+  std::atomic<double> last_meas_time_;
+  std::atomic<bool> new_meas_;
+  geometry_msgs::TransformStamped tr_;
+  std::mutex meas_lock_;
+};
+
 class RosTargetManager
 {
 
@@ -65,13 +126,6 @@ public:
   void setExpirationTime(double time);
 
 private:
-
-  struct Measurement
-  {
-    geometry_msgs::TransformStamped tr_;
-    bool new_meas_ = true;
-    double last_meas_time  = 0.0;
-  };
 
   typedef std::map<unsigned int, Measurement> meas_map_t;
 
@@ -92,15 +146,14 @@ private:
 
   double t_;
 
-  std::mutex meas_lock_;
-
   meas_map_t measurements_;
 
   Eigen::Vector7d tmp_vector7d_;
   Eigen::Isometry3d tmp_isometry3d_;
-  tf::Transform tmp_transform_;
+  tf::Transform tmp_tf_tr_;
 
   tf::TransformBroadcaster br_;
+  geometry_msgs::TransformStamped tmp_tr_;
 
   ros::Time ros_t_;
 

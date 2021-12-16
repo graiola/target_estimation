@@ -28,31 +28,10 @@ void RosTargetManager::measurementCallBack(const tf2_msgs::TFMessage::ConstPtr& 
     const std::string& current_tf_name = pose_msg->transforms[i].child_frame_id;
     if(current_tf_name.find(token_name_) != std::string::npos)
     {
-
       unsigned int id;
       if(!getId(current_tf_name,id)) // If we don't have a correct id
         break;
-
-      double current_time_stamp = 0.0;
-      double prev_time_stamp = 0.0;
-
-      meas_lock_.lock();
-      if(measurements_.count(id)) // If the target has been seen before check if the measurement is new or not
-      {
-        current_time_stamp = toSec(pose_msg->transforms[i].header.stamp.sec,pose_msg->transforms[i].header.stamp.nsec);
-        prev_time_stamp = toSec(measurements_[id].tr_.header.stamp.sec,measurements_[id].tr_.header.stamp.nsec);
-        if(current_time_stamp > prev_time_stamp) // New measurement
-        {
-          measurements_[id].new_meas_ = true;
-          measurements_[id].last_meas_time = current_time_stamp;
-        }
-        else
-        {
-          measurements_[id].new_meas_ = false; // No new measurement
-        }
-      }
-      measurements_[id].tr_   = pose_msg->transforms[i]; // Save the measurement w.r.t observer
-      meas_lock_.unlock();
+      measurements_[id].update(pose_msg->transforms[i]);
     }
   }
 }
@@ -62,40 +41,31 @@ void RosTargetManager::update(const double& dt)
 
   ros_t_ = ros::Time::now();
 
-  if(meas_lock_.try_lock())
+  auto it = measurements_.begin();
+  while (it != measurements_.end())
   {
-    auto it = measurements_.cbegin();
-    while (it != measurements_.cend())
+    int id = it->first;
+    double last_meas_time = it->second.getTime();
+    if(it->second.read(tmp_tr_))
     {
-      const unsigned int& id = it->first;
-      const geometry_msgs::TransformStamped& tr = it->second.tr_;
-      const bool& new_meas = it->second.new_meas_;
-      const double& last_meas_time = it->second.last_meas_time;
-
-      transformStampedToPose7d(tr,tmp_vector7d_);
-
+      transformStampedToPose7d(tmp_tr_,tmp_vector7d_);
       if(manager_.getTarget(id)==nullptr) // Target does not exist, create it
         manager_.init(type_,id,dt,t_,Q_,R_,P_,tmp_vector7d_);
-
-      if(new_meas)
-        manager_.update(id,dt,tmp_vector7d_); // Estimate
-      else
-        manager_.update(id,dt); // Predict
-
-      if(last_meas_time > 0.0 && (ros_t_.toSec() - last_meas_time) >= expiration_time_) // Remove expired target
-      {
-        ROS_WARN_STREAM("Timeout for target "<<id);
-        it = measurements_.erase(it);
-        manager_.erase(id);
-      }
-      else {
-        ++it;
-      }
+      manager_.update(id,dt,tmp_vector7d_); // Estimate
     }
-    meas_lock_.unlock();
+    else
+      manager_.update(id,dt); // Predict
+
+    if(last_meas_time > 0.0 && (ros_t_.toSec() - last_meas_time) >= expiration_time_) // Remove expired target
+    {
+      ROS_WARN_STREAM("Timeout for target "<<id);
+      it = measurements_.erase(it);
+      manager_.erase(id);
+    }
+    else {
+      ++it;
+    }
   }
-  else
-    manager_.update(dt); // Predict with all the filters if measurements are updating
 
   auto target_ids = manager_.getAvailableTargets();
 
@@ -103,9 +73,9 @@ void RosTargetManager::update(const double& dt)
   for(unsigned int i=0;i<target_ids.size();i++)
   {
     manager_.getTargetPose(target_ids[i],tmp_vector7d_);
-    pose7dToTFTransform(tmp_vector7d_,tmp_transform_);
-    const std::string reference_frame = measurements_[target_ids[i]].tr_.header.frame_id;
-    br_.sendTransform(tf::StampedTransform(tmp_transform_,ros_t_,reference_frame,token_name_+"_filt_"+to_string(target_ids[i])));
+    pose7dToTFTransform(tmp_vector7d_,tmp_tf_tr_);
+    const std::string reference_frame = measurements_[target_ids[i]].getFrameId();
+    br_.sendTransform(tf::StampedTransform(tmp_tf_tr_,ros_t_,reference_frame,token_name_+"_filt_"+to_string(target_ids[i])));
   }
 
   t_= t_ + dt;
