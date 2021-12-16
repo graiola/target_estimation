@@ -1,7 +1,7 @@
 <?xml version="1.0" ?>
 <launch>
    <arg name="gui" default="false"/>
-   <arg name="model" default="model_uniform_velocity_params.yaml"/>
+   <arg name="model" default="model_uniform_velocity_params"/>
    <arg name="token" default="target"/>
    <arg name="timeout" default="5.0"/>
 
@@ -18,7 +18,7 @@
    <group if="$(arg gui)">
         <node type="rviz" name="rviz" pkg="rviz" args="-d $(find target_estimation)/rviz/target_node.rviz"/>
         <node pkg="plotjuggler" type="plotjuggler" name="plotjuggler"
-              args="--layout $(find target_estimation)/plot_juggler_files/kalman.xml --nosplash">
+              args="--layout $(find target_estimation)/plotjuggler/kalman.xml --nosplash">
         </node>
    </group>
 </launch>
