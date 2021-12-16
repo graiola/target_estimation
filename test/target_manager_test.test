@@ -2,7 +2,6 @@
 	<!-- Load the models -->
 	<rosparam command="load" file="$(find target_estimation)/models/model_angular_rates_params.yaml"        ns="model_angular_rates_params"/>
 	<rosparam command="load" file="$(find target_estimation)/models/model_angular_velocities_params.yaml"   ns="model_angular_velocities_params"/>
-	<rosparam command="load" file="$(find target_estimation)/models/model_projectile_params.yaml"           ns="model_projectile_params"/>
 	<rosparam command="load" file="$(find target_estimation)/models/model_uniform_acceleration_params.yaml" ns="model_uniform_acceleration_params"/>
 	<rosparam command="load" file="$(find target_estimation)/models/model_uniform_velocity_params.yaml"     ns="model_uniform_velocity_params"/>
 

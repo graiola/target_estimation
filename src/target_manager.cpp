@@ -55,8 +55,6 @@ bool TargetManager::selectTargetType(const std::string& type_str, target_t& type
         type = TargetManager::target_t::ANGULAR_RATES;
     else if (std::strcmp(type_str.c_str(),"angular_velocities") == 0)
         type = TargetManager::target_t::ANGULAR_VELOCITIES;
-    else if (std::strcmp(type_str.c_str(),"projectile") == 0)
-        type = TargetManager::target_t::PROJECTILE;
     else if (std::strcmp(type_str.c_str(),"uniform_acceleration") == 0)
         type = TargetManager::target_t::UNIFORM_ACCELERATION;
     else if (std::strcmp(type_str.c_str(),"uniform_velocity") == 0)
@@ -165,10 +163,6 @@ void TargetManager::init(const target_t& type, const unsigned int& id, const dou
         case target_t::ANGULAR_VELOCITIES:
             targets_[id].reset(new TargetAngularVelocities(id,dt0,t0,Q,R,P0,p0,v0,a0));
             std::cout << "Using angular velocities for the orientation" << std::endl;
-            break;
-        case target_t::PROJECTILE:
-            targets_[id].reset(new TargetUniformAcceleration(id,dt0,t0,Q,R,P0,p0,v0,ag));
-            std::cout << "Catching some bullets!" << std::endl;
             break;
         case target_t::UNIFORM_ACCELERATION:
             targets_[id].reset(new TargetUniformAcceleration(id,dt0,t0,Q,R,P0,p0,v0,a0));

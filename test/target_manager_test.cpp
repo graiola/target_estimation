@@ -340,51 +340,6 @@ TEST(test_target, AngularVelocities)
     EXPECT_NEAR( _omega(2), omegaz(omegaz.size()-1), 0.01 );
 }
 
-TEST(test_target, Projectile)
-{
-    Eigen::MatrixXd Q,R,P;
-    double dt;
-    loadModel("model_projectile_params",Q,R,P,dt);
-    Eigen::MatrixXd real_pose, meas_pose;
-    Eigen::VectorXd time;
-    generateParabolicMeasurements(dt,_n_points,meas_pose,real_pose,time);
-
-    unsigned int id = 4;
-    _manager.init(TargetManager::target_t::PROJECTILE,id,dt,0.0,Q,R,P,meas_pose.row(0));
-
-    Eigen::MatrixXd est_pose, est_twist, sigma_xyz;
-    generateEstimation(id,dt,meas_pose,est_pose,est_twist,sigma_xyz);
-
-    // Save the data for the plots
-    writeTxtFile(folder+"time_"+std::to_string(id),time);
-    writeTxtFile(folder+"real_pose_"+std::to_string(id),real_pose);
-    writeTxtFile(folder+"meas_pose_"+std::to_string(id),meas_pose);
-    writeTxtFile(folder+"est_pose_"+std::to_string(id),est_pose);
-    writeTxtFile(folder+"est_twist_"+std::to_string(id),est_twist);
-
-    //auto velocities = calculateVelocities(dt);
-    //
-    //Eigen::VectorXd xdot, ydot, zdot;
-    //Eigen::VectorXd x,    y,    z;
-    //
-    //x = est_pose.col(0);
-    //y = est_pose.col(1);
-    //z = est_pose.col(2);
-    //
-    //EXPECT_NEAR( _end_goal_x, x(x.size()-1), 0.01 );
-    //EXPECT_NEAR( _end_goal_y, y(y.size()-1), 0.01 );
-    //EXPECT_NEAR( _end_goal_z, z(z.size()-1), 0.01 );
-    //
-    //xdot   = est_twist.col(0);
-    //ydot   = est_twist.col(1);
-    //zdot   = est_twist.col(2);
-    //
-    //EXPECT_NEAR( velocities(0) ,xdot.mean(), 0.01 );
-    //EXPECT_NEAR( velocities(1) ,ydot.mean(), 0.01 );
-    //EXPECT_NEAR( velocities(2) ,zdot.mean(), 0.01 );
-}
-
-
 int main(int argc, char** argv)
 {
   ros::init(argc, argv, "target_manager_test");
