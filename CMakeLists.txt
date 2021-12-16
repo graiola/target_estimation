@@ -99,8 +99,8 @@ if (${roscpp_FOUND})
      DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/rviz
      PATTERN ".svn" EXCLUDE)
 
-   install(DIRECTORY plot_juggler_files/
-     DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/plot_juggler_files
+   install(DIRECTORY plotjuggler/
+     DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/plotjuggler
      PATTERN ".svn" EXCLUDE)
 
    # To launch the tests: catkin run_tests
