@@ -14,8 +14,11 @@ int main(int argc, char **argv)
   ros::NodeHandle nh(ns);
 
   // Args
-  std::string token = nh_priv.param<std::string>("token", "target");
+  std::vector<std::string> token_names;
+  nh_priv.param("token", token_names, std::vector<std::string>());
   double timeout = nh_priv.param<double>("timeout", 10.0);
+  std::string new_reference_frame  = nh_priv.param<std::string>("new_reference_frame", "");
+  bool activate_prediction  = nh_priv.param<bool>("activate_prediction", true);
 
   // Params
   double freq;
@@ -26,8 +29,10 @@ int main(int argc, char **argv)
 
 
   RosTargetManager ros_target_manager(nh);
-  ros_target_manager.setTargetTokenName(token);
+  ros_target_manager.setTargetTokenNames(token_names);
   ros_target_manager.setExpirationTime(timeout);
+  ros_target_manager.setNewReferenceFrame(new_reference_frame);
+  ros_target_manager.activatePrediction(activate_prediction);
 
   double dt = 1.0/freq;
 

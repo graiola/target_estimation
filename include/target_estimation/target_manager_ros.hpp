@@ -10,6 +10,7 @@
 #include <Eigen/Core>
 #include <atomic>
 #include <tf/transform_broadcaster.h>
+#include <tf/transform_listener.h>
 #include <tf2_msgs/TFMessage.h>
 
 #include "target_estimation/target_manager.hpp"
@@ -104,6 +105,11 @@ public:
     return tr_.header.frame_id;
   }
 
+  std::string getChildFrameId()
+  {
+    return tr_.child_frame_id;
+  }
+
 private:
 
   std::atomic<double> last_meas_time_;
@@ -117,17 +123,21 @@ class RosTargetManager
 
 public:
 
+  typedef std::map<unsigned int, Measurement> meas_map_t;
+
   RosTargetManager(ros::NodeHandle& nh);
 
   void update(const double& dt);
 
-  void setTargetTokenName(const std::string& token_name);
+  void setTargetTokenNames(const std::vector<std::string>& token_names);
 
   void setExpirationTime(double time);
 
-private:
+  void setNewReferenceFrame(const std::string& frame);
 
-  typedef std::map<unsigned int, Measurement> meas_map_t;
+  void activatePrediction(bool predict);
+
+private:
 
   void measurementCallBack(const tf2_msgs::TFMessage::ConstPtr& pose_msg);
   bool parseSquareMatrix(const ros::NodeHandle& n, const std::string& matrix, Eigen::MatrixXd& M);
@@ -142,22 +152,24 @@ private:
   Eigen::MatrixXd P_;
   Eigen::MatrixXd R_;
 
-  std::string token_name_;
-
   double t_;
+  ros::Time ros_t_;
 
   meas_map_t measurements_;
+  std::atomic<double> expiration_time_;
+  std::atomic<bool> predict_;
 
+  tf::TransformBroadcaster tf_broadcaster_;
+  tf::TransformListener tf_listener_;
+  std::vector<std::string> token_names_;
+  std::string new_reference_frame_;
+
+  /* Temporary variables */
   Eigen::Vector7d tmp_vector7d_;
   Eigen::Isometry3d tmp_isometry3d_;
   tf::Transform tmp_tf_tr_;
-
-  tf::TransformBroadcaster br_;
+  tf::StampedTransform tmp_tf_stamped_tr_;
   geometry_msgs::TransformStamped tmp_tr_;
-
-  ros::Time ros_t_;
-
-  std::atomic<double> expiration_time_;
 };
 
 #endif

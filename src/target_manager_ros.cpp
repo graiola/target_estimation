@@ -5,9 +5,10 @@
 using namespace std;
 
 RosTargetManager::RosTargetManager(ros::NodeHandle& nh):
-  token_name_("target"),
   t_(0.0),
-  expiration_time_(1000.0) // Dummy value
+  expiration_time_(1000.0), // Dummy value
+  new_reference_frame_(""),
+  predict_(true)
 {
   // subscribe to /tf topic
   nh_ = nh;
@@ -26,13 +27,14 @@ void RosTargetManager::measurementCallBack(const tf2_msgs::TFMessage::ConstPtr& 
   for(unsigned int i = 0; i< pose_msg->transforms.size(); i++)
   {
     const std::string& current_tf_name = pose_msg->transforms[i].child_frame_id;
-    if(current_tf_name.find(token_name_) != std::string::npos)
-    {
-      unsigned int id;
-      if(!getId(current_tf_name,id)) // If we don't have a correct id
-        break;
-      measurements_[id].update(pose_msg->transforms[i]);
-    }
+    for(unsigned int i=0;i<token_names_.size();i++)
+        if(current_tf_name.find(token_names_[i]) != std::string::npos)
+        {
+          unsigned int id;
+          if(!getId(current_tf_name,id)) // If we don't have a correct id
+            break;
+          measurements_[id].update(pose_msg->transforms[i]);
+        }
   }
 }
 
@@ -53,7 +55,7 @@ void RosTargetManager::update(const double& dt)
         manager_.init(type_,id,dt,t_,Q_,R_,P_,tmp_vector7d_);
       manager_.update(id,dt,tmp_vector7d_); // Estimate
     }
-    else
+    else if(predict_)
       manager_.update(id,dt); // Predict
 
     if(last_meas_time > 0.0 && (ros_t_.toSec() - last_meas_time) >= expiration_time_) // Remove expired target
@@ -74,8 +76,16 @@ void RosTargetManager::update(const double& dt)
   {
     manager_.getTargetPose(target_ids[i],tmp_vector7d_);
     pose7dToTFTransform(tmp_vector7d_,tmp_tf_tr_);
-    const std::string reference_frame = measurements_[target_ids[i]].getFrameId();
-    br_.sendTransform(tf::StampedTransform(tmp_tf_tr_,ros_t_,reference_frame,token_name_+"_filt_"+to_string(target_ids[i])));
+    const std::string& reference_frame = measurements_[target_ids[i]].getFrameId();
+    const std::string& current_frame   = measurements_[target_ids[i]].getChildFrameId();
+    if(!new_reference_frame_.empty())
+    {
+        tf_listener_.lookupTransform(new_reference_frame_,reference_frame,ros_t_,tmp_tf_stamped_tr_); // new_T_old
+        tmp_tf_tr_ = tmp_tf_stamped_tr_ * tmp_tf_tr_; // new_T_target = new_T_old * old_T_target
+        tf_broadcaster_.sendTransform(tf::StampedTransform(tmp_tf_tr_,ros_t_,new_reference_frame_,current_frame+"_filt"));
+    }
+    else
+        tf_broadcaster_.sendTransform(tf::StampedTransform(tmp_tf_tr_,ros_t_,reference_frame,current_frame+"_filt"));
   }
 
   t_= t_ + dt;
@@ -83,15 +93,25 @@ void RosTargetManager::update(const double& dt)
   manager_.log();
 }
 
-void RosTargetManager::setTargetTokenName(const string& token_name)
+void RosTargetManager::setTargetTokenNames(const std::vector<std::string>& token_names)
 {
-  token_name_ = token_name;
+  token_names_ = token_names;
 }
 
 void RosTargetManager::setExpirationTime(double time)
 {
   assert(time>=0.0);
   expiration_time_ = time;
+}
+
+void RosTargetManager::setNewReferenceFrame(const std::string& frame_name)
+{
+    new_reference_frame_ = frame_name;
+}
+
+void RosTargetManager::activatePrediction(bool predict)
+{
+    predict_ = predict;
 }
 
 bool RosTargetManager::parseSquareMatrix(const ros::NodeHandle& n, const std::string& matrix, Eigen::MatrixXd& M)
