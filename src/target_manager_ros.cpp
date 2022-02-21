@@ -7,8 +7,8 @@ using namespace std;
 RosTargetManager::RosTargetManager(ros::NodeHandle& nh):
   t_(0.0),
   expiration_time_(1000.0), // Dummy value
-  new_reference_frame_(""),
-  predict_(true)
+  predict_(true),
+  new_reference_frame_("")
 {
   // subscribe to /tf topic
   nh_ = nh;
@@ -46,7 +46,7 @@ void RosTargetManager::update(const double& dt)
   auto it = measurements_.begin();
   while (it != measurements_.end())
   {
-    int id = it->first;
+    unsigned int id = it->first;
     double last_meas_time = it->second.getTime();
     if(it->second.read(tmp_tr_))
     {
@@ -80,7 +80,7 @@ void RosTargetManager::update(const double& dt)
     const std::string& current_frame   = measurements_[target_ids[i]].getChildFrameId();
     if(!new_reference_frame_.empty())
     {
-        tf_listener_.lookupTransform(new_reference_frame_,reference_frame,ros_t_,tmp_tf_stamped_tr_); // new_T_old
+        tf_listener_.lookupTransform(new_reference_frame_,reference_frame,ros::Time(0),tmp_tf_stamped_tr_); // new_T_old
         tmp_tf_tr_ = tmp_tf_stamped_tr_ * tmp_tf_tr_; // new_T_target = new_T_old * old_T_target
         tf_broadcaster_.sendTransform(tf::StampedTransform(tmp_tf_tr_,ros_t_,new_reference_frame_,current_frame+"_filt"));
     }

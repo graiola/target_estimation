@@ -1,0 +1,28 @@
+<?xml version="1.0" ?>
+<launch>
+   <arg name="gui" default="true"/>
+   <arg name="model" default="model_uniform_velocity_params"/>
+   <arg name="token" default="[target]"/>
+   <arg name="timeout" default="5.0"/>
+   <arg name="activate_prediction" default="true"/>
+   <arg name="bag_file_name" value="test_multiple_targets"/>
+
+   <!-- Use simulated time -->
+   <param name ="/use_sim_time" value="true"/>
+
+   <!-- Play the rosbag -->
+   <node pkg="rosbag" type="play" name="rosbag_play" output="screen" args="--clock $(find target_estimation)/test/$(arg bag_file_name).bag"/>
+
+   <!-- Create a simulated inertial frame -->
+   <node pkg="tf" type="static_transform_publisher" name="camera_to_map" args="0.0 0 0 0 1.57 0 /camera_depth_optical_frame /map 100"/>
+
+   <!-- Launch the estimation -->
+   <include file="$(find target_estimation)/launch/target_node_bringup.launch">
+           <arg name="gui" default="$(arg gui)"/>
+           <arg name="model" default="$(arg model)"/>
+           <arg name="token" value="$(arg token)"/>
+           <arg name="timeout" value="$(arg timeout)"/>
+           <arg name="activate_prediction" value="$(arg activate_prediction)"/>
+           <arg name="new_reference_frame" value="/map"/>
+   </include>
+</launch>

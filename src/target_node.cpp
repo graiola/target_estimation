@@ -16,6 +16,9 @@ int main(int argc, char **argv)
   // Args
   std::vector<std::string> token_names;
   nh_priv.param("token", token_names, std::vector<std::string>());
+  if(token_names.size() == 0)
+      throw std::runtime_error("No token list provided!");
+
   double timeout = nh_priv.param<double>("timeout", 10.0);
   std::string new_reference_frame  = nh_priv.param<std::string>("new_reference_frame", "");
   bool activate_prediction  = nh_priv.param<bool>("activate_prediction", true);

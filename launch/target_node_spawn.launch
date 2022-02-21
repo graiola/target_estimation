@@ -1,11 +1,15 @@
 <?xml version="1.0" ?>
 <launch>
-   <arg name="token" default="target"/>
+   <arg name="token" default="[target]"/>
    <arg name="timeout" default="5.0"/>
+   <arg name="activate_prediction" default="true"/>
+   <arg name="new_reference_frame" default=""/>
 
    <!-- Start the node -->
    <node name="target_node" pkg="target_estimation" type="target_node" respawn="false" output="screen">
-        <param name="token" value="$(arg token)"/>
+        <rosparam param="token" subst_value="True">$(arg token)</rosparam>
         <param name="timeout" value="$(arg timeout)"/>
+        <param name="activate_prediction" value="$(arg activate_prediction)"/>
+        <param name="new_reference_frame" value="$(arg new_reference_frame)"/>
    </node>
 </launch>
