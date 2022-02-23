@@ -1,12 +1,11 @@
 <?xml version="1.0"?>
 <package format="2">
   <name>target_estimation</name>
-  <version>0.0.0</version>
+  <version>0.0.1</version>
   <description>The target_estimation package</description>
-
-  <maintainer email="graiola@todo.todo">graiola</maintainer>
-
-  <license>TODO</license>
+  <maintainer email="gennaro.raiola@gmail.com">TODO</maintainer>
+  <author>Gennaro Raiola</author>
+  <license>GNU General Public License v3.0</license>
 
   <buildtool_depend>catkin</buildtool_depend>
   <depend>roscpp</depend>
@@ -14,10 +13,6 @@
   <depend>tf</depend>
   <depend>geometry_msgs</depend>
 
-
-  <!-- The export tag contains other, unspecified, tags -->
   <export>
-    <!-- Other tools can request additional information be placed here -->
-
   </export>
 </package>
