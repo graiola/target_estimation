@@ -230,26 +230,38 @@ public:
 
       if (!filter_complete_ && window_idx_ == n - 1) {
           filter_complete_ = true;
-        }
-        if (filter_complete_) {
-          res = sum_ / n;
-        } else {
-          res = sum_ / (window_idx_+1);
-        }
+      }
+      unsigned int num = n;
+      if (!filter_complete_) {
+        num = window_idx_ + 1;
+      }
+
+      res = sum_ / num;
 
       window_idx_ = (window_idx_+1) % n;
 
+      double variance_sum = 0.0;
+      for(double val : window_)
+      {
+        variance_sum += std::pow((val - res), 2);
+      }
+      variance_ = variance_sum / num;
+
       return res;
+  }
+
+  double getVariance()
+  {
+    return variance_;
   }
 
 private:
 
   double sum_;
+  double variance_;
   std::vector<double> window_;
   unsigned int window_idx_;
   bool filter_complete_;
-
-
 };
 
 /**
