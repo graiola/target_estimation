@@ -65,7 +65,7 @@ if (${roscpp_FOUND})
     find_package(catkin REQUIRED COMPONENTS roscpp geometry_msgs tf rostest)
 
     catkin_package(
-        LIBRARIES target kalman
+        LIBRARIES target_ros
         INCLUDE_DIRS include
     )
 
@@ -77,7 +77,7 @@ if (${roscpp_FOUND})
     add_executable(target_node src/target_node.cpp)
     target_link_libraries(target_node target_ros)
 
-    install(TARGETS target target_c target_ros kalman target_node
+    install(TARGETS target_ros target_node
       ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
       LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
       RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
