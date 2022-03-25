@@ -65,7 +65,7 @@ if (${roscpp_FOUND})
     find_package(catkin REQUIRED COMPONENTS roscpp geometry_msgs tf rostest)
 
     catkin_package(
-        LIBRARIES target kalman
+        LIBRARIES target target_c target_ros kalman
         INCLUDE_DIRS include
     )
 
