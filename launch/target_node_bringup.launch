@@ -4,6 +4,7 @@
    <arg name="model" default="model_uniform_velocity_params"/>
    <arg name="token" default="target"/>
    <arg name="timeout" default="5.0"/>
+   <arg name="output" default="screen"/>
 
    <!-- Load the kalman filter model -->
    <rosparam command="load" file="$(find target_estimation)/models/$(arg model).yaml" ns="target_estimation"/>
@@ -12,6 +13,7 @@
    <include file="$(find target_estimation)/launch/target_node_spawn.launch">
            <arg name="token" value="$(arg token)"/>
            <arg name="timeout" value="$(arg timeout)"/>
+           <arg name="output" value="$(arg output)"/>
    </include>
 
    <!-- start plotJuggler and Rviz -->
