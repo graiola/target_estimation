@@ -144,6 +144,8 @@ public:
 
   void setExpirationTime(double time);
 
+  TargetManager::Ptr getTargetManagerPtr();
+
 private:
 
   typedef std::map<unsigned int, Measurement> meas_map_t;

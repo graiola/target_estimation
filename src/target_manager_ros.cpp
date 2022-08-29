@@ -127,3 +127,10 @@ bool RosTargetManager::parseTargetType(const ros::NodeHandle& n, TargetManager::
     return false;
   }
 }
+
+TargetManager::Ptr RosTargetManager::getTargetManagerPtr()
+{
+  TargetManager::Ptr manager_ptr( &manager_ );
+
+  return manager_ptr;
+}
