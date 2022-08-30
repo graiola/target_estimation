@@ -26,7 +26,7 @@
 #include <Eigen/src/Core/Matrix.h>
 #include <unsupported/Eigen/Polynomials>
 
-#include "target_estimation/target_manager.hpp"
+#include "target_estimation/target_manager_ros.hpp"
 
 /* Solve n-th order polynomial
 
@@ -60,7 +60,7 @@ public:
 
   typedef std::shared_ptr<IntersectionSolver> Ptr;
 
-  IntersectionSolver(TargetManager::Ptr manager, const unsigned int filters_length = 250);
+  IntersectionSolver(RosTargetManager::Ptr target_manager, const unsigned int filters_length = 250);
 
   /**
      * @brief getIntersectionTimeWithSphere
@@ -90,9 +90,9 @@ public:
 private:
 
     /**
-       * @brief manager_ Target manager
+       * @brief target_manager_ Target manager
        */
-  TargetManager::Ptr manager_;
+  RosTargetManager::Ptr target_manager_;
 
   /**
      * @brief solver_ Polynomial solver

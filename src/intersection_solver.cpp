@@ -16,10 +16,10 @@ double Solver::lowestRealRoot(const Eigen::VectorXd &coeffs) {
   return r;
 }
 
-IntersectionSolver::IntersectionSolver(TargetManager::Ptr manager, const unsigned int filters_length)
+IntersectionSolver::IntersectionSolver(RosTargetManager::Ptr target_manager, const unsigned int filters_length)
 {
-  assert(manager);
-  manager_ = manager;
+  assert(target_manager);
+  target_manager_ = target_manager;
   // filters_length = filter_time/dt
   // Example filters_length = 250 means that with 50hz loop we have 5.0 secs of filter
   pos_error_filter_.reset(new MovingAvgFilter(filters_length));
@@ -31,11 +31,11 @@ IntersectionSolver::IntersectionSolver(TargetManager::Ptr manager, const unsigne
 double IntersectionSolver::getIntersectionTimeWithSphere(const unsigned int& id, const double& t1, const Eigen::Vector3d& origin, const double& radius)
 {
 
-  if(manager_->getTarget(id))
+  if(target_manager_->getTarget(id))
   {
-    pos_tmp_ = manager_->getTarget(id)->getEstimatedPose(t1).head(3);
-    vel_tmp_ = manager_->getTarget(id)->getEstimatedTwist(t1).head(3);
-    acc_tmp_ = manager_->getTarget(id)->getEstimatedAcceleration(t1).head(3);
+    pos_tmp_ = target_manager_->getTarget(id)->getEstimatedPose(t1).head(3);
+    vel_tmp_ = target_manager_->getTarget(id)->getEstimatedTwist(t1).head(3);
+    acc_tmp_ = target_manager_->getTarget(id)->getEstimatedAcceleration(t1).head(3);
 
     // Use only the translational part of the variables
     double x = pos_tmp_(0) - origin(0);
@@ -52,8 +52,6 @@ double IntersectionSolver::getIntersectionTimeWithSphere(const unsigned int& id,
     // Polynomial coefficients
     Eigen::VectorXd coeff;
 
-    //if(acceleration_on_)
-    //{
     // 2rd order system
     coeff.resize(5);
     coeff(4) = 0.25 * ax*ax + ay*ay + az*az;
@@ -61,15 +59,6 @@ double IntersectionSolver::getIntersectionTimeWithSphere(const unsigned int& id,
     coeff(2) = vx*vx + vy*vy + vz*vz + x*ax + y*ay + z*az;
     coeff(1) = 2*(x*vx + y*vy + z*vz);
     coeff(0) = x*x + y*y + z*z - R*R;
-    //}
-    //else
-    //{
-    //  // 1st order system
-    //  coeff.resize(3);
-    //  coeff(2) = vx*vx + vy*vy + vz*vz;
-    //  coeff(1) = 2*(x*vx + y*vy + z*vz);
-    //  coeff(0) = x*x + y*y + z*z - R*R;
-    //}
 
     double delta_intersect_t = solver_.lowestRealRoot(coeff);
 
@@ -95,7 +84,7 @@ bool IntersectionSolver::getIntersectionPoseWithSphere(const unsigned int& id, c
   if (delta_intersect_t > -1)
   {
     Eigen::Quaterniond q1, q2;
-    intersection_pose = manager_->getTarget(id)->getEstimatedPose(delta_intersect_t+t1);
+    intersection_pose = target_manager_->getTarget(id)->getEstimatedPose(delta_intersect_t+t1);
     double pos_error = (POSE_pos(intersection_pose) - POSE_pos(intersection_pose_prev_)).norm();
     q1.coeffs() = POSE_quat(intersection_pose);
     q2.coeffs() = POSE_quat(intersection_pose_prev_);
