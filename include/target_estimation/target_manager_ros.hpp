@@ -135,6 +135,7 @@ class RosTargetManager
 {
 
 public:
+  typedef std::shared_ptr<RosTargetManager> Ptr;
 
   RosTargetManager(ros::NodeHandle& nh);
 

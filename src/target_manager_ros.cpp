@@ -131,6 +131,7 @@ bool RosTargetManager::parseTargetType(const ros::NodeHandle& n, TargetManager::
 TargetManager::Ptr RosTargetManager::getTargetManagerPtr()
 {
   TargetManager::Ptr manager_ptr( &manager_ );
+  TargetManager manager;
 
   return manager_ptr;
 }
