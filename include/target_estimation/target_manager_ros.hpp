@@ -98,11 +98,8 @@ public:
     double current_time_stamp = 0.0;
     double prev_time_stamp = 0.0;
     meas_lock_.lock();
-//    current_time_stamp = toSec(tr.header.stamp.sec,tr.header.stamp.nsec);
-//    prev_time_stamp = toSec(tr_.header.stamp.sec,tr_.header.stamp.nsec);
-    current_time_stamp = tr.header.stamp.toSec();
-    prev_time_stamp = tr_.header.stamp.toSec();
-    if(current_time_stamp > prev_time_stamp) // New measurement
+    current_time_stamp = ros::Time::now().toSec();
+    if(current_time_stamp > prev_time_stamp_) // New measurement
     {
       new_meas_ = true;
       last_meas_time_ = current_time_stamp;
@@ -112,6 +109,7 @@ public:
       new_meas_ = false; // No new measurement
     }
     tr_ = tr; // Save the measurement w.r.t observer
+    prev_time_stamp_ = current_time_stamp;
     meas_lock_.unlock();
   }
 
@@ -131,6 +129,7 @@ private:
   std::atomic<bool> new_meas_;
   geometry_msgs::TransformStamped tr_;
   std::mutex meas_lock_;
+  double prev_time_stamp_{0.0};
 };
 
 class RosTargetManager : public TargetManager
