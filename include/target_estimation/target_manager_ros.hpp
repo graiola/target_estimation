@@ -98,8 +98,10 @@ public:
     double current_time_stamp = 0.0;
     double prev_time_stamp = 0.0;
     meas_lock_.lock();
-    current_time_stamp = toSec(tr.header.stamp.sec,tr.header.stamp.nsec);
-    prev_time_stamp = toSec(tr_.header.stamp.sec,tr_.header.stamp.nsec);
+//    current_time_stamp = toSec(tr.header.stamp.sec,tr.header.stamp.nsec);
+//    prev_time_stamp = toSec(tr_.header.stamp.sec,tr_.header.stamp.nsec);
+    current_time_stamp = tr.header.stamp.toSec();
+    prev_time_stamp = tr_.header.stamp.toSec();
     if(current_time_stamp > prev_time_stamp) // New measurement
     {
       new_meas_ = true;
@@ -131,7 +133,7 @@ private:
   std::mutex meas_lock_;
 };
 
-class RosTargetManager
+class RosTargetManager : public TargetManager
 {
 
 public:
@@ -139,13 +141,11 @@ public:
 
   RosTargetManager(ros::NodeHandle& nh);
 
-  void update(const double& dt);
+  void update(const double& dt) override;
 
   void setTargetTokenName(const std::string& token_name);
 
   void setExpirationTime(double time);
-
-  TargetManager::Ptr getTargetManagerPtr();
 
 private:
 
@@ -158,7 +158,6 @@ private:
   ros::NodeHandle nh_;
   ros::Subscriber meas_subscriber_;
 
-  TargetManager manager_;
   TargetManager::target_t type_;
   Eigen::MatrixXd Q_;
   Eigen::MatrixXd P_;
