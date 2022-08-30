@@ -96,7 +96,6 @@ public:
   inline void update(const geometry_msgs::TransformStamped& tr)
   {
     double current_time_stamp = 0.0;
-    double prev_time_stamp = 0.0;
     meas_lock_.lock();
 //    current_time_stamp = toSec(tr.header.stamp.sec,tr.header.stamp.nsec);
 //    prev_time_stamp = toSec(tr_.header.stamp.sec,tr_.header.stamp.nsec);
@@ -139,6 +138,8 @@ class RosTargetManager : public TargetManager
 public:
 
   RosTargetManager(ros::NodeHandle& nh);
+
+  ~RosTargetManager() override = default;
 
   void update(const double& dt) override;
 

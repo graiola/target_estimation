@@ -49,6 +49,8 @@ public:
    */
     TargetManager(const std::string& file);
 
+    virtual ~TargetManager() = default;
+
     /**
    * @brief init  Initialize a new target with default covariance matrices and type
    * @param id    Target's id
