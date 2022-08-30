@@ -96,7 +96,6 @@ public:
   inline void update(const geometry_msgs::TransformStamped& tr)
   {
     double current_time_stamp = 0.0;
-    double prev_time_stamp = 0.0;
     meas_lock_.lock();
     current_time_stamp = ros::Time::now().toSec();
     if(current_time_stamp > prev_time_stamp_) // New measurement
@@ -139,6 +138,8 @@ public:
   typedef std::shared_ptr<RosTargetManager> Ptr;
 
   RosTargetManager(ros::NodeHandle& nh);
+
+  ~RosTargetManager() override = default;
 
   void update(const double& dt) override;
 
