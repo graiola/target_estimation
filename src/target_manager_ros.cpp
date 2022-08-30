@@ -64,11 +64,6 @@ void RosTargetManager::update(const double& dt)
       TargetManager::update(id,dt); // Predict
     }
 
-    ROS_WARN_STREAM("Expiration Time: " << expiration_time_);
-    ROS_WARN_STREAM("Last Meas Time: " << last_meas_time);
-    ROS_WARN_STREAM("Current Time: " << ros_t_.toSec() );
-    ROS_WARN_STREAM("Elapsed Time: " << (ros_t_.toSec() - last_meas_time) );
-
     if(last_meas_time > 0.0 && (ros_t_.toSec() - last_meas_time) >= expiration_time_) // Remove expired target
     {
       ROS_WARN_STREAM("Timeout for target "<<id);
