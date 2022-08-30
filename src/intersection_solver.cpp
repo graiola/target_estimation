@@ -16,7 +16,7 @@ double Solver::lowestRealRoot(const Eigen::VectorXd &coeffs) {
   return r;
 }
 
-IntersectionSolver::IntersectionSolver(RosTargetManager::Ptr target_manager, const unsigned int filters_length)
+IntersectionSolver::IntersectionSolver(TargetManager::Ptr target_manager, const unsigned int filters_length)
 {
   assert(target_manager);
   target_manager_ = target_manager;
