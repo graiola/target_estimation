@@ -96,11 +96,10 @@ public:
   inline void update(const geometry_msgs::TransformStamped& tr)
   {
     double current_time_stamp = 0.0;
+    double prev_time_stamp = 0.0;
     meas_lock_.lock();
-//    current_time_stamp = toSec(tr.header.stamp.sec,tr.header.stamp.nsec);
-//    prev_time_stamp = toSec(tr_.header.stamp.sec,tr_.header.stamp.nsec);
-    current_time_stamp = tr.header.stamp.toSec();
-    prev_time_stamp = tr_.header.stamp.toSec();
+    current_time_stamp = toSec(tr.header.stamp.sec,tr.header.stamp.nsec);
+    prev_time_stamp = toSec(tr_.header.stamp.sec,tr_.header.stamp.nsec);
     if(current_time_stamp > prev_time_stamp) // New measurement
     {
       new_meas_ = true;
@@ -113,6 +112,8 @@ public:
     tr_ = tr; // Save the measurement w.r.t observer
     meas_lock_.unlock();
   }
+
+
 
   double getTime() const
   {
