@@ -5,7 +5,7 @@
 using namespace std;
 
 RosTargetManager::RosTargetManager(ros::NodeHandle& nh):
-  TargetManager (),
+  TargetManager(),
   token_name_("target"),
   t_(0.0),
   expiration_time_(1000.0) // Dummy value
