@@ -60,7 +60,7 @@ public:
 
   typedef std::shared_ptr<IntersectionSolver> Ptr;
 
-  IntersectionSolver(RosTargetManager::Ptr target_manager, const unsigned int filters_length = 250);
+  IntersectionSolver(TargetManager::Ptr target_manager, const unsigned int filters_length = 250);
 
   /**
      * @brief getIntersectionTimeWithSphere
@@ -92,7 +92,7 @@ private:
     /**
        * @brief target_manager_ Target manager
        */
-  RosTargetManager::Ptr target_manager_;
+  TargetManager::Ptr target_manager_;
 
   /**
      * @brief solver_ Polynomial solver
