@@ -31,6 +31,21 @@ include_directories(
  ${catkin_INCLUDE_DIRS}
 )
 
+## If ${roscpp_FOUND} find_package again and include directories to override the previous search
+if (${roscpp_FOUND})
+    message(STATUS "${Yellow}ROS found, compiling ros dependent code${ColorReset}")
+    find_package(catkin REQUIRED COMPONENTS roscpp geometry_msgs tf rostest)
+
+    catkin_package(
+        INCLUDE_DIRS include
+        CATKIN_DEPENDS roscpp geometry_msgs tf
+        LIBRARIES target kalman target_c target_ros
+    )
+
+    include_directories(include ${YAMLCPP_INCLUDE_DIRS} ${EIGEN_INCLUDE_DIRS} ${catkin_INCLUDE_DIRS} ${rt_logger_INCLUDE_DIRS})
+endif()
+
+## ROS-unrelated Libraries and Executables
 add_library(kalman SHARED
   src/kalman.cpp
 )
@@ -60,16 +75,8 @@ install(TARGETS target target_c kalman
         PUBLIC_HEADER DESTINATION include
 )
 
+## ROS-related Libraries and Executables
 if (${roscpp_FOUND})
-    message(STATUS "${Yellow}ROS found, compiling ros dependent code${ColorReset}")
-    find_package(catkin REQUIRED COMPONENTS roscpp geometry_msgs tf rostest)
-
-    catkin_package(
-        LIBRARIES target_ros
-        INCLUDE_DIRS include
-    )
-
-    include_directories(include ${YAMLCPP_INCLUDE_DIRS} ${EIGEN_INCLUDE_DIRS} ${catkin_INCLUDE_DIRS} ${rt_logger_INCLUDE_DIRS})
 
     add_library(target_ros src/target_manager_ros.cpp)
     target_link_libraries(target_ros target ${catkin_LIBRARIES} ${rt_logger_LIBRARIES})
@@ -115,4 +122,3 @@ if (${roscpp_FOUND})
    endif()
 
 endif()
-
