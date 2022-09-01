@@ -105,3 +105,39 @@ bool IntersectionSolver::getIntersectionPoseWithSphere(const unsigned int& id, c
   }
   return converged;
 }
+
+bool IntersectionSolver::getIntersectionPoseAndtimeWithSphere(const unsigned int& id, const double& t1, const double& pos_th, const double& ang_th,
+                                          const Eigen::Vector3d& origin, const double& radius,
+                                          Eigen::Vector7d& intersection_pose, double& delta_intersect_t)
+{
+  assert(t1>=0.0);
+  assert(pos_th>=0.0);
+  assert(ang_th>=0.0);
+  bool converged = false;
+  initPose(intersection_pose);
+
+  delta_intersect_t = getIntersectionTimeWithSphere(id,t1,origin,radius);
+  if (delta_intersect_t > -1)
+  {
+    Eigen::Quaterniond q1, q2;
+    intersection_pose = target_manager_->getTarget(id)->getEstimatedPose(delta_intersect_t+t1);
+    double pos_error = (POSE_pos(intersection_pose) - POSE_pos(intersection_pose_prev_)).norm();
+    q1.coeffs() = POSE_quat(intersection_pose);
+    q2.coeffs() = POSE_quat(intersection_pose_prev_);
+    q1.normalize();
+    q2.normalize();
+    double ang_error = std::abs(wrapMinMax(computeQuaternionErrorAngle(q1,q2), -M_PI, M_PI));
+
+    // Check if errors converged  using a moving average filter
+    double pos_error_filt = pos_error_filter_->update(pos_error);
+    double ang_error_filt = ang_error_filter_->update(ang_error);
+
+    // Save the value
+    intersection_pose_prev_ = intersection_pose;
+
+    if(pos_error_filt <= pos_th && ang_error_filt <= ang_th)
+      converged = true;
+
+  }
+  return converged;
+}

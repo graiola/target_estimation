@@ -86,6 +86,22 @@ public:
   bool getIntersectionPoseWithSphere(const unsigned int& id, const double& t1, const double& pos_th, const double& ang_th,
                                      const Eigen::Vector3d& origin, const double& radius, Eigen::Vector7d& intersection_pose);
 
+  /**
+   * @brief getIntersectionPoseAndtimeWithSphere
+   * @param id
+   * @param t1
+   * @param pos_th
+   * @param ang_th
+   * @param origin
+   * @param radius
+   * @param intersection_pose
+   * @param delta_intersect_t
+   * @return true if an intersection pose of Target(id) with a sphere at the given origin and radius exists, false otherwise.
+   */
+  bool getIntersectionPoseAndtimeWithSphere(const unsigned int& id, const double& t1, const double& pos_th, const double& ang_th,
+                                            const Eigen::Vector3d& origin, const double& radius,
+                                            Eigen::Vector7d& intersection_pose, double& delta_intersect_t);
+
 
 private:
 
