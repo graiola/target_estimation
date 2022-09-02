@@ -28,11 +28,17 @@ void RosTargetManager::measurementCallBack(const tf2_msgs::TFMessage::ConstPtr& 
   for(unsigned int i = 0; i< pose_msg->transforms.size(); i++)
   {
     const std::string& current_tf_name = pose_msg->transforms[i].child_frame_id;
-    if(current_tf_name.find(token_name_) != std::string::npos)
+
+    // Add second comparison in order not to consider the filetered pose as a measurement
+    if(current_tf_name.find(token_name_) != std::string::npos && current_tf_name.find("_filt_") == std::string::npos )
     {
-      unsigned int id;
-      if(!getId(current_tf_name,id)) // If we don't have a correct id
-        break;
+      unsigned int id{0};
+
+      if(use_token_name_with_uint_id_)
+      {
+        if(!getId(current_tf_name,id)) // we don't have a correct id (target_name = token_id)
+          break;
+      }
       measurements_[id].update(pose_msg->transforms[i]);
     }
   }
@@ -91,9 +97,10 @@ void RosTargetManager::update(const double& dt)
   log();
 }
 
-void RosTargetManager::setTargetTokenName(const string& token_name)
+void RosTargetManager::setTargetTokenName(const string& token_name, const bool& token_with_uint_id)
 {
   token_name_ = token_name;
+  use_token_name_with_uint_id_ = token_with_uint_id;
 }
 
 void RosTargetManager::setExpirationTime(double time)

@@ -145,7 +145,13 @@ public:
 
   void update(const double& dt) override;
 
-  void setTargetTokenName(const std::string& token_name);
+  /**
+   * @brief setTargetTokenName
+   * @param token_name
+   * @param toked_with_uint_id set True if you want a target_name = token_id; set False if you want a target_name = token.
+   * NOTE: the latter solution is applicable only to single target applications
+   */
+  void setTargetTokenName(const std::string& token_name, const bool& toked_with_uint_id = true);
 
   void setExpirationTime(double time);
 
@@ -166,6 +172,7 @@ private:
   Eigen::MatrixXd R_;
 
   std::string token_name_;
+  bool use_token_name_with_uint_id_{true};
 
   double t_;
 
