@@ -49,6 +49,8 @@ public:
    */
     TargetManager(const std::string& file);
 
+    virtual ~TargetManager() = default;
+
     /**
    * @brief init  Initialize a new target with default covariance matrices and type
    * @param id    Target's id
@@ -120,7 +122,7 @@ public:
    * @brief update perform a predict step with all the filters.
    * @param dt
    */
-    void update(const double& dt);
+    virtual void update(const double& dt);
 
     /**
    * @brief erase the target id
@@ -200,7 +202,7 @@ public:
    */
     bool selectTargetType(const std::string& type_str, target_t& type);
 
-private:
+protected:
 
     /**
    * @brief parseSquareMatrix

@@ -113,6 +113,8 @@ public:
     meas_lock_.unlock();
   }
 
+
+
   double getTime() const
   {
     return last_meas_time_;
@@ -131,14 +133,16 @@ private:
   std::mutex meas_lock_;
 };
 
-class RosTargetManager
+class RosTargetManager : public TargetManager
 {
 
 public:
 
   RosTargetManager(ros::NodeHandle& nh);
 
-  void update(const double& dt);
+  ~RosTargetManager() override = default;
+
+  void update(const double& dt) override;
 
   void setTargetTokenName(const std::string& token_name);
 
@@ -155,7 +159,6 @@ private:
   ros::NodeHandle nh_;
   ros::Subscriber meas_subscriber_;
 
-  TargetManager manager_;
   TargetManager::target_t type_;
   Eigen::MatrixXd Q_;
   Eigen::MatrixXd P_;

@@ -5,13 +5,15 @@
 using namespace std;
 
 RosTargetManager::RosTargetManager(ros::NodeHandle& nh):
+  TargetManager (),
   token_name_("target"),
   t_(0.0),
   expiration_time_(1000.0) // Dummy value
 {
   // subscribe to /tf topic
   nh_ = nh;
-  meas_subscriber_ = nh_.subscribe("/tf", 1 , &RosTargetManager::measurementCallBack, this);
+  std::string meas_topic_name{"/tf"};
+  meas_subscriber_ = nh_.subscribe(meas_topic_name, 1 , &RosTargetManager::measurementCallBack, this);
 
   // Load the parameters for initializing the KF
   if(!parseSquareMatrix(nh_,"Q",Q_) || !parseSquareMatrix(nh_,"R",R_) || !parseSquareMatrix(nh_,"P",P_))
@@ -44,35 +46,41 @@ void RosTargetManager::update(const double& dt)
   auto it = measurements_.begin();
   while (it != measurements_.end())
   {
-    int id = it->first;
+    unsigned int id = it->first;
     double last_meas_time = it->second.getTime();
     if(it->second.read(tmp_tr_))
     {
       transformStampedToPose7d(tmp_tr_,tmp_vector7d_);
-      if(manager_.getTarget(id)==nullptr) // Target does not exist, create it
-        manager_.init(type_,id,dt,t_,Q_,R_,P_,tmp_vector7d_);
-      manager_.update(id,dt,tmp_vector7d_); // Estimate
+      if(getTarget(id)==nullptr)
+      {
+        // Target does not exist, create it
+        init(type_,id,dt,t_,Q_,R_,P_,tmp_vector7d_);
+      }
+      TargetManager::update(id,dt,tmp_vector7d_); // Estimate
+
     }
     else
-      manager_.update(id,dt); // Predict
+    {
+      TargetManager::update(id,dt); // Predict
+    }
 
     if(last_meas_time > 0.0 && (ros_t_.toSec() - last_meas_time) >= expiration_time_) // Remove expired target
     {
       ROS_WARN_STREAM("Timeout for target "<<id);
       it = measurements_.erase(it);
-      manager_.erase(id);
+      erase(id);
     }
     else {
       ++it;
     }
   }
 
-  auto target_ids = manager_.getAvailableTargets();
+  auto target_ids = getAvailableTargets();
 
   // Publish the target's filtered poses
   for(unsigned int i=0;i<target_ids.size();i++)
   {
-    manager_.getTargetPose(target_ids[i],tmp_vector7d_);
+    getTargetPose( target_ids[i], tmp_vector7d_);
     pose7dToTFTransform(tmp_vector7d_,tmp_tf_tr_);
     const std::string reference_frame = measurements_[target_ids[i]].getFrameId();
     br_.sendTransform(tf::StampedTransform(tmp_tf_tr_,ros_t_,reference_frame,token_name_+"_filt_"+to_string(target_ids[i])));
@@ -80,7 +88,7 @@ void RosTargetManager::update(const double& dt)
 
   t_= t_ + dt;
 
-  manager_.log();
+  log();
 }
 
 void RosTargetManager::setTargetTokenName(const string& token_name)
@@ -116,7 +124,7 @@ bool RosTargetManager::parseTargetType(const ros::NodeHandle& n, TargetManager::
   std::string type_str;
   if (n.getParam("type", type_str))
   {
-    if(manager_.selectTargetType(type_str,type))
+    if( selectTargetType(type_str,type) )
       return true;
     else
       return false;
