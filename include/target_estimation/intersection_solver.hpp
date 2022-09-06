@@ -127,11 +127,18 @@ private:
   Eigen::Vector3d pos_tmp_;
   Eigen::Vector3d vel_tmp_;
   Eigen::Vector3d acc_tmp_;
+  Eigen::Quaterniond q1_tmp_;
+  Eigen::Quaterniond q2_tmp_;
 
   /**
      * @brief Previous saved intersection pose
      */
   Eigen::Vector7d intersection_pose_prev_;
+
+  /**
+  * @brief Polynomial coefficients
+  */
+  Eigen::VectorXd coeff_;
 
 };
 
