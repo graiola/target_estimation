@@ -25,6 +25,17 @@ IntersectionSolver::IntersectionSolver(TargetManager::Ptr target_manager, const 
   pos_error_filter_.reset(new MovingAvgFilter(filters_length));
   ang_error_filter_.reset(new MovingAvgFilter(filters_length));
 
+  // 5 coefficients for a 2rd order system
+  coeff_.resize(5);
+  coeff_.setZero();
+
+  // Reset tmp variables
+  q1_tmp_.normalize();
+  q2_tmp_.normalize();
+  pos_tmp_.setZero();
+  vel_tmp_.setZero();
+  acc_tmp_.setZero();
+
   initPose(intersection_pose_prev_);
 }
 
@@ -49,18 +60,25 @@ double IntersectionSolver::getIntersectionTimeWithSphere(const unsigned int& id,
     double az = acc_tmp_(2);
     double R = radius;
 
-    // Polynomial coefficients
-    Eigen::VectorXd coeff;
-
+    //if(acceleration_on_)
+    //{
     // 2rd order system
-    coeff.resize(5);
-    coeff(4) = 0.25 * ax*ax + ay*ay + az*az;
-    coeff(3) = vx*ax + vy*ay + vz*az;
-    coeff(2) = vx*vx + vy*vy + vz*vz + x*ax + y*ay + z*az;
-    coeff(1) = 2*(x*vx + y*vy + z*vz);
-    coeff(0) = x*x + y*y + z*z - R*R;
+    coeff_(4) = 0.25 * ax*ax + ay*ay + az*az;
+    coeff_(3) = vx*ax + vy*ay + vz*az;
+    coeff_(2) = vx*vx + vy*vy + vz*vz + x*ax + y*ay + z*az;
+    coeff_(1) = 2*(x*vx + y*vy + z*vz);
+    coeff_(0) = x*x + y*y + z*z - R*R;
+    //}
+    //else
+    //{
+    //  // 1st order system
+    //  coeff.resize(3);
+    //  coeff(2) = vx*vx + vy*vy + vz*vz;
+    //  coeff(1) = 2*(x*vx + y*vy + z*vz);
+    //  coeff(0) = x*x + y*y + z*z - R*R;
+    //}
 
-    double delta_intersect_t = solver_.lowestRealRoot(coeff);
+    double delta_intersect_t = solver_.lowestRealRoot(coeff_);
 
     if(delta_intersect_t < 0) return -1;
 
@@ -83,14 +101,13 @@ bool IntersectionSolver::getIntersectionPoseWithSphere(const unsigned int& id, c
   delta_intersect_t = getIntersectionTimeWithSphere(id,t1,origin,radius);
   if (delta_intersect_t > -1)
   {
-    Eigen::Quaterniond q1, q2;
     intersection_pose = target_manager_->getTarget(id)->getEstimatedPose(delta_intersect_t+t1);
     double pos_error = (POSE_pos(intersection_pose) - POSE_pos(intersection_pose_prev_)).norm();
-    q1.coeffs() = POSE_quat(intersection_pose);
-    q2.coeffs() = POSE_quat(intersection_pose_prev_);
-    q1.normalize();
-    q2.normalize();
-    double ang_error = std::abs(wrapMinMax(computeQuaternionErrorAngle(q1,q2), -M_PI, M_PI));
+    q1_tmp_.coeffs() = POSE_quat(intersection_pose);
+    q2_tmp_.coeffs() = POSE_quat(intersection_pose_prev_);
+    q1_tmp_.normalize();
+    q2_tmp_.normalize();
+    double ang_error = std::abs(wrapMinMax(computeQuaternionErrorAngle(q1_tmp_,q2_tmp_), -M_PI, M_PI));
 
     // Check if errors converged  using a moving average filter
     double pos_error_filt = pos_error_filter_->update(pos_error);
