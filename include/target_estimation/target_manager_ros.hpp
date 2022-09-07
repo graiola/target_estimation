@@ -48,7 +48,7 @@ inline void transformStampedToPose7d(const geometry_msgs::TransformStamped& t, E
 inline void pose7dToTFTransform(const Eigen::Vector7d& e, tf::Transform& t)
 {
   t.setOrigin(tf::Vector3(e(0),e(1),e(2)));
-  t.setRotation(tf::Quaternion(e(3),e(4),e(5),e(6)));
+  t.setRotation(tf::Quaternion(e(3),e(4),e(5),e(6)).normalize());
 }
 
 inline void isometryToTFTransform(const Eigen::Isometry3d& e, tf::Transform& t)
