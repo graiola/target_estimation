@@ -63,7 +63,7 @@ double IntersectionSolver::getIntersectionTimeWithSphere(const unsigned int& id,
     //if(acceleration_on_)
     //{
     // 2rd order system
-    coeff_(4) = 0.25 * ax*ax + ay*ay + az*az;
+    coeff_(4) = 0.25 * ( ax*ax + ay*ay + az*az );
     coeff_(3) = vx*ax + vy*ay + vz*az;
     coeff_(2) = vx*vx + vy*vy + vz*vz + x*ax + y*ay + z*az;
     coeff_(1) = 2*(x*vx + y*vy + z*vz);
