@@ -30,15 +30,20 @@ void RosTargetManager::measurementCallBack(const tf2_msgs::TFMessage::ConstPtr& 
     const std::string& current_tf_name = pose_msg->transforms[i].child_frame_id;
 
     // Add second comparison in order not to consider the filetered pose as a measurement
-    if(current_tf_name.find(token_name_) != std::string::npos && current_tf_name.find("_filt_") == std::string::npos )
+    if(current_tf_name.find(token_name_) != std::string::npos && current_tf_name.find("filt") == std::string::npos )
     {
-      unsigned int id{0};
+      unsigned int id;
 
       if(use_token_name_with_uint_id_)
       {
         if(!getId(current_tf_name,id)) // we don't have a correct id (target_name = token_id)
           break;
       }
+      else
+      {
+        id = 0;
+      }
+
       measurements_[id].update(pose_msg->transforms[i]);
     }
   }
