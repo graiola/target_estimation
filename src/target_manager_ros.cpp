@@ -19,6 +19,20 @@ RosTargetManager::RosTargetManager(ros::NodeHandle& nh):
   if(!parseSquareMatrix(nh_,"Q",Q_) || !parseSquareMatrix(nh_,"R",R_) || !parseSquareMatrix(nh_,"P",P_))
     throw std::runtime_error("Can not load the Cov Matrices!");
 
+  if( !parseVector(nh_, "v0", v0_) )
+  {
+    ROS_ERROR("[RosTargetManager::RosTargetManager] Cannot Find initial value of velocity. Set to zero.");
+    v0_.resize(Q_.cols(), 1);
+    v0_.setZero();
+  }
+
+  if( !parseVector(nh_, "a0", a0_) )
+  {
+    ROS_ERROR("[RosTargetManager::RosTargetManager] Cannot Find initial value acceleration. Set to zero.");
+    a0_.resize(Q_.cols(), 1);
+    a0_.setZero();
+  }
+
   if(!parseTargetType(nh_,type_))
     throw std::runtime_error("Can not load filter type!");
 }
@@ -54,7 +68,7 @@ void RosTargetManager::update(const double& dt)
       if(getTarget(id)==nullptr)
       {
         // Target does not exist, create it
-        init(type_,id,dt,t_,Q_,R_,P_,tmp_vector7d_);
+        init(type_,id,dt,t_,Q_,R_,P_,tmp_vector7d_,v0_,a0_);
       }
       TargetManager::update(id,dt,tmp_vector7d_); // Estimate
 
@@ -113,6 +127,23 @@ bool RosTargetManager::parseSquareMatrix(const ros::NodeHandle& n, const std::st
   else
   {
     ROS_ERROR_STREAM("Can not find matrix: "<<matrix);
+    return false;
+  }
+
+  return true;
+}
+
+bool RosTargetManager::parseVector(const ros::NodeHandle& n, const std::string& vector, Eigen::VectorXd& v)
+{
+  std::vector<double> v_tmp;
+  if (n.getParam(vector, v_tmp))
+  {
+    unsigned int size = static_cast<unsigned int>(v_tmp.size());
+    v = Eigen::Map<Eigen::MatrixXd>(v_tmp.data(),size,1);
+  }
+  else
+  {
+    ROS_ERROR_STREAM("Can not find matrix: "<<vector);
     return false;
   }
 

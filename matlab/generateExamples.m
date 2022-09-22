@@ -10,7 +10,9 @@ sigma_m = [0.01 0.01 0.01 0.1 0.1 0.1]; %[m m m rad rad rad]
 % Expected initial error
 I = ones(1,3);
 sigma_p = [0.1*I 0.01*I 0.01*I 0.01*I 0.01*I 0.01*I]; %[m rad m/s rad/s m/s^2 rad/s^2]
-generateModel(type, frequency, sigma_ddot, sigma_m, sigma_p, accelerations)
+v0 = zeros(6,1);
+a0 = zeros(6,1);
+generateModel(type, frequency, sigma_ddot, sigma_m, sigma_p, accelerations, v0, a0)
 
 %% Angular velocities
 % Params
@@ -24,7 +26,9 @@ sigma_m = [0.01 0.01 0.01 0.1 0.1 0.1]; %[m m m rad rad rad]
 % Expected initial error
 I = ones(1,3);
 sigma_p = [0.1*I 0.01*I 0.01*I 0.01*I]; %[m rad m/s rad/s]
-generateModel(type, frequency, sigma_ddot, sigma_m, sigma_p, accelerations)
+v0 = zeros(6,1);
+a0 = zeros(6,1);
+generateModel(type, frequency, sigma_ddot, sigma_m, sigma_p, accelerations, v0, a0)
 
 %% Uniform acceleration
 % Params
@@ -37,7 +41,10 @@ sigma_ddot = [1e-3 1e-3 1e-3]; %[m/s^2 m/s^2 m/s^2]
 sigma_m = [0.01 0.01 0.01]; %[m m m]
 % Expected initial error
 sigma_p = [0.1 0.1 0.1 0.01 0.01 0.01 0.001 0.001 0.001]; %[m m m m/s m/s m/s m/s^2 m/s^2 m/s^2]
-generateModel(type, frequency, sigma_ddot, sigma_m, sigma_p, accelerations)
+v0 = zeros(6,1);
+a0 = zeros(6,1);
+a0(3) = -9.81;
+generateModel(type, frequency, sigma_ddot, sigma_m, sigma_p, accelerations, v0, a0)
 
 %% Uniform velocity
 % Params
@@ -50,4 +57,6 @@ sigma_ddot = [1e-3 1e-3 1e-3]; %[m/s^2 m/s^2 m/s^2]
 sigma_m = [0.01 0.01 0.01]; %[m m m]
 % Expected initial error
 sigma_p = [0.1 0.1 0.1 0.01 0.01 0.01]; %[m m m m/s m/s m/s]
+v0 = zeros(6,1);
+a0 = zeros(6,1);
 generateModel(type, frequency, sigma_ddot, sigma_m, sigma_p, accelerations)
