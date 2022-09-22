@@ -1,4 +1,4 @@
-function [ ] = model2yaml( frequency, type, Q, R, P)
+function [ ] = model2yaml( frequency, type, Q, R, P, v0, a0)
 
 %% Save to yaml file
 %CLK=clock;
@@ -31,5 +31,6 @@ fclose(file);
 matlab2yaml(Q,'Q',file_name,'a');
 matlab2yaml(R,'R',file_name,'a');
 matlab2yaml(P,'P',file_name,'a');
-
+matlab2yaml(v0,'v0',file_name,'a');
+matlab2yaml(a0,'a0',file_name,'a');
 end

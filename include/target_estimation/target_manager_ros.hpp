@@ -161,6 +161,7 @@ private:
 
   void measurementCallBack(const tf2_msgs::TFMessage::ConstPtr& pose_msg);
   bool parseSquareMatrix(const ros::NodeHandle& n, const std::string& matrix, Eigen::MatrixXd& M);
+  bool parseVector(const ros::NodeHandle& n, const std::string& vector, Eigen::VectorXd& v);
   bool parseTargetType(const ros::NodeHandle& n, TargetManager::target_t& type);
 
   ros::NodeHandle nh_;
@@ -170,6 +171,8 @@ private:
   Eigen::MatrixXd Q_;
   Eigen::MatrixXd P_;
   Eigen::MatrixXd R_;
+  Eigen::VectorXd v0_;
+  Eigen::VectorXd a0_;
 
   std::string token_name_;
   bool use_token_name_with_uint_id_{true};
