@@ -137,6 +137,7 @@ bool IntersectionSolver::getIntersectionPoseAndtimeWithSphere(const unsigned int
   delta_intersect_t = getIntersectionTimeWithSphere(id,t1,origin,radius);
   if (delta_intersect_t > -1)
   {
+    ROS_WARN("[ IntersectionSolver::getIntersectionPoseAndtimeWithSphere ] Intersection Time: %f", delta_intersect_t);
     Eigen::Quaterniond q1, q2;
     intersection_pose = target_manager_->getTarget(id)->getEstimatedPose(delta_intersect_t+t1);
 
@@ -155,7 +156,14 @@ bool IntersectionSolver::getIntersectionPoseAndtimeWithSphere(const unsigned int
     intersection_pose_prev_ = intersection_pose;
 
     if(pos_error_filt <= pos_th && ang_error_filt <= ang_th)
+    {
       converged = true;
+      ROS_INFO("[ IntersectionSolver::getIntersectionPoseAndtimeWithSphere ] Pos Error flt: %f - Orientation Error flt: %f",
+               pos_error_filt, ang_error_filt);
+
+      ROS_WARN( "[ IntersectionSolver::getIntersectionPoseAndtimeWithSphere ] Intersection Position: %f %f %f",
+                     intersection_pose(0), intersection_pose(1), intersection_pose(2) );
+    }
 
   }
   return converged;
