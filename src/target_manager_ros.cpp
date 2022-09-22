@@ -53,6 +53,7 @@ void RosTargetManager::update(const double& dt)
 {
 
   ros_t_ = ros::Time::now();
+  t_ = ros_t_.now().toSec();
 
   auto it = measurements_.begin();
   while (it != measurements_.end())
@@ -97,7 +98,7 @@ void RosTargetManager::update(const double& dt)
     br_.sendTransform(tf::StampedTransform(tmp_tf_tr_,ros_t_,reference_frame,token_name_+"_filt_"+to_string(target_ids[i])));
   }
 
-  t_= t_ + dt;
+//  t_= t_ + dt;
 
   log();
 }
