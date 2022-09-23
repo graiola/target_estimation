@@ -146,10 +146,6 @@ void TargetManager::init(const target_t& type, const unsigned int& id, const dou
                          const Eigen::Vector7d& p0, const Eigen::Vector6d& v0, const Eigen::Vector6d& a0)
 
 {
-
-    Eigen::Vector6d ag = a0;
-    ag(2) = - GRAVITY;
-
     lock_guard<mutex> lg(target_lock_);
 
     if(targets_.find(id) == targets_.end()) {

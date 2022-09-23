@@ -1,10 +1,21 @@
-function [ ] = generateModel( type, frequency, sigma_ddot, sigma_m, sigma_p, accelerations = false)
+function [ ] = generateModel( type, frequency, sigma_ddot, sigma_m, sigma_p, accelerations, varargin)
 
 f = frequency; % [Hz]
 dt = 1.0/f; % [s]
 n = length(sigma_p);
 m = length(sigma_m);
+v0 = []; a0 = [];
 
+if nargin <= 6
+    v0 = zeros(1,6);
+    a0 = zeros(1,6);
+elseif nargin == 7
+    v0 = varargin{1};
+    a0 = zeros(1,6);
+elseif nargin == 8
+    v0 = varargin{1};
+    a0 = varargin{2};
+end % if
 %% Compute the Q matrix (process noise) starting from the estimated std of the acceleration white noise
 Sigma_a = diag(sigma_ddot);
 
@@ -46,6 +57,6 @@ if size(P) ~= [n,n]
 end
 
 %% Save to yaml file
-model2yaml(f,type,Q,R,P)
+model2yaml(f,type,Q,R,P,v0,a0)
 
 end
